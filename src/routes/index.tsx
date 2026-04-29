@@ -1,13 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { WelcomeScreen } from "@/components/form/WelcomeScreen";
 import { ContactScreen } from "@/components/form/ContactScreen";
-import { CityScreen } from "@/components/form/CityScreen";
-import { SizeScreen } from "@/components/form/SizeScreen";
-import { TimelineScreen } from "@/components/form/TimelineScreen";
-import { BudgetScreen } from "@/components/form/BudgetScreen";
-import { SubmittingScreen } from "@/components/form/SubmittingScreen";
-import { SuccessScreen } from "@/components/form/SuccessScreen";
+import { CityScreen, SizeScreen, TimelineScreen, BudgetScreen, SubmittingScreen, SuccessScreen } from "@/components/form/CityScreen";
 import { useFormStore } from "@/store/useFormStore";
+import { Progress } from "@/components/ui/progress";
+import { ArrowLeft } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
