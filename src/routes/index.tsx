@@ -7,10 +7,6 @@ import { Progress } from "@/components/ui/progress";
 import { ArrowLeft } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
-import { Progress } from "@/components/ui/progress";
-import { ArrowLeft } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
-
 export const Route = createFileRoute("/")({
   component: Index,
 });
