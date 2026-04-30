@@ -304,9 +304,9 @@ function AdminPage() {
                       {l.cidade} <span className="text-muted-foreground">/ {l.estado}</span>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      <div>{LABELS.tamanho_quintal[l.tamanho_quintal] ?? l.tamanho_quintal}</div>
-                      <div>{LABELS.prazo_compra[l.prazo_compra] ?? l.prazo_compra}</div>
-                      <div>{LABELS.orcamento[l.orcamento] ?? l.orcamento}</div>
+                      <div>{(l.tamanho_quintal && LABELS.tamanho_quintal[l.tamanho_quintal as keyof typeof LABELS.tamanho_quintal]) || l.tamanho_quintal}</div>
+                      <div>{(l.prazo_compra && LABELS.prazo_compra[l.prazo_compra as keyof typeof LABELS.prazo_compra]) || l.prazo_compra}</div>
+                      <div>{(l.orcamento && LABELS.orcamento[l.orcamento as keyof typeof LABELS.orcamento]) || l.orcamento}</div>
                     </TableCell>
                     <TableCell>
                       <span
