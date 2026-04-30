@@ -21,19 +21,18 @@ export const Route = createFileRoute("/_authenticated")({
       });
     }
 
-    // Role verification with retry/fallback logic
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
+    const { data: roles, error: rolesError } = await supabase
+      .from("user_roles")
       .select("role")
-      .eq("id", session.user.id)
-      .maybeSingle();
+      .eq("user_id", session.user.id)
+      .in("role", ["master", "admin"]);
 
-    if (profileError) {
-      console.error("Erro ao buscar perfil:", profileError);
+    if (rolesError) {
+      console.error("Erro ao buscar permissões:", rolesError);
       throw redirect({ to: "/login" });
     }
 
-    if (!profile || (profile.role !== "master" && profile.role !== "admin")) {
+    if (!roles?.length) {
       console.error("Acesso negado: Usuário sem permissões administrativas.");
       await supabase.auth.signOut();
       throw redirect({ to: "/login" });
