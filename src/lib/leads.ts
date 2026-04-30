@@ -25,9 +25,9 @@ export const ORCAMENTO_OPTIONS = [
 ] as const;
 
 export const LABELS = {
-  tamanho_quintal: Object.fromEntries(TAMANHO_OPTIONS.map((o) => [o.value, o.label])),
-  prazo_compra: Object.fromEntries(PRAZO_OPTIONS.map((o) => [o.value, o.label])),
-  orcamento: Object.fromEntries(ORCAMENTO_OPTIONS.map((o) => [o.value, o.label])),
+  tamanho_quintal: Object.fromEntries(TAMANHO_OPTIONS.map((o) => [o.value as string, o.label])),
+  prazo_compra: Object.fromEntries(PRAZO_OPTIONS.map((o) => [o.value as string, o.label])),
+  orcamento: Object.fromEntries(ORCAMENTO_OPTIONS.map((o) => [o.value as string, o.label])),
 } as const;
 
 const PRAZO_SCORE: Record<string, number> = {

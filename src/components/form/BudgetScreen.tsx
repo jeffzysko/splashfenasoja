@@ -8,5 +8,9 @@ export const BudgetScreen = () => (
     field="orcamento"
     nextStep={6}
     options={ORCAMENTO_OPTIONS.map((o) => ({ ...o }))}
+    validation={{
+      required: true,
+      options: ORCAMENTO_OPTIONS.map(o => o.value)
+    }}
   />
 );

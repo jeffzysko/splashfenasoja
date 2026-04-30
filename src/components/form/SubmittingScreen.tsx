@@ -50,9 +50,12 @@ export const SubmittingScreen = () => {
 
         setSubmitted({ leadId, score, temperatura });
         setTimeout(() => setStep(7), 700);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Erro ao salvar lead:", err);
-        toast.error("Ops, algo deu errado. Tenta de novo?");
+        const errorMessage = err.message || "Algo deu errado";
+        toast.error(`Não conseguimos salvar: ${errorMessage}. Tenta de novo?`, {
+          duration: 5000,
+        });
         setStep(5);
       }
     };

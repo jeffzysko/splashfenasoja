@@ -11,6 +11,10 @@ interface OptionScreenProps {
   options: { value: string; label: string; hint?: string; emoji?: string }[];
   field: OptionField;
   nextStep: number;
+  validation?: {
+    required?: boolean;
+    options?: string[];
+  };
 }
 
 export const OptionScreen = ({
@@ -19,11 +23,16 @@ export const OptionScreen = ({
   options,
   field,
   nextStep,
+  validation,
 }: OptionScreenProps) => {
   const { data, updateData, setStep } = useFormStore();
   const selected = data[field];
 
   const choose = (value: string) => {
+    if (validation?.options && !validation.options.includes(value)) {
+      console.error(`Valor inválido selecionado para ${field}: ${value}`);
+      return;
+    }
     updateData({ [field]: value } as Partial<LeadData>);
     setTimeout(() => setStep(nextStep), 240);
   };
