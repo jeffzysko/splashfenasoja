@@ -17,11 +17,14 @@ export const Route = createFileRoute("/login")({
   beforeLoad: async ({ search }) => {
     const { data } = await supabase.auth.getSession();
     if (data.session) {
+      // If already logged in, redirect to admin unless explicitly going somewhere else
       const dest = search.redirect || "/admin";
-      // Avoid redirecting to the login page itself if something is wrong
-      if (dest.includes("/login")) {
+      
+      // If the destination is the login page itself, always go to admin to break loop
+      if (dest === "/login" || dest.split("?")[0] === "/login") {
         throw redirect({ to: "/admin" });
       }
+      
       throw redirect({ to: dest });
     }
   },

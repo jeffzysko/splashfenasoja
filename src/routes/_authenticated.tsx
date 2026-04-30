@@ -10,10 +10,16 @@ export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async ({ location }) => {
     const { data } = await supabase.auth.getSession();
     if (!data.session) {
+      // Get the current path to redirect back after login
+      const currentPath = location.pathname + location.search;
+      
+      // If we are already on login (shouldn't happen here but for safety), don't set redirect
+      const redirectPath = currentPath.includes("/login") ? undefined : currentPath;
+
       throw redirect({ 
         to: "/login", 
         search: { 
-          redirect: location.href.includes("/login") ? undefined : location.href 
+          redirect: redirectPath
         } 
       });
     }
