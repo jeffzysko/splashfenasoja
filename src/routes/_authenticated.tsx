@@ -37,6 +37,11 @@ export const Route = createFileRoute("/_authenticated")({
       await supabase.auth.signOut();
       throw redirect({ to: "/login" });
     }
+
+    // Redirect to /admin if the user is at the root authenticated path
+    if (location.pathname === "/") {
+      throw redirect({ to: "/admin" });
+    }
   },
   component: AuthenticatedLayout,
 });
