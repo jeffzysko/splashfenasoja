@@ -19,7 +19,10 @@ export const SubmittingScreen = () => {
           tamanho_quintal: data.tamanho_quintal,
         });
 
-        const leadId = crypto.randomUUID();
+        const leadId = typeof crypto.randomUUID === 'function' 
+          ? crypto.randomUUID() 
+          : Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
         const params = new URLSearchParams(window.location.search);
         
         const { error } = await supabase
