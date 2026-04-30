@@ -9,6 +9,7 @@ import { SubmittingScreen } from "@/components/form/SubmittingScreen";
 import { SuccessScreen } from "@/components/form/SuccessScreen";
 import { useFormStore } from "@/store/useFormStore";
 import { ArrowLeft } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { AnimatePresence, motion } from "framer-motion";
 
 export const Route = createFileRoute("/")({
