@@ -6,7 +6,6 @@ export const TAMANHO_OPTIONS = [
   { value: "3-5m", label: "Entre 3 e 5 metros", emoji: "📐" },
   { value: "5-7m", label: "Entre 5 e 7 metros", emoji: "🏡" },
   { value: ">7m", label: "Acima de 7 metros", emoji: "🏰" },
-  { value: "Não sei medir", label: "Não sei medir agora", emoji: "🤔" },
 ] as const;
 
 export const PRAZO_OPTIONS = [

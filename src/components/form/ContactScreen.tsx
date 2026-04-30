@@ -12,7 +12,10 @@ const schema = z.object({
   nome: z.string().trim().min(2, "A gente precisa do seu nome 🙂").max(80),
   whatsapp: z
     .string()
-    .regex(/^\(\d{2}\) \d{5}-\d{4}$/, "Hmm, esse número não parece certo. Confere o DDD?"),
+    .refine((v) => {
+      const digits = v.replace(/\D/g, "");
+      return digits.length === 10 || digits.length === 11;
+    }, "Hmm, esse número não parece certo. Confere o DDD?"),
   email: z
     .string()
     .trim()
@@ -25,7 +28,13 @@ const schema = z.object({
 const maskWhatsapp = (v: string) => {
   const d = v.replace(/\D/g, "").slice(0, 11);
   if (d.length <= 2) return d.length ? `(${d}` : "";
-  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  
+  if (d.length <= 10) {
+    // Formato Fixo: (99) 9999-9999
+    return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  }
+  // Formato Celular: (99) 99999-9999
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
 };
 
