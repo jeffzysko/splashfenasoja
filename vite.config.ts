@@ -1,17 +1,3 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import { TanStackRouterVite } from '@tanstack/router-plugin/vite';
-import tailwindcss from '@tailwindcss/vite';
+import { defineConfig } from '@lovable.dev/vite-tanstack-config';
 
-export default defineConfig({
-  plugins: [
-    react(),
-    TanStackRouterVite(),
-    tailwindcss(),
-  ],
-  resolve: {
-    alias: {
-      '@': '/src',
-    },
-  },
-});
+export default defineConfig();
