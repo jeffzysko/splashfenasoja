@@ -22,35 +22,20 @@ export const Route = createFileRoute("/_authenticated")({
     }
 
     // Role verification with retry/fallback logic
-    let { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", session.user.id)
       .maybeSingle();
 
-    // If profile doesn't exist but user is authenticated, handle it
-    if (!profile && !profileError) {
-      console.warn("Perfil não encontrado. Tentando criar perfil padrão...");
-      const { data: newProfile, error: createError } = await supabase
-        .from("profiles")
-        .insert([{ id: session.user.id, role: "admin", full_name: session.user.email?.split("@")[0] || "Usuário" }])
-        .select("role")
-        .single();
-      
-      if (!createError) {
-        profile = newProfile;
-      }
+    if (profileError) {
+      console.error("Erro ao buscar perfil:", profileError);
+      throw redirect({ to: "/login" });
     }
 
     if (!profile || (profile.role !== "master" && profile.role !== "admin")) {
-      console.error("Acesso negado: Usuário sem permissões administrativas.", profileError);
-      // Only sign out if we're sure they shouldn't have access
-      if (profile && profile.role !== "master" && profile.role !== "admin") {
-        await supabase.auth.signOut();
-        throw redirect({ to: "/login" });
-      }
-      // If profile error or missing, don't trap them in a loop if they might be valid
-      // But for security, if we can't confirm role, we must redirect
+      console.error("Acesso negado: Usuário sem permissões administrativas.");
+      await supabase.auth.signOut();
       throw redirect({ to: "/login" });
     }
   },
