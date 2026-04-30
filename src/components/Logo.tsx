@@ -17,13 +17,10 @@ export const Logo: React.FC<LogoProps> = ({
   return (
     <div className={cn("relative inline-block", className)} style={{ height }}>
       <img 
-        src="https://cdn.splashpiscinas.com/assets/img/logo-splash.svg" 
+        src="https://www.splashpiscinas.com/img/icon.svg" 
         alt="Splash Piscinas"
-        className="h-full w-auto"
-        onError={(e) => {
-          // Fallback if CDN is down or URL changes
-          e.currentTarget.src = "https://www.splashpiscinas.com/img/icon.svg";
-        }}
+        className="h-full w-auto block"
+        loading="eager"
       />
     </div>
   );
