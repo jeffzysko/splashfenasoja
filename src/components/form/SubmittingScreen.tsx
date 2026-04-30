@@ -19,10 +19,13 @@ export const SubmittingScreen = () => {
           tamanho_quintal: data.tamanho_quintal,
         });
 
+        const leadId = crypto.randomUUID();
         const params = new URLSearchParams(window.location.search);
-        const { data: inserted, error } = await supabase
+        
+        const { error } = await supabase
           .from("leads")
           .insert({
+            id: leadId,
             nome: data.nome.trim(),
             whatsapp: normalizeWhatsapp(data.whatsapp),
             email: data.email?.trim() || null,
@@ -38,12 +41,11 @@ export const SubmittingScreen = () => {
             utm_medium: params.get("utm_medium"),
             utm_campaign: params.get("utm_campaign"),
             user_agent: navigator.userAgent,
-          })
-          .select("id")
-          .single();
+          });
+
         if (error) throw error;
 
-        setSubmitted({ leadId: inserted.id, score, temperatura });
+        setSubmitted({ leadId, score, temperatura });
         setTimeout(() => setStep(7), 700);
       } catch (err) {
         console.error("Erro ao salvar lead:", err);
