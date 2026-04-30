@@ -159,17 +159,17 @@ function AdminPage() {
     ];
     const rows = filtered.map((l) => [
       new Date(l.created_at).toLocaleString("pt-BR"),
-      l.nome,
-      l.whatsapp,
+      l.nome || "",
+      l.whatsapp || "",
       l.email ?? "",
-      l.cidade,
-      l.estado,
-      LABELS.tamanho_quintal[l.tamanho_quintal] ?? l.tamanho_quintal,
-      LABELS.prazo_compra[l.prazo_compra] ?? l.prazo_compra,
-      LABELS.orcamento[l.orcamento] ?? l.orcamento,
-      l.score,
-      l.temperatura,
-      l.status,
+      l.cidade || "",
+      l.estado || "",
+      (l.tamanho_quintal && LABELS.tamanho_quintal[l.tamanho_quintal as keyof typeof LABELS.tamanho_quintal]) || l.tamanho_quintal || "",
+      (l.prazo_compra && LABELS.prazo_compra[l.prazo_compra as keyof typeof LABELS.prazo_compra]) || l.prazo_compra || "",
+      (l.orcamento && LABELS.orcamento[l.orcamento as keyof typeof LABELS.orcamento]) || l.orcamento || "",
+      l.score || 0,
+      l.temperatura || "",
+      l.status || "",
       l.utm_source ?? "",
       l.utm_medium ?? "",
       l.utm_campaign ?? "",
@@ -304,9 +304,9 @@ function AdminPage() {
                       {l.cidade} <span className="text-muted-foreground">/ {l.estado}</span>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      <div>{LABELS.tamanho_quintal[l.tamanho_quintal] ?? l.tamanho_quintal}</div>
-                      <div>{LABELS.prazo_compra[l.prazo_compra] ?? l.prazo_compra}</div>
-                      <div>{LABELS.orcamento[l.orcamento] ?? l.orcamento}</div>
+                      <div>{(l.tamanho_quintal && LABELS.tamanho_quintal[l.tamanho_quintal as keyof typeof LABELS.tamanho_quintal]) || l.tamanho_quintal}</div>
+                      <div>{(l.prazo_compra && LABELS.prazo_compra[l.prazo_compra as keyof typeof LABELS.prazo_compra]) || l.prazo_compra}</div>
+                      <div>{(l.orcamento && LABELS.orcamento[l.orcamento as keyof typeof LABELS.orcamento]) || l.orcamento}</div>
                     </TableCell>
                     <TableCell>
                       <span
@@ -374,9 +374,9 @@ function AdminPage() {
                   {l.cidade} / {l.estado}
                 </div>
                 <div className="text-xs text-muted-foreground pt-1">
-                  Quintal: <strong>{LABELS.tamanho_quintal[l.tamanho_quintal]}</strong> · Prazo:{" "}
-                  <strong>{LABELS.prazo_compra[l.prazo_compra]}</strong> · Orçamento:{" "}
-                  <strong>{LABELS.orcamento[l.orcamento]}</strong>
+                  Quintal: <strong>{(l.tamanho_quintal && LABELS.tamanho_quintal[l.tamanho_quintal as keyof typeof LABELS.tamanho_quintal]) || l.tamanho_quintal}</strong> · Prazo:{" "}
+                  <strong>{(l.prazo_compra && LABELS.prazo_compra[l.prazo_compra as keyof typeof LABELS.prazo_compra]) || l.prazo_compra}</strong> · Orçamento:{" "}
+                  <strong>{(l.orcamento && LABELS.orcamento[l.orcamento as keyof typeof LABELS.orcamento]) || l.orcamento}</strong>
                 </div>
                 <Select value={l.status} onValueChange={(v) => updateStatus(l.id, v as Status)}>
                   <SelectTrigger className="h-9 text-xs mt-2"><SelectValue /></SelectTrigger>
