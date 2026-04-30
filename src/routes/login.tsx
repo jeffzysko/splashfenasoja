@@ -42,13 +42,13 @@ function LoginPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
     });
-    setLoading(false);
 
     if (error) {
+      setLoading(false);
       toast.error(
         error.message.includes("Invalid login")
           ? "E-mail ou senha incorretos."
@@ -56,8 +56,15 @@ function LoginPage() {
       );
       return;
     }
+
+    // Explicitly wait for session to be registered in the client
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    setLoading(false);
     toast.success("Bem-vindo(a) de volta!");
-    navigate({ to: search.redirect || "/admin" });
+    
+    // Use window.location for a hard redirect to ensure the auth state is fully picked up by the router
+    window.location.href = search.redirect || "/admin";
   };
 
   return (
