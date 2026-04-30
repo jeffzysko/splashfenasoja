@@ -374,9 +374,9 @@ function AdminPage() {
                   {l.cidade} / {l.estado}
                 </div>
                 <div className="text-xs text-muted-foreground pt-1">
-                  Quintal: <strong>{LABELS.tamanho_quintal[l.tamanho_quintal]}</strong> · Prazo:{" "}
-                  <strong>{LABELS.prazo_compra[l.prazo_compra]}</strong> · Orçamento:{" "}
-                  <strong>{LABELS.orcamento[l.orcamento]}</strong>
+                  Quintal: <strong>{(l.tamanho_quintal && LABELS.tamanho_quintal[l.tamanho_quintal as keyof typeof LABELS.tamanho_quintal]) || l.tamanho_quintal}</strong> · Prazo:{" "}
+                  <strong>{(l.prazo_compra && LABELS.prazo_compra[l.prazo_compra as keyof typeof LABELS.prazo_compra]) || l.prazo_compra}</strong> · Orçamento:{" "}
+                  <strong>{(l.orcamento && LABELS.orcamento[l.orcamento as keyof typeof LABELS.orcamento]) || l.orcamento}</strong>
                 </div>
                 <Select value={l.status} onValueChange={(v) => updateStatus(l.id, v as Status)}>
                   <SelectTrigger className="h-9 text-xs mt-2"><SelectValue /></SelectTrigger>
