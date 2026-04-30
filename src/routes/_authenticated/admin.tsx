@@ -24,8 +24,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Search, Download, Users, Loader2, MapPin, Phone, Mail, Calendar } from "lucide-react";
+import {
+  Search,
+  Download,
+  Users,
+  Loader2,
+  MapPin,
+  Phone,
+  Mail,
+  Calendar,
+  Flame,
+} from "lucide-react";
 import { toast } from "sonner";
+import { LABELS, TEMP_BADGE, type Temperatura } from "@/lib/leads";
+
+type Status = "novo" | "contatado" | "qualificado" | "descartado";
 
 type Lead = {
   id: string;
@@ -37,6 +50,10 @@ type Lead = {
   tamanho_quintal: string;
   prazo_compra: string;
   orcamento: string;
+  score: number;
+  temperatura: Temperatura;
+  status: Status;
+  evento: string | null;
   utm_source: string | null;
   utm_medium: string | null;
   utm_campaign: string | null;
@@ -44,27 +61,12 @@ type Lead = {
   created_at: string;
 };
 
-const LABELS = {
-  tamanho_quintal: {
-    pequeno: "Pequeno",
-    medio: "Médio",
-    grande: "Grande",
-    nao_sei: "Não sei",
-  } as Record<string, string>,
-  prazo_compra: {
-    ate_30_dias: "Até 30 dias",
-    ate_3_meses: "3 meses",
-    ate_6_meses: "6 meses",
-    pesquisando: "Pesquisando",
-  } as Record<string, string>,
-  orcamento: {
-    ate_30k: "Até R$ 30k",
-    "30_a_50k": "R$ 30–50k",
-    "50_a_80k": "R$ 50–80k",
-    acima_80k: "Acima R$ 80k",
-    nao_sei: "Não pensou",
-  } as Record<string, string>,
-};
+const STATUS_OPTIONS: { value: Status; label: string }[] = [
+  { value: "novo", label: "🆕 Novo" },
+  { value: "contatado", label: "📞 Contatado" },
+  { value: "qualificado", label: "✅ Qualificado" },
+  { value: "descartado", label: "🗑️ Descartado" },
+];
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -75,7 +77,8 @@ function AdminPage() {
   const [leads, setLeads] = useState<Lead[] | null>(null);
   const [search, setSearch] = useState("");
   const [estado, setEstado] = useState<string>("all");
-  const [prazo, setPrazo] = useState<string>("all");
+  const [temp, setTemp] = useState<string>("all");
+  const [status, setStatus] = useState<string>("all");
 
   useEffect(() => {
     const load = async () => {
@@ -99,7 +102,8 @@ function AdminPage() {
     const q = search.trim().toLowerCase();
     return leads.filter((l) => {
       if (estado !== "all" && l.estado !== estado) return false;
-      if (prazo !== "all" && l.prazo_compra !== prazo) return false;
+      if (temp !== "all" && l.temperatura !== temp) return false;
+      if (status !== "all" && l.status !== status) return false;
       if (!q) return true;
       return (
         l.nome.toLowerCase().includes(q) ||
@@ -108,7 +112,7 @@ function AdminPage() {
         l.cidade.toLowerCase().includes(q)
       );
     });
-  }, [leads, search, estado, prazo]);
+  }, [leads, search, estado, temp, status]);
 
   const stats = useMemo(() => {
     if (!leads) return { total: 0, hoje: 0, quentes: 0 };
@@ -116,10 +120,30 @@ function AdminPage() {
     return {
       total: leads.length,
       hoje: leads.filter((l) => l.created_at.slice(0, 10) === today).length,
-      quentes: leads.filter(
-        (l) => l.prazo_compra === "ate_30_dias" || l.prazo_compra === "ate_3_meses",
-      ).length,
+      quentes: leads.filter((l) => l.temperatura === "quente").length,
     };
+  }, [leads]);
+
+  const updateStatus = async (id: string, newStatus: Status) => {
+    const prev = leads;
+    setLeads((curr) =>
+      curr ? curr.map((l) => (l.id === id ? { ...l, status: newStatus } : l)) : curr,
+    );
+    const { error } = await supabase
+      .from("leads")
+      .update({ status: newStatus })
+      .eq("id", id);
+    if (error) {
+      toast.error("Não consegui salvar o status.");
+      setLeads(prev);
+      return;
+    }
+    toast.success("Status atualizado.");
+  };
+
+  const uniqueUFs = useMemo(() => {
+    if (!leads) return [];
+    return Array.from(new Set(leads.map((l) => l.estado).filter(Boolean))).sort();
   }, [leads]);
 
   const exportCsv = () => {
@@ -130,6 +154,7 @@ function AdminPage() {
     const headers = [
       "Data", "Nome", "WhatsApp", "Email", "Cidade", "Estado",
       "Quintal", "Prazo", "Orçamento",
+      "Score", "Temperatura", "Status",
       "UTM Source", "UTM Medium", "UTM Campaign",
     ];
     const rows = filtered.map((l) => [
@@ -142,6 +167,9 @@ function AdminPage() {
       LABELS.tamanho_quintal[l.tamanho_quintal] ?? l.tamanho_quintal,
       LABELS.prazo_compra[l.prazo_compra] ?? l.prazo_compra,
       LABELS.orcamento[l.orcamento] ?? l.orcamento,
+      l.score,
+      l.temperatura,
+      l.status,
       l.utm_source ?? "",
       l.utm_medium ?? "",
       l.utm_campaign ?? "",
@@ -190,12 +218,12 @@ function AdminPage() {
       <div className="grid grid-cols-3 gap-3">
         <StatCard label="Total" value={stats.total} icon={<Users className="w-4 h-4" />} />
         <StatCard label="Hoje" value={stats.hoje} icon={<Calendar className="w-4 h-4" />} />
-        <StatCard label="Leads quentes" value={stats.quentes} icon={<Users className="w-4 h-4" />} accent />
+        <StatCard label="Quentes 🔥" value={stats.quentes} icon={<Flame className="w-4 h-4" />} accent />
       </div>
 
       {/* Filters */}
       <Card className="border-border">
-        <CardContent className="p-4 grid grid-cols-1 md:grid-cols-[1fr_180px_180px] gap-3">
+        <CardContent className="p-4 grid grid-cols-1 md:grid-cols-[1fr_140px_140px_160px] gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -208,96 +236,159 @@ function AdminPage() {
           <Select value={estado} onValueChange={setEstado}>
             <SelectTrigger className="h-10"><SelectValue placeholder="Estado" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos os estados</SelectItem>
-              <SelectItem value="RS">Rio Grande do Sul</SelectItem>
-              <SelectItem value="SC">Santa Catarina</SelectItem>
+              <SelectItem value="all">Todos UFs</SelectItem>
+              {uniqueUFs.map((uf) => (
+                <SelectItem key={uf} value={uf}>{uf}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
-          <Select value={prazo} onValueChange={setPrazo}>
-            <SelectTrigger className="h-10"><SelectValue placeholder="Prazo" /></SelectTrigger>
+          <Select value={temp} onValueChange={setTemp}>
+            <SelectTrigger className="h-10"><SelectValue placeholder="Temperatura" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos os prazos</SelectItem>
-              <SelectItem value="ate_30_dias">Até 30 dias 🔥</SelectItem>
-              <SelectItem value="ate_3_meses">3 meses</SelectItem>
-              <SelectItem value="ate_6_meses">6 meses</SelectItem>
-              <SelectItem value="pesquisando">Pesquisando</SelectItem>
+              <SelectItem value="all">Todas temps</SelectItem>
+              <SelectItem value="quente">🔥 Quente</SelectItem>
+              <SelectItem value="morno">☀️ Morno</SelectItem>
+              <SelectItem value="frio">❄️ Frio</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger className="h-10"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos status</SelectItem>
+              {STATUS_OPTIONS.map((s) => (
+                <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </CardContent>
       </Card>
 
-      {/* Table desktop / cards mobile */}
+      {/* Table desktop */}
       <Card className="border-border overflow-hidden">
         <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Data</TableHead>
+                <TableHead className="w-[110px]">Data</TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>Contato</TableHead>
                 <TableHead>Cidade</TableHead>
-                <TableHead>Prazo</TableHead>
-                <TableHead>Orçamento</TableHead>
+                <TableHead>Quintal / Prazo / Orç.</TableHead>
+                <TableHead>Temp.</TableHead>
+                <TableHead className="w-[160px]">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((l) => (
-                <TableRow key={l.id}>
-                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                    {new Date(l.created_at).toLocaleString("pt-BR", {
-                      day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
-                    })}
-                  </TableCell>
-                  <TableCell className="font-medium text-secondary">{l.nome}</TableCell>
-                  <TableCell className="text-sm">
-                    <a href={`https://wa.me/55${l.whatsapp.replace(/\D/g, "")}`}
-                       target="_blank" rel="noreferrer"
-                       className="text-accent hover:underline block">{l.whatsapp}</a>
-                    {l.email && <span className="text-xs text-muted-foreground">{l.email}</span>}
-                  </TableCell>
-                  <TableCell className="text-sm">{l.cidade} <span className="text-muted-foreground">/ {l.estado}</span></TableCell>
-                  <TableCell className="text-sm">{LABELS.prazo_compra[l.prazo_compra]}</TableCell>
-                  <TableCell className="text-sm">{LABELS.orcamento[l.orcamento]}</TableCell>
-                </TableRow>
-              ))}
+              {filtered.map((l) => {
+                const badge = TEMP_BADGE[l.temperatura];
+                return (
+                  <TableRow key={l.id}>
+                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                      {new Date(l.created_at).toLocaleString("pt-BR", {
+                        day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
+                      })}
+                    </TableCell>
+                    <TableCell className="font-medium text-secondary">{l.nome}</TableCell>
+                    <TableCell className="text-sm">
+                      <a
+                        href={`https://wa.me/${l.whatsapp.replace(/\D/g, "")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-accent hover:underline block"
+                      >
+                        {formatBrPhone(l.whatsapp)}
+                      </a>
+                      {l.email && <span className="text-xs text-muted-foreground">{l.email}</span>}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {l.cidade} <span className="text-muted-foreground">/ {l.estado}</span>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      <div>{LABELS.tamanho_quintal[l.tamanho_quintal] ?? l.tamanho_quintal}</div>
+                      <div>{LABELS.prazo_compra[l.prazo_compra] ?? l.prazo_compra}</div>
+                      <div>{LABELS.orcamento[l.orcamento] ?? l.orcamento}</div>
+                    </TableCell>
+                    <TableCell>
+                      <span
+                        className={`text-[11px] font-extrabold px-2.5 py-1 rounded-full border whitespace-nowrap ${badge.className}`}
+                      >
+                        {badge.label} <span className="opacity-60">· {l.score}</span>
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={l.status}
+                        onValueChange={(v) => updateStatus(l.id, v as Status)}
+                      >
+                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {STATUS_OPTIONS.map((s) => (
+                            <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
 
         {/* Mobile cards */}
         <div className="md:hidden divide-y divide-border">
-          {filtered.map((l) => (
-            <div key={l.id} className="p-4 space-y-2">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="font-bold text-secondary">{l.nome}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {new Date(l.created_at).toLocaleString("pt-BR")}
+          {filtered.map((l) => {
+            const badge = TEMP_BADGE[l.temperatura];
+            return (
+              <div key={l.id} className="p-4 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="font-bold text-secondary">{l.nome}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(l.created_at).toLocaleString("pt-BR")}
+                    </div>
                   </div>
+                  <span
+                    className={`text-[10px] font-extrabold px-2 py-1 rounded-full border whitespace-nowrap ${badge.className}`}
+                  >
+                    {badge.label} · {l.score}
+                  </span>
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary px-2 py-1 rounded-full whitespace-nowrap">
-                  {LABELS.prazo_compra[l.prazo_compra]}
-                </span>
-              </div>
-              <div className="text-sm flex items-center gap-2 text-secondary">
-                <Phone className="w-3.5 h-3.5 text-muted-foreground" />
-                <a href={`https://wa.me/55${l.whatsapp.replace(/\D/g, "")}`} className="text-accent">{l.whatsapp}</a>
-              </div>
-              {l.email && (
+                <div className="text-sm flex items-center gap-2 text-secondary">
+                  <Phone className="w-3.5 h-3.5 text-muted-foreground" />
+                  <a
+                    href={`https://wa.me/${l.whatsapp.replace(/\D/g, "")}`}
+                    className="text-accent"
+                  >
+                    {formatBrPhone(l.whatsapp)}
+                  </a>
+                </div>
+                {l.email && (
+                  <div className="text-sm flex items-center gap-2 text-muted-foreground">
+                    <Mail className="w-3.5 h-3.5" />
+                    {l.email}
+                  </div>
+                )}
                 <div className="text-sm flex items-center gap-2 text-muted-foreground">
-                  <Mail className="w-3.5 h-3.5" />
-                  {l.email}
+                  <MapPin className="w-3.5 h-3.5" />
+                  {l.cidade} / {l.estado}
                 </div>
-              )}
-              <div className="text-sm flex items-center gap-2 text-muted-foreground">
-                <MapPin className="w-3.5 h-3.5" />
-                {l.cidade} / {l.estado}
+                <div className="text-xs text-muted-foreground pt-1">
+                  Quintal: <strong>{LABELS.tamanho_quintal[l.tamanho_quintal]}</strong> · Prazo:{" "}
+                  <strong>{LABELS.prazo_compra[l.prazo_compra]}</strong> · Orçamento:{" "}
+                  <strong>{LABELS.orcamento[l.orcamento]}</strong>
+                </div>
+                <Select value={l.status} onValueChange={(v) => updateStatus(l.id, v as Status)}>
+                  <SelectTrigger className="h-9 text-xs mt-2"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {STATUS_OPTIONS.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="text-xs text-muted-foreground pt-1">
-                Quintal: <strong>{LABELS.tamanho_quintal[l.tamanho_quintal]}</strong> · Orçamento: <strong>{LABELS.orcamento[l.orcamento]}</strong>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {filtered.length === 0 && (
@@ -318,6 +409,14 @@ function AdminPage() {
       </p>
     </div>
   );
+}
+
+// Formata "5555999998888" -> "(55) 99999-8888" (assumindo 55 país)
+function formatBrPhone(raw: string) {
+  const d = raw.replace(/\D/g, "").replace(/^55/, "");
+  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return raw;
 }
 
 function StatCard({
