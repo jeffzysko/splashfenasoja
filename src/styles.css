@@ -59,10 +59,26 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Splash brand tokens */
+  --color-splash-navy: var(--splash-navy);
+  --color-splash-blue: var(--splash-blue);
+  --color-splash-blue-soft: var(--splash-blue-soft);
+  --color-splash-orange: var(--splash-orange);
+  --color-splash-orange-hover: var(--splash-orange-hover);
+  --color-splash-gray: var(--splash-gray);
 }
 
 :root {
   --radius: 0.625rem;
+
+  /* Splash Piscinas — official palette */
+  --splash-navy: oklch(0.31 0.08 244);          /* #002A4E */
+  --splash-blue: oklch(0.72 0.16 230);          /* #00ADEF */
+  --splash-blue-soft: oklch(0.96 0.02 230);     /* fundo suave */
+  --splash-orange: oklch(0.7 0.18 47);          /* #F37021 */
+  --splash-orange-hover: oklch(0.64 0.18 45);
+  --splash-gray: oklch(0.96 0 0);               /* #F4F4F4 */
   --background: oklch(1 0 0);
   --foreground: oklch(0.129 0.042 264.695);
   --card: oklch(1 0 0);
