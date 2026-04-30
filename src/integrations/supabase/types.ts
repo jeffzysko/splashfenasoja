@@ -20,11 +20,17 @@ export type Database = {
           created_at: string
           email: string | null
           estado: string
+          evento: string
           id: string
+          ip: string | null
           nome: string
+          notes: string | null
           orcamento: string
           prazo_compra: string
+          score: number
+          status: string
           tamanho_quintal: string
+          temperatura: string
           user_agent: string | null
           utm_campaign: string | null
           utm_medium: string | null
@@ -36,11 +42,17 @@ export type Database = {
           created_at?: string
           email?: string | null
           estado: string
+          evento?: string
           id?: string
+          ip?: string | null
           nome: string
+          notes?: string | null
           orcamento: string
           prazo_compra: string
+          score?: number
+          status?: string
           tamanho_quintal: string
+          temperatura?: string
           user_agent?: string | null
           utm_campaign?: string | null
           utm_medium?: string | null
@@ -52,11 +64,17 @@ export type Database = {
           created_at?: string
           email?: string | null
           estado?: string
+          evento?: string
           id?: string
+          ip?: string | null
           nome?: string
+          notes?: string | null
           orcamento?: string
           prazo_compra?: string
+          score?: number
+          status?: string
           tamanho_quintal?: string
+          temperatura?: string
           user_agent?: string | null
           utm_campaign?: string | null
           utm_medium?: string | null
