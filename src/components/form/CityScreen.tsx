@@ -63,7 +63,7 @@ export const CityScreen = () => {
     const q = normalize(query.trim());
     if (q.length < 2) return [];
     return municipios
-      .filter((m) => normalize(m.nome).startsWith(q))
+      .filter((m) => normalize(m.nome).includes(q))
       .slice(0, 8);
   }, [municipios, query]);
 
