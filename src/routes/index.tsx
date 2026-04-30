@@ -63,17 +63,19 @@ function Index() {
 
       {/* Top bar */}
       <header className="sticky top-0 z-50 backdrop-blur-md bg-background/70 border-b border-border/50">
-        <div className="max-w-md mx-auto flex items-center px-4 h-14 gap-3">
+        <div className="max-w-md mx-auto flex items-center px-4 h-16 gap-3">
           {showBack ? (
             <button
               onClick={() => setStep(step - 1)}
-              className="p-2 -ml-2 text-secondary hover:bg-muted rounded-full transition-colors"
+              className="p-2 -ml-2 text-secondary hover:bg-muted rounded-full transition-colors shrink-0"
               aria-label="Voltar"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
           ) : (
-            <div className="w-9" />
+            <div className="flex-1 flex items-center py-2">
+              <WelcomeLogo />
+            </div>
           )}
 
           {showProgress && (
