@@ -8,12 +8,9 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async ({ location }) => {
-    const { data } = await supabase.auth.getSession();
-    if (!data.session) {
-      // Get the current path to redirect back after login
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
       const currentPath = location.pathname + location.search;
-      
-      // If we are already on login (shouldn't happen here but for safety), don't set redirect
       const redirectPath = currentPath.includes("/login") ? undefined : currentPath;
 
       throw redirect({ 
@@ -22,6 +19,19 @@ export const Route = createFileRoute("/_authenticated")({
           redirect: redirectPath
         } 
       });
+    }
+
+    // Role verification
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", session.user.id)
+      .single();
+
+    if (!profile || (profile.role !== "master" && profile.role !== "admin")) {
+      console.error("Acesso negado: Usuário sem permissões administrativas.");
+      await supabase.auth.signOut();
+      throw redirect({ to: "/login" });
     }
   },
   component: AuthenticatedLayout,
