@@ -17,7 +17,12 @@ export const Route = createFileRoute("/login")({
   beforeLoad: async ({ search }) => {
     const { data } = await supabase.auth.getSession();
     if (data.session) {
-      throw redirect({ to: search.redirect || "/admin" });
+      const dest = search.redirect || "/admin";
+      // Avoid redirecting to the login page itself if something is wrong
+      if (dest.includes("/login")) {
+        throw redirect({ to: "/admin" });
+      }
+      throw redirect({ to: dest });
     }
   },
   component: LoginPage,
