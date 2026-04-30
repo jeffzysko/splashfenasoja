@@ -1,11 +1,14 @@
 import { useFormStore, type LeadData } from "@/store/useFormStore";
+import { ScreenContainer } from "./ScreenContainer";
+import { motion } from "framer-motion";
+import { Check } from "lucide-react";
 
 type OptionField = "tamanho_quintal" | "prazo_compra" | "orcamento";
 
 interface OptionScreenProps {
   title: string;
   subtitle: string;
-  options: { value: string; label: string; hint?: string }[];
+  options: { value: string; label: string; hint?: string; emoji?: string }[];
   field: OptionField;
   nextStep: number;
 }
@@ -22,31 +25,53 @@ export const OptionScreen = ({
 
   const choose = (value: string) => {
     updateData({ [field]: value } as Partial<LeadData>);
-    setTimeout(() => setStep(nextStep), 200);
+    setTimeout(() => setStep(nextStep), 240);
   };
 
   return (
-    <div className="p-6 max-w-md mx-auto w-full">
-      <h2 className="text-2xl font-bold text-secondary mb-2">{title}</h2>
-      <p className="text-muted-foreground mb-6">{subtitle}</p>
+    <ScreenContainer>
+      <h2 className="text-[28px] leading-tight font-extrabold text-secondary mb-2 tracking-tight">
+        {title}
+      </h2>
+      <p className="text-muted-foreground mb-7">{subtitle}</p>
       <div className="space-y-3">
-        {options.map((opt) => (
-          <button
-            key={opt.value}
-            onClick={() => choose(opt.value)}
-            className={`w-full text-left p-5 rounded-2xl border-2 transition-all active:scale-[0.98] ${
-              selected === opt.value
-                ? "border-primary bg-primary/5"
-                : "border-border bg-card hover:border-primary/50"
-            }`}
-          >
-            <div className="font-bold text-secondary text-lg">{opt.label}</div>
-            {opt.hint && (
-              <div className="text-muted-foreground text-sm mt-1">{opt.hint}</div>
-            )}
-          </button>
-        ))}
+        {options.map((opt, i) => {
+          const isSelected = selected === opt.value;
+          return (
+            <motion.button
+              key={opt.value}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05, duration: 0.3 }}
+              onClick={() => choose(opt.value)}
+              className={`w-full text-left p-5 rounded-2xl border-2 transition-all active:scale-[0.98] flex items-center gap-3 ${
+                isSelected
+                  ? "border-primary bg-primary/5 shadow-[0_8px_24px_-8px_color-mix(in_oklab,var(--primary)_40%,transparent)]"
+                  : "border-border bg-card hover:border-primary/40 hover:bg-muted/40"
+              }`}
+            >
+              {opt.emoji && <span className="text-2xl shrink-0">{opt.emoji}</span>}
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-secondary text-lg leading-tight">
+                  {opt.label}
+                </div>
+                {opt.hint && (
+                  <div className="text-muted-foreground text-sm mt-0.5">{opt.hint}</div>
+                )}
+              </div>
+              <div
+                className={`w-6 h-6 rounded-full border-2 shrink-0 flex items-center justify-center transition-all ${
+                  isSelected
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border"
+                }`}
+              >
+                {isSelected && <Check className="w-4 h-4" strokeWidth={3} />}
+              </div>
+            </motion.button>
+          );
+        })}
       </div>
-    </div>
+    </ScreenContainer>
   );
 };

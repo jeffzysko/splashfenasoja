@@ -3,6 +3,7 @@ import { useFormStore } from "@/store/useFormStore";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ScreenContainer } from "./ScreenContainer";
 
 export const SubmittingScreen = () => {
   const { data, setStep } = useFormStore();
@@ -12,9 +13,9 @@ export const SubmittingScreen = () => {
       try {
         const params = new URLSearchParams(window.location.search);
         const { error } = await supabase.from("leads").insert({
-          nome: data.nome,
+          nome: data.nome.trim(),
           whatsapp: data.whatsapp,
-          email: data.email || null,
+          email: data.email?.trim() || null,
           cidade: data.cidade,
           estado: data.estado,
           tamanho_quintal: data.tamanho_quintal,
@@ -38,10 +39,13 @@ export const SubmittingScreen = () => {
   }, []);
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-      <Loader2 className="w-16 h-16 text-accent animate-spin mb-6" />
-      <h2 className="text-2xl font-bold text-secondary mb-2">Quase lá...</h2>
+    <ScreenContainer centered>
+      <div className="relative mb-6">
+        <div className="absolute inset-0 rounded-full bg-accent/20 blur-2xl animate-pulse" />
+        <Loader2 className="relative w-16 h-16 text-accent animate-spin" />
+      </div>
+      <h2 className="text-2xl font-extrabold text-secondary mb-2">Quase lá...</h2>
       <p className="text-muted-foreground">Salvando seus dados com segurança 🔒</p>
-    </div>
+    </ScreenContainer>
   );
 };

@@ -6,15 +6,18 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import { ScreenContainer } from "./ScreenContainer";
 
 const schema = z.object({
-  nome: z.string().min(2, "A gente precisa do seu nome 🙂"),
+  nome: z.string().trim().min(2, "A gente precisa do seu nome 🙂").max(80),
   whatsapp: z
     .string()
     .regex(/^\(\d{2}\) \d{5}-\d{4}$/, "Hmm, esse número não parece certo. Confere o DDD?"),
   email: z
     .string()
+    .trim()
     .email("Esse e-mail tá com cara de errado, dá uma olhada?")
+    .max(255)
     .optional()
     .or(z.literal("")),
 });
@@ -39,24 +42,33 @@ export const ContactScreen = () => {
   };
 
   return (
-    <div className="p-6 max-w-md mx-auto w-full">
-      <h2 className="text-2xl font-bold text-secondary mb-2">Como te encontramos?</h2>
+    <ScreenContainer>
+      <h2 className="text-[28px] leading-tight font-extrabold text-secondary mb-2 tracking-tight">
+        Como te encontramos?
+      </h2>
       <p className="text-muted-foreground mb-8">
         Promessa: nada de spam. Só o catálogo e um oi do consultor.
       </p>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
           <FormField
             control={form.control}
             name="nome"
             render={({ field }) => (
               <FormItem>
-                <Label className="text-secondary font-bold uppercase text-[12px]">NOME</Label>
+                <Label className="text-secondary font-bold uppercase text-[11px] tracking-wider">
+                  Nome
+                </Label>
                 <FormControl>
-                  <Input {...field} className="h-[60px] rounded-2xl text-lg" placeholder="Seu nome" />
+                  <Input
+                    {...field}
+                    autoComplete="name"
+                    className="h-[60px] rounded-2xl text-lg border-2 focus-visible:border-primary focus-visible:ring-0"
+                    placeholder="Seu nome"
+                  />
                 </FormControl>
-                <FormMessage className="text-[12px] text-destructive" />
+                <FormMessage className="text-[12px]" />
               </FormItem>
             )}
           />
@@ -66,17 +78,20 @@ export const ContactScreen = () => {
             name="whatsapp"
             render={({ field }) => (
               <FormItem>
-                <Label className="text-secondary font-bold uppercase text-[12px]">WHATSAPP</Label>
+                <Label className="text-secondary font-bold uppercase text-[11px] tracking-wider">
+                  WhatsApp
+                </Label>
                 <FormControl>
                   <Input
                     {...field}
                     inputMode="numeric"
+                    autoComplete="tel"
                     onChange={(e) => field.onChange(maskWhatsapp(e.target.value))}
-                    className="h-[60px] rounded-2xl text-lg"
+                    className="h-[60px] rounded-2xl text-lg border-2 focus-visible:border-primary focus-visible:ring-0"
                     placeholder="(00) 00000-0000"
                   />
                 </FormControl>
-                <FormMessage className="text-[12px] text-destructive" />
+                <FormMessage className="text-[12px]" />
               </FormItem>
             )}
           />
@@ -86,18 +101,19 @@ export const ContactScreen = () => {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <Label className="text-secondary font-bold uppercase text-[12px]">
-                  E-MAIL (OPCIONAL)
+                <Label className="text-secondary font-bold uppercase text-[11px] tracking-wider">
+                  E-mail (opcional)
                 </Label>
                 <FormControl>
                   <Input
                     {...field}
                     type="email"
-                    className="h-[60px] rounded-2xl text-lg"
+                    autoComplete="email"
+                    className="h-[60px] rounded-2xl text-lg border-2 focus-visible:border-primary focus-visible:ring-0"
                     placeholder="seu@email.com"
                   />
                 </FormControl>
-                <FormMessage className="text-[12px] text-destructive" />
+                <FormMessage className="text-[12px]" />
               </FormItem>
             )}
           />
@@ -105,12 +121,12 @@ export const ContactScreen = () => {
           <Button
             type="submit"
             size="lg"
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-[60px] rounded-2xl text-lg font-bold"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-[60px] rounded-2xl text-lg font-bold mt-2 shadow-[0_10px_30px_-8px_color-mix(in_oklab,var(--primary)_55%,transparent)] transition-all active:scale-[0.98]"
           >
             Continuar
           </Button>
         </form>
       </Form>
-    </div>
+    </ScreenContainer>
   );
 };

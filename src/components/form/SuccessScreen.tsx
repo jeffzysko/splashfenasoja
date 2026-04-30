@@ -1,32 +1,57 @@
 import { useFormStore } from "@/store/useFormStore";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { ScreenContainer } from "./ScreenContainer";
 
 export const SuccessScreen = () => {
   const { data, reset } = useFormStore();
+  const firstName = data.nome.split(" ")[0] || "amigo(a)";
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-      <div className="w-20 h-20 rounded-full bg-accent/10 flex items-center justify-center mb-6">
-        <CheckCircle2 className="w-12 h-12 text-accent" />
-      </div>
-      <h1 className="text-3xl font-bold text-secondary mb-4 max-w-sm">
-        Prontinho, {data.nome.split(" ")[0]}! 🎉
-      </h1>
-      <p className="text-lg text-secondary mb-2 max-w-md">
+    <ScreenContainer centered>
+      <motion.div
+        initial={{ scale: 0, rotate: -90 }}
+        animate={{ scale: 1, rotate: 0 }}
+        transition={{ type: "spring", stiffness: 220, damping: 16, delay: 0.1 }}
+        className="w-24 h-24 rounded-full bg-accent/15 flex items-center justify-center mb-6 shadow-[0_12px_40px_-12px_color-mix(in_oklab,var(--accent)_55%,transparent)]"
+      >
+        <CheckCircle2 className="w-14 h-14 text-accent" strokeWidth={2.2} />
+      </motion.div>
+
+      <motion.h1
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="text-[32px] leading-tight font-extrabold text-secondary mb-3 max-w-sm tracking-tight"
+      >
+        Prontinho, {firstName}! 🎉
+      </motion.h1>
+      <motion.p
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="text-lg text-secondary mb-2 max-w-md"
+      >
         Em instantes você recebe o catálogo no WhatsApp.
-      </p>
-      <p className="text-muted-foreground mb-8 max-w-md">
-        Um consultor da Splash vai te chamar pra tirar dúvidas e montar uma proposta sob medida.
-      </p>
+      </motion.p>
+      <motion.p
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="text-muted-foreground mb-10 max-w-md"
+      >
+        Um consultor da Splash vai te chamar pra tirar dúvidas e montar uma
+        proposta sob medida.
+      </motion.p>
       <Button
         onClick={reset}
         size="lg"
         variant="outline"
-        className="border-secondary text-secondary rounded-2xl h-[56px] px-8"
+        className="border-2 border-secondary text-secondary hover:bg-secondary hover:text-secondary-foreground rounded-2xl h-[56px] px-8 font-bold"
       >
         Cadastrar outro lead
       </Button>
-    </div>
+    </ScreenContainer>
   );
 };

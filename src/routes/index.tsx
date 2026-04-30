@@ -8,8 +8,8 @@ import { BudgetScreen } from "@/components/form/BudgetScreen";
 import { SubmittingScreen } from "@/components/form/SubmittingScreen";
 import { SuccessScreen } from "@/components/form/SuccessScreen";
 import { useFormStore } from "@/store/useFormStore";
-import { Progress } from "@/components/ui/progress";
 import { ArrowLeft } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -25,43 +25,79 @@ export const Route = createFileRoute("/")({
   }),
 });
 
+const TOTAL_STEPS = 6; // 1..6 são os passos com progresso
+
 function Index() {
   const { step, setStep } = useFormStore();
-  const progress = step === 0 ? 0 : step >= 6 ? 100 : step * 20;
+
+  const progressStep = step === 0 ? 0 : Math.min(step, TOTAL_STEPS);
+  const progressPct = (progressStep / TOTAL_STEPS) * 100;
+  const showBack = step > 0 && step < 6;
+  const showProgress = step > 0 && step <= 6;
 
   const renderStep = () => {
     switch (step) {
-      case 0: return <WelcomeScreen />;
-      case 1: return <ContactScreen />;
-      case 2: return <CityScreen />;
-      case 3: return <SizeScreen />;
-      case 4: return <TimelineScreen />;
-      case 5: return <BudgetScreen />;
-      case 6: return <SubmittingScreen />;
-      case 7: return <SuccessScreen />;
-      default: return <WelcomeScreen />;
+      case 0: return <WelcomeScreen key="welcome" />;
+      case 1: return <ContactScreen key="contact" />;
+      case 2: return <CityScreen key="city" />;
+      case 3: return <SizeScreen key="size" />;
+      case 4: return <TimelineScreen key="timeline" />;
+      case 5: return <BudgetScreen key="budget" />;
+      case 6: return <SubmittingScreen key="submitting" />;
+      case 7: return <SuccessScreen key="success" />;
+      default: return <WelcomeScreen key="welcome" />;
     }
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-[var(--splash-blue-soft)] to-background overflow-hidden">
-      <div className="fixed top-0 left-0 right-0 z-50">
-        <Progress value={progress} className="h-1 rounded-none" />
-        <div className="flex items-center justify-between p-4 h-16">
-          {step > 0 && step < 6 && (
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-[var(--splash-blue-soft)] via-background to-background overflow-x-hidden relative">
+      {/* Decorative blobs */}
+      <div
+        aria-hidden
+        className="absolute top-[-120px] right-[-80px] w-[320px] h-[320px] rounded-full bg-accent/15 blur-3xl pointer-events-none"
+      />
+      <div
+        aria-hidden
+        className="absolute top-[40%] left-[-100px] w-[260px] h-[260px] rounded-full bg-primary/10 blur-3xl pointer-events-none"
+      />
+
+      {/* Top bar */}
+      <header className="sticky top-0 z-50 backdrop-blur-md bg-background/70 border-b border-border/50">
+        <div className="max-w-md mx-auto flex items-center px-4 h-14 gap-3">
+          {showBack ? (
             <button
               onClick={() => setStep(step - 1)}
               className="p-2 -ml-2 text-secondary hover:bg-muted rounded-full transition-colors"
               aria-label="Voltar"
             >
-              <ArrowLeft className="w-6 h-6" />
+              <ArrowLeft className="w-5 h-5" />
             </button>
+          ) : (
+            <div className="w-9" />
           )}
-          <div className="flex-1" />
-        </div>
-      </div>
 
-      <main className="flex-1 flex flex-col pt-16">{renderStep()}</main>
+          {showProgress && (
+            <>
+              <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                <motion.div
+                  className="h-full bg-primary rounded-full"
+                  initial={false}
+                  animate={{ width: `${progressPct}%` }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                />
+              </div>
+              <span className="text-[11px] font-bold text-muted-foreground tabular-nums shrink-0">
+                {progressStep}/{TOTAL_STEPS}
+              </span>
+            </>
+          )}
+          {!showProgress && <div className="flex-1" />}
+        </div>
+      </header>
+
+      <main className="flex-1 flex flex-col w-full relative">
+        <AnimatePresence mode="wait">{renderStep()}</AnimatePresence>
+      </main>
     </div>
   );
 }
