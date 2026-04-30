@@ -75,7 +75,7 @@ function Index() {
             </button>
           ) : (
             <div className="flex-1 flex items-center py-2">
-              <WelcomeLogo />
+              <Logo height={32} />
             </div>
           )}
 
