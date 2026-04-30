@@ -62,8 +62,29 @@ export const CityScreen = () => {
     if (!municipios) return [];
     const q = normalize(query.trim());
     if (q.length < 2) return [];
+    
+    // Prioridade por estado: RS > SC > PR > Outros
+    const getPriority = (uf: string) => {
+      if (uf === "RS") return 0;
+      if (uf === "SC") return 1;
+      if (uf === "PR") return 2;
+      return 3;
+    };
+
     return municipios
       .filter((m) => normalize(m.nome).includes(q))
+      .sort((a, b) => {
+        const priorityA = getPriority(a.uf);
+        const priorityB = getPriority(b.uf);
+        
+        // Primeiro ordena por prioridade de estado
+        if (priorityA !== priorityB) {
+          return priorityA - priorityB;
+        }
+        
+        // Se no mesmo nível de prioridade, ordena alfabeticamente pelo nome
+        return a.nome.localeCompare(b.nome, 'pt-BR');
+      })
       .slice(0, 8);
   }, [municipios, query]);
 
