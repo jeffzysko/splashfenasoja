@@ -151,11 +151,11 @@ function DashboardPage() {
 
         <div className="grid gap-3">
           {recentLeads.map((l) => (
-            <Link
+            <button
               key={l.id}
-              to="/admin/leads/$id"
-              params={{ id: l.id }}
-              className="bg-card border border-border rounded-2xl p-4 flex items-center justify-between hover:border-primary/40 transition-all active:scale-[0.99]"
+              type="button"
+              onClick={() => setOpenLeadId(l.id)}
+              className="text-left bg-card border border-border rounded-2xl p-4 flex items-center justify-between hover:border-primary/40 transition-all active:scale-[0.99]"
             >
               <div className="flex items-center gap-3">
                 <div
@@ -176,11 +176,18 @@ function DashboardPage() {
                 <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${TEMP_BADGE[l.temperatura].className}`}>
                   {l.temperatura.toUpperCase()}
                 </span>
-                <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center text-green-600">
+                <a
+                  href={`https://wa.me/${l.whatsapp.replace(/\D/g, "")}`}
+                  onClick={(e) => e.stopPropagation()}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors"
+                  aria-label="Abrir WhatsApp"
+                >
                   <Phone className="w-4 h-4" />
-                </div>
+                </a>
               </div>
-            </Link>
+            </button>
           ))}
           {recentLeads.length === 0 && (
             <div className="text-center py-10 bg-muted/20 rounded-2xl border-2 border-dashed border-border">
@@ -195,6 +202,42 @@ function DashboardPage() {
           <Link to="/admin/leads">Gerenciar todos os leads</Link>
         </Button>
       </div>
+
+      <Dialog open={!!openLeadId} onOpenChange={(o) => !o && setOpenLeadId(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Lead</DialogTitle>
+          </DialogHeader>
+          {openLoading && <LeadDetailLoading />}
+          {!openLoading && openError && (
+            <LeadDetailError message={openError} onRetry={() => setOpenLeadId(openLeadId)} />
+          )}
+          {!openLoading && !openError && openLead && (
+            <LeadDetailView
+              lead={openLead}
+              onUpdate={(updated) => {
+                setOpenLead(updated);
+                setLeads((prev) =>
+                  prev
+                    ? prev.map((l) =>
+                        l.id === updated.id
+                          ? {
+                              ...l,
+                              nome: updated.nome,
+                              whatsapp: updated.whatsapp,
+                              temperatura: updated.temperatura,
+                              status: updated.status,
+                              score: updated.score,
+                            }
+                          : l
+                      )
+                    : prev
+                );
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
