@@ -8,37 +8,33 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async ({ location }) => {
+    // 1. Get current session
     const { data: { session } } = await supabase.auth.getSession();
+    
+    // 2. If no session, redirect to login
     if (!session) {
       const currentPath = location.pathname + (location.searchStr || "");
-      const redirectPath = currentPath.includes("/login") ? undefined : currentPath;
-
       throw redirect({ 
         to: "/login", 
-        search: { 
-          redirect: redirectPath
-        } 
+        search: { redirect: currentPath.includes("/login") ? undefined : currentPath } 
       });
     }
 
-    const { data: roles, error: rolesError } = await supabase
+    // 3. Simple check for roles
+    const { data: roles } = await supabase
       .from("user_roles")
       .select("role")
-      .eq("user_id", session.user.id)
-      .in("role", ["master", "admin"]);
+      .eq("user_id", session.user.id);
 
-    if (rolesError) {
-      console.error("Erro ao buscar permissões:", rolesError);
+    const hasAccess = roles?.some(r => ["master", "admin"].includes(r.role));
+
+    if (!hasAccess) {
+      console.error("Acesso negado: Usuário sem permissões.");
+      // Do not sign out immediately to avoid auth loops, just redirect
       throw redirect({ to: "/login" });
     }
 
-    if (!roles?.length) {
-      console.error("Acesso negado: Usuário sem permissões administrativas.");
-      await supabase.auth.signOut();
-      throw redirect({ to: "/login" });
-    }
-
-    // Redirect to /admin if the user is at the root authenticated path
+    // 4. Handle root path
     if (location.pathname === "/") {
       throw redirect({ to: "/admin" });
     }
