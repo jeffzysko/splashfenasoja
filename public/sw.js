@@ -1,7 +1,7 @@
 const CACHE_NAME = 'splash-leads-v2';
 const ASSETS_TO_CACHE = [
   '/',
-  '/logo-splash.svg',
+  '/logo_splash.svg',
   '/src/styles.css'
 ];
 
