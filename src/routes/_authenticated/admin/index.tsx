@@ -157,16 +157,19 @@ function DashboardPage() {
                 <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${TEMP_BADGE[l.temperatura].className}`}>
                   {l.temperatura.toUpperCase()}
                 </span>
-                <a
-                  href={`https://wa.me/${l.whatsapp.replace(/\D/g, "")}`}
-                  onClick={(e) => e.stopPropagation()}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors"
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.open(`https://wa.me/${l.whatsapp.replace(/\D/g, "")}`, "_blank", "noreferrer");
+                  }}
+                  className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors cursor-pointer"
                   aria-label="Abrir WhatsApp"
                 >
                   <Phone className="w-4 h-4" />
-                </a>
+                </span>
               </div>
             </Link>
           ))}
