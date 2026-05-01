@@ -14,6 +14,15 @@ import { cn } from "@/lib/utils";
 let authCache: { userId: string; hasAccess: boolean; expiresAt: number } | null = null;
 const AUTH_CACHE_TTL_MS = 60_000; // 1 minuto
 
+// Invalida o cache quando a sessão muda (signOut, troca de usuário, refresh expirado)
+if (typeof window !== "undefined") {
+  supabase.auth.onAuthStateChange((event) => {
+    if (event === "SIGNED_OUT" || event === "SIGNED_IN" || event === "USER_UPDATED") {
+      authCache = null;
+    }
+  });
+}
+
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async ({ location }) => {
     // Só roda no cliente — no SSR não há localStorage e cai em loop pro /login.
