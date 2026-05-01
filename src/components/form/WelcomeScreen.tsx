@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useFormStore } from "@/store/useFormStore";
 import { Logo } from "@/components/Logo";
 import { ScreenContainer } from "./ScreenContainer";
-import { Sparkles } from "lucide-center";
+import { Sparkles } from "lucide-react";
 
 export const WelcomeScreen = () => {
   const { setStep } = useFormStore();
