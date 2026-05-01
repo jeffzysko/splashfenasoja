@@ -52,64 +52,110 @@ export const Route = createFileRoute("/_authenticated/admin/leads/")({
 function LeadsListPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [cursor, setCursor] = useState<Cursor>(null);
+  const [totalCount, setTotalCount] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [filterTemp, setFilterTemp] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"recent" | "score" | "name">("recent");
 
-  const debouncedSearch = useDebounced(search, 250);
+  const debouncedSearch = useDebounced(search, 300);
   const parentRef = useRef<HTMLDivElement | null>(null);
+  const reqIdRef = useRef(0);
+  const firstLoadRef = useRef(true);
 
-  // Reset paginação quando filtros server-side mudam
+  // Aplica todos os filtros server-side (temp, status, busca textual) + cursor.
   const fetchPage = useCallback(
-    async (offset: number, temp: string, status: string) => {
+    async (
+      cur: Cursor,
+      temp: string,
+      status: string,
+      searchText: string,
+      withCount: boolean
+    ) => {
       let q = supabase
         .from("leads")
-        .select("id, nome, whatsapp, cidade, estado, temperatura, status, score, created_at")
+        .select(
+          "id, nome, whatsapp, cidade, estado, temperatura, status, score, created_at",
+          withCount ? { count: "exact" } : undefined
+        )
         .order("created_at", { ascending: false })
-        .range(offset, offset + PAGE_SIZE - 1);
+        .order("id", { ascending: false })
+        .limit(PAGE_SIZE);
 
       if (temp !== "all") q = q.eq("temperatura", temp);
       if (status !== "all") q = q.eq("status", status);
 
-      const { data, error } = await q;
+      const term = searchText.trim();
+      if (term) {
+        const safe = escapeOrValue(term);
+        if (safe) {
+          const digits = term.replace(/\D/g, "");
+          const ors: string[] = [
+            `nome.ilike.*${safe}*`,
+            `cidade.ilike.*${safe}*`,
+          ];
+          if (digits) ors.push(`whatsapp.ilike.*${digits}*`);
+          q = q.or(ors.join(","));
+        }
+      }
+
+      // Paginação por cursor: keyset (created_at, id) DESC
+      if (cur) {
+        q = q.or(
+          `created_at.lt.${cur.created_at},and(created_at.eq.${cur.created_at},id.lt.${cur.id})`
+        );
+      }
+
+      const { data, error, count } = await q;
       if (error) {
         toast.error("Erro ao carregar leads.");
-        return { items: [] as Lead[], end: true };
+        return { items: [] as Lead[], end: true, count: null as number | null };
       }
       const items = (data ?? []) as Lead[];
-      return { items, end: items.length < PAGE_SIZE };
+      return {
+        items,
+        end: items.length < PAGE_SIZE,
+        count: typeof count === "number" ? count : null,
+      };
     },
     []
   );
 
-  // Recarrega do zero quando filtros server-side (temp/status) mudam
+  // Recarrega do zero quando filtros ou busca mudam
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
+    const reqId = ++reqIdRef.current;
+    if (firstLoadRef.current) setLoading(true);
+    else setRefreshing(true);
     setHasMore(true);
-    fetchPage(0, filterTemp, filterStatus).then(({ items, end }) => {
-      if (cancelled) return;
-      setLeads(items);
-      setHasMore(!end);
-      setLoading(false);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [filterTemp, filterStatus, fetchPage]);
+
+    fetchPage(null, filterTemp, filterStatus, debouncedSearch, true).then(
+      ({ items, end, count }) => {
+        if (reqId !== reqIdRef.current) return;
+        setLeads(items);
+        setHasMore(!end);
+        setTotalCount(count);
+        const last = items[items.length - 1];
+        setCursor(last ? { created_at: last.created_at, id: last.id } : null);
+        setLoading(false);
+        setRefreshing(false);
+        firstLoadRef.current = false;
+      }
+    );
+  }, [filterTemp, filterStatus, debouncedSearch, fetchPage]);
 
   // Realtime: aplica em memória sem refetch
   useEffect(() => {
     const unsub = subscribeLeads((event, payload) => {
       if (event === "INSERT") {
         const l = payload.new as Lead;
-        // só insere se passa nos filtros server-side ativos
         if (filterTemp !== "all" && l.temperatura !== filterTemp) return;
         if (filterStatus !== "all" && l.status !== filterStatus) return;
         setLeads((prev) => (prev.some((x) => x.id === l.id) ? prev : [l, ...prev]));
+        setTotalCount((c) => (c === null ? c : c + 1));
       } else if (event === "UPDATE") {
         const l = payload.new as Lead;
         setLeads((prev) =>
@@ -123,7 +169,13 @@ function LeadsListPage() {
         );
       } else if (event === "DELETE") {
         const old = payload.old as { id: string };
-        setLeads((prev) => prev.filter((x) => x.id !== old.id));
+        setLeads((prev) => {
+          const next = prev.filter((x) => x.id !== old.id);
+          if (next.length !== prev.length) {
+            setTotalCount((c) => (c === null ? c : Math.max(0, c - 1)));
+          }
+          return next;
+        });
       }
     });
     return () => {
@@ -132,41 +184,32 @@ function LeadsListPage() {
   }, [filterTemp, filterStatus]);
 
   const loadMore = useCallback(async () => {
-    if (loadingMore || !hasMore) return;
+    if (loadingMore || !hasMore || !cursor) return;
     setLoadingMore(true);
-    const { items, end } = await fetchPage(leads.length, filterTemp, filterStatus);
+    const { items, end } = await fetchPage(
+      cursor,
+      filterTemp,
+      filterStatus,
+      debouncedSearch,
+      false
+    );
     setLeads((prev) => {
-      // dedupe por id
       const seen = new Set(prev.map((l) => l.id));
       return [...prev, ...items.filter((l) => !seen.has(l.id))];
     });
     setHasMore(!end);
+    const last = items[items.length - 1];
+    if (last) setCursor({ created_at: last.created_at, id: last.id });
+    else setHasMore(false);
     setLoadingMore(false);
-  }, [leads.length, filterTemp, filterStatus, fetchPage, hasMore, loadingMore]);
+  }, [cursor, filterTemp, filterStatus, debouncedSearch, fetchPage, hasMore, loadingMore]);
 
-  // Filtro de busca + sort: client-side sobre o que já foi carregado (responsivo)
+  // Sort client-side sobre o que já foi carregado (busca já é server-side).
   const filteredLeads = useMemo(() => {
-    const q = debouncedSearch.trim().toLowerCase();
-    const filtered = q
-      ? leads.filter(
-          (l) =>
-            l.nome.toLowerCase().includes(q) ||
-            l.whatsapp.includes(debouncedSearch) ||
-            l.cidade.toLowerCase().includes(q)
-        )
-      : leads;
-
-    if (sortBy === "recent") {
-      return [...filtered].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
-    }
-    if (sortBy === "score") {
-      return [...filtered].sort((a, b) => b.score - a.score);
-    }
-    if (sortBy === "name") {
-      return [...filtered].sort((a, b) => a.nome.localeCompare(b.nome));
-    }
-    return filtered;
-  }, [leads, debouncedSearch, sortBy]);
+    if (sortBy === "score") return [...leads].sort((a, b) => b.score - a.score);
+    if (sortBy === "name") return [...leads].sort((a, b) => a.nome.localeCompare(b.nome));
+    return leads;
+  }, [leads, sortBy]);
 
   // Virtualização só ligada quando há muitas linhas (evita custo em listas pequenas)
   const shouldVirtualize = filteredLeads.length >= VIRTUALIZE_THRESHOLD;
