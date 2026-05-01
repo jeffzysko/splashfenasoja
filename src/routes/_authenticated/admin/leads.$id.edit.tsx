@@ -83,7 +83,7 @@ function LeadEditPage() {
     <div className="space-y-6 pb-20">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" asChild className="rounded-full">
-          <Link to="/admin/leads/$id" params={{ id }} from="/">
+          <Link to="/admin/leads/$id" params={{ id }}>
             <ArrowLeft className="w-5 h-5" />
           </Link>
         </Button>
