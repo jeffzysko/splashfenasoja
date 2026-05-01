@@ -302,18 +302,31 @@ export function LeadDetailView({ lead, onUpdate }: Props) {
           <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
             <MessageSquare className="w-4 h-4" /> Notas Internas
           </h3>
-          {saving && (
-            <span className="text-[10px] font-bold text-primary animate-pulse italic">
-              Salvando...
+          {dirty && !saving && (
+            <span className="text-[10px] font-bold text-amber-600 italic">
+              Alterações não salvas
             </span>
           )}
         </div>
         <Textarea
           placeholder="Anote detalhes da conversa aqui..."
           value={notes}
-          onChange={(e) => handleNotesChange(e.target.value)}
+          onChange={(e) => setNotes(e.target.value)}
           className="min-h-[120px] rounded-2xl bg-card border-border focus-visible:ring-primary focus-visible:border-primary text-base py-4"
         />
+        <Button
+          onClick={saveNotes}
+          disabled={!dirty || saving}
+          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-black py-6 rounded-2xl shadow-md disabled:opacity-50"
+        >
+          {saving ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Salvando...
+            </>
+          ) : (
+            "Salvar Notas"
+          )}
+        </Button>
       </section>
 
       <footer className="pt-6 border-t border-border/50 text-center space-y-2">
