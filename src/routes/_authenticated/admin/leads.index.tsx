@@ -4,25 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  LeadDetailView,
-  LeadDetailLoading,
-  LeadDetailError,
-  useLeadDetail,
-} from "@/components/leads/LeadDetailView";
-import {
   Search,
   Download,
   ArrowLeft,
   Loader2,
   Phone,
 } from "lucide-react";
-import { TEMP_BADGE, LABELS, type Temperatura } from "@/lib/leads";
+import { TEMP_BADGE, type Temperatura } from "@/lib/leads";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -53,13 +41,6 @@ function LeadsListPage() {
   const [filterTemp, setFilterTemp] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"recent" | "score" | "name">("recent");
-  const [openLeadId, setOpenLeadId] = useState<string | null>(null);
-  const {
-    lead: openLead,
-    setLead: setOpenLead,
-    loading: openLoading,
-    error: openError,
-  } = useLeadDetail(openLeadId);
 
   useEffect(() => {
     const fetchLeads = async () => {
@@ -197,10 +178,10 @@ function LeadsListPage() {
       </div>
       <div className="grid gap-3 pb-20">
         {filteredLeads.map((l) => (
-          <button
+          <Link
             key={l.id}
-            type="button"
-            onClick={() => setOpenLeadId(l.id)}
+            to="/admin/leads/$id"
+            params={{ id: l.id }}
             className="text-left bg-card border border-border rounded-2xl p-4 flex flex-col gap-3 hover:border-primary/40 transition-all active:scale-[0.99]"
           >
             <div className="flex items-start justify-between">
@@ -224,20 +205,18 @@ function LeadsListPage() {
                   Score: {l.score}
                 </span>
               </div>
-              <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                <a
-                  href={`https://wa.me/${l.whatsapp.replace(/\D/g, "")}`}
-                  onClick={(e) => e.stopPropagation()}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-9 h-9 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors"
-                  aria-label="Abrir WhatsApp"
-                >
-                  <Phone className="w-4 h-4" />
-                </a>
-              </div>
+              <a
+                href={`https://wa.me/${l.whatsapp.replace(/\D/g, "")}`}
+                onClick={(e) => e.stopPropagation()}
+                target="_blank"
+                rel="noreferrer"
+                className="w-9 h-9 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors"
+                aria-label="Abrir WhatsApp"
+              >
+                <Phone className="w-4 h-4" />
+              </a>
             </div>
-          </button>
+          </Link>
         ))}
         {filteredLeads.length === 0 && (
           <div className="text-center py-20">
@@ -245,42 +224,6 @@ function LeadsListPage() {
           </div>
         )}
       </div>
-
-      <Dialog open={!!openLeadId} onOpenChange={(o) => !o && setOpenLeadId(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Detalhes do Lead</DialogTitle>
-          </DialogHeader>
-          {openLoading && <LeadDetailLoading />}
-          {!openLoading && openError && (
-            <LeadDetailError message={openError} onRetry={() => setOpenLeadId(openLeadId)} />
-          )}
-          {!openLoading && !openError && openLead && (
-            <LeadDetailView
-              lead={openLead}
-              onUpdate={(updated) => {
-                setOpenLead(updated);
-                setLeads((prev) =>
-                  prev.map((l) =>
-                    l.id === updated.id
-                      ? {
-                          ...l,
-                          nome: updated.nome,
-                          whatsapp: updated.whatsapp,
-                          cidade: updated.cidade,
-                          estado: updated.estado,
-                          temperatura: updated.temperatura,
-                          status: updated.status,
-                          score: updated.score,
-                        }
-                      : l
-                  )
-                );
-              }}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
