@@ -26,7 +26,14 @@ import {
   AlertCircle,
   Trash2,
 } from "lucide-react";
-import { TEMP_BADGE, LABELS, formatWhatsappBR, type Temperatura } from "@/lib/leads";
+import { TEMP_BADGE, LABELS, formatWhatsappBR, calcScore, TAMANHO_OPTIONS, PRAZO_OPTIONS, ORCAMENTO_OPTIONS, type Temperatura } from "@/lib/leads";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
