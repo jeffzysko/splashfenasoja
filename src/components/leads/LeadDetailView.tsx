@@ -313,6 +313,12 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
             onClick={() => updateStatus("qualificado")}
           />
           <StatusButton
+            active={current.status === "vendido"}
+            label="🏆 Vendido"
+            color="bg-emerald-600"
+            onClick={() => updateStatus("vendido")}
+          />
+          <StatusButton
             active={current.status === "descartado"}
             label="Descartado"
             color="bg-slate-500"
