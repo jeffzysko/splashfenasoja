@@ -564,16 +564,7 @@ export function LeadDetailError({
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="p-4 flex justify-between items-center">
-      <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-        {label}
-      </span>
-      <span className="font-bold text-secondary text-right">{value}</span>
-    </div>
-  );
-}
+
 
 function EditableRow({
   label,
