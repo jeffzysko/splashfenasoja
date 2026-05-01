@@ -32,6 +32,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { subscribeLeads } from "@/lib/leadsRealtime";
+import { setVisibleLeadIds } from "@/lib/leadsNavigation";
 import { useDebounced } from "@/hooks/useDebounced";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
