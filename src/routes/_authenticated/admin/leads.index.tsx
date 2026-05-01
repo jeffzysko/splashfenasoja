@@ -602,8 +602,8 @@ function LeadsListPage() {
       ) : shouldVirtualize ? (
         <div
           ref={parentRef}
-          className="pb-20"
-          style={{ height: "calc(100vh - 280px)", overflow: "auto" }}
+          className="pb-4"
+          style={{ height: "calc(100dvh - 240px)", overflow: "auto" }}
         >
           <div
             style={{
@@ -636,7 +636,7 @@ function LeadsListPage() {
           <LoadMoreFooter hasMore={hasMore} loading={loadingMore} onClick={loadMore} />
         </div>
       ) : (
-        <div className="grid gap-3 pb-20">
+        <div className="grid gap-3 pb-4">
           {filteredLeads.map((l) => (
             <LeadRow key={l.id} lead={l} />
           ))}
