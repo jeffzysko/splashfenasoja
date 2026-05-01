@@ -179,9 +179,13 @@ function AuthenticatedLayout() {
           </div>
           
           <div className="flex items-center gap-1 sm:gap-3">
-            <button 
+            <NotificationBell />
+
+            <button
               onClick={toggleSound}
               className="p-2 text-muted-foreground hover:text-primary transition-colors"
+              aria-label={soundEnabled ? "Desativar som" : "Ativar som"}
+              title={soundEnabled ? "Som ativado" : "Som desativado"}
             >
               {soundEnabled ? <Volume2 className="w-5 h-5 text-primary" /> : <VolumeX className="w-5 h-5" />}
             </button>
