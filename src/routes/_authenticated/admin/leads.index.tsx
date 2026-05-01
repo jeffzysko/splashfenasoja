@@ -334,12 +334,9 @@ function LeadsListPage() {
     setLoadingMore(false);
   }, [cursor, filterTemp, filterStatus, debouncedSearch, sortBy, fetchPage, hasMore, loadingMore, totalCount]);
 
-  // Sort client-side sobre o que já foi carregado (busca já é server-side).
-  const filteredLeads = useMemo(() => {
-    if (sortBy === "score") return [...leads].sort((a, b) => b.score - a.score);
-    if (sortBy === "name") return [...leads].sort((a, b) => a.nome.localeCompare(b.nome));
-    return leads;
-  }, [leads, sortBy]);
+  // Ordenação já é server-side; mantemos a referência direta.
+  const filteredLeads = leads;
+
 
   // Virtualização só ligada quando há muitas linhas (evita custo em listas pequenas)
   const shouldVirtualize = filteredLeads.length >= VIRTUALIZE_THRESHOLD;
