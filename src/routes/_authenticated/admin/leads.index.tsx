@@ -100,12 +100,16 @@ type Lead = {
   id: string;
   nome: string;
   whatsapp: string;
+  email: string | null;
   cidade: string;
   estado: string;
   temperatura: Temperatura;
   status: Status;
   score: number;
   created_at: string;
+  tamanho_quintal: string;
+  prazo_compra: string;
+  orcamento: string;
 };
 
 export const Route = createFileRoute("/_authenticated/admin/leads/")({
