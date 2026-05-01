@@ -15,7 +15,7 @@ import {
   AlertCircle,
   
 } from "lucide-react";
-import { TEMP_BADGE, LABELS, type Temperatura } from "@/lib/leads";
+import { TEMP_BADGE, LABELS, formatWhatsappBR, type Temperatura } from "@/lib/leads";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
