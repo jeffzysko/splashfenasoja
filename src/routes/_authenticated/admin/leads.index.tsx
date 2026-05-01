@@ -664,6 +664,15 @@ function LoadMoreFooter({
   onClick: () => void;
 }) {
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  // Trava local para impedir múltiplos disparos enquanto a request anterior
+  // não terminou (a prop `loading` pode levar um tick para refletir o estado).
+  const inFlightRef = useRef(false);
+
+  useEffect(() => {
+    if (loading) return;
+    // Quando o loading volta a false, libera a trava para a próxima rodada.
+    inFlightRef.current = false;
+  }, [loading]);
 
   // Auto-prefetch quando o sentinel entra na viewport (margem de 240px),
   // reduzindo o "salto" perceptível ao carregar mais itens no mobile.
@@ -674,10 +683,13 @@ function LoadMoreFooter({
     const io = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          if (entry.isIntersecting) {
-            onClick();
-            break;
-          }
+          if (!entry.isIntersecting) continue;
+          if (inFlightRef.current) return;
+          inFlightRef.current = true;
+          // Desconecta imediatamente para não reentrar antes do `loading` virar true.
+          io.disconnect();
+          onClick();
+          break;
         }
       },
       { rootMargin: "240px 0px" }
@@ -686,6 +698,7 @@ function LoadMoreFooter({
     return () => io.disconnect();
   }, [hasMore, loading, onClick]);
 
+  // Se não há mais leads, não renderiza nem o botão nem o sentinel.
   if (!hasMore) {
     return (
       <p className="text-center text-[11px] text-muted-foreground/70 font-semibold py-4">
@@ -693,11 +706,16 @@ function LoadMoreFooter({
       </p>
     );
   }
+
   return (
     <div className="flex flex-col items-center py-4 gap-2" role="status" aria-live="polite">
       <div ref={sentinelRef} aria-hidden="true" className="h-1 w-1" />
       <Button
-        onClick={onClick}
+        onClick={() => {
+          if (inFlightRef.current || loading) return;
+          inFlightRef.current = true;
+          onClick();
+        }}
         disabled={loading}
         variant="outline"
         size="sm"
