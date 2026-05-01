@@ -355,12 +355,12 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3">
         <Button
           onClick={openWhatsApp}
-          className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-black py-7 rounded-2xl shadow-xl flex gap-3 text-lg"
+          className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-black h-14 sm:h-16 rounded-2xl shadow-xl flex gap-3 text-base sm:text-lg"
         >
-          <Phone className="w-6 h-6 fill-current" /> WhatsApp
+          <Phone className="w-5 h-5 sm:w-6 sm:h-6 fill-current" /> Abrir WhatsApp
         </Button>
       </div>
 

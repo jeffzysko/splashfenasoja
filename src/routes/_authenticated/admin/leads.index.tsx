@@ -523,14 +523,14 @@ function LeadsListPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" asChild className="rounded-full">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <Button variant="ghost" size="icon" asChild className="rounded-full shrink-0">
             <Link to="/admin"><ArrowLeft className="w-5 h-5" /></Link>
           </Button>
-          <div>
+          <div className="min-w-0">
             <h2 className="text-xl font-extrabold text-secondary tracking-tight">Leads</h2>
-            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-1.5">
+            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-1.5 truncate">
               {showInitialSkeleton ? (
                 <Skeleton className="h-3 w-32" />
               ) : (
@@ -541,7 +541,7 @@ function LeadsListPage() {
                       {" "}de {totalCount.toLocaleString("pt-BR")}
                     </>
                   )}
-                  {hasMore && " • mais disponíveis"}
+                  {hasMore && " • mais"}
                   {refreshing && (
                     <Loader2 className="w-3 h-3 animate-spin text-primary ml-1" />
                   )}
@@ -550,8 +550,15 @@ function LeadsListPage() {
             </p>
           </div>
         </div>
-        <Button onClick={exportCSV} size="sm" disabled={showInitialSkeleton} className="bg-orange-500 hover:bg-orange-600 text-white font-bold h-10 px-4 rounded-xl shadow-md">
-          <Download className="w-4 h-4 mr-2" /> Exportar
+        <Button
+          onClick={exportCSV}
+          size="sm"
+          disabled={showInitialSkeleton}
+          className="bg-orange-500 hover:bg-orange-600 text-white font-bold h-10 px-3 sm:px-4 rounded-xl shadow-md shrink-0"
+          aria-label="Exportar leads em CSV"
+        >
+          <Download className="w-4 h-4 sm:mr-2" />
+          <span className="hidden sm:inline">Exportar</span>
         </Button>
       </div>
       <FiltersBar
@@ -602,8 +609,8 @@ function LeadsListPage() {
       ) : shouldVirtualize ? (
         <div
           ref={parentRef}
-          className="pb-20"
-          style={{ height: "calc(100vh - 280px)", overflow: "auto" }}
+          className="pb-4"
+          style={{ height: "calc(100dvh - 240px)", overflow: "auto" }}
         >
           <div
             style={{
@@ -636,7 +643,7 @@ function LeadsListPage() {
           <LoadMoreFooter hasMore={hasMore} loading={loadingMore} onClick={loadMore} />
         </div>
       ) : (
-        <div className="grid gap-3 pb-20">
+        <div className="grid gap-3 pb-4">
           {filteredLeads.map((l) => (
             <LeadRow key={l.id} lead={l} />
           ))}
@@ -759,8 +766,8 @@ const LeadRow = memo(function LeadRow({ lead: l }: { lead: Lead }) {
               e.stopPropagation();
               window.open(`https://wa.me/${l.whatsapp.replace(/\D/g, "")}`, "_blank", "noreferrer");
             }}
-            className="w-9 h-9 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors cursor-pointer"
-            aria-label="Abrir WhatsApp"
+            className="w-11 h-11 rounded-full bg-green-500/10 active:bg-green-500/25 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors cursor-pointer"
+            aria-label={`Abrir WhatsApp de ${l.nome}`}
           >
             <Phone className="w-4 h-4" />
           </button>
@@ -822,7 +829,7 @@ function FiltersBar({
   const statusLabel = STATUS_FILTERS.find((s) => s.value === filterStatus)?.label ?? "Todos";
 
   return (
-    <div className="sticky top-[56px] z-30 bg-muted/30 -mx-4 px-4 py-2.5 space-y-2 backdrop-blur-md">
+    <div className="sticky top-14 z-30 bg-muted/40 -mx-4 px-4 py-2.5 space-y-2 backdrop-blur-md">
       <div className="flex items-center gap-2">
         <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -993,7 +1000,7 @@ function FilterChip({ label, active, onClick }: { label: string; active: boolean
 function LeadListSkeleton() {
   return (
     <div
-      className="grid gap-3 pb-20"
+      className="grid gap-3 pb-4"
       role="status"
       aria-live="polite"
       aria-label="Carregando lista de leads"
