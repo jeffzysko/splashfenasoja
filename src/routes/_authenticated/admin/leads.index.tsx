@@ -625,18 +625,20 @@ function LoadMoreFooter({
     );
   }
   return (
-    <div className="flex justify-center py-4">
+    <div className="flex justify-center py-4" role="status" aria-live="polite">
       <Button
         onClick={onClick}
         disabled={loading}
         variant="outline"
         size="sm"
         className="rounded-xl"
+        aria-label={loading ? "Carregando mais leads" : "Carregar mais leads"}
+        aria-busy={loading}
       >
         {loading ? (
           <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Carregando...
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
+            Carregando mais leads...
           </>
         ) : (
           "Carregar mais"
