@@ -320,29 +320,31 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
       <section className="space-y-3">
         <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4" /> Qualificação
+          <span className="text-[10px] font-semibold text-muted-foreground/70 normal-case tracking-normal ml-auto">
+            Edite direto aqui
+          </span>
         </h3>
         <div className="bg-card border border-border rounded-2xl divide-y divide-border">
-          <InfoRow
-            label="Espaço"
-            value={
-              LABELS.tamanho_quintal[
-                current.tamanho_quintal as keyof typeof LABELS.tamanho_quintal
-              ] || current.tamanho_quintal
-            }
+          <EditableRow
+            label="Tamanho da piscina"
+            value={current.tamanho_quintal}
+            saving={savingField === "tamanho_quintal"}
+            options={TAMANHO_OPTIONS.map((o) => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
+            onChange={(v) => updateQualification("tamanho_quintal", v)}
           />
-          <InfoRow
-            label="Prazo"
-            value={
-              LABELS.prazo_compra[current.prazo_compra as keyof typeof LABELS.prazo_compra] ||
-              current.prazo_compra
-            }
+          <EditableRow
+            label="Quando quer instalar"
+            value={current.prazo_compra}
+            saving={savingField === "prazo_compra"}
+            options={PRAZO_OPTIONS.map((o) => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
+            onChange={(v) => updateQualification("prazo_compra", v)}
           />
-          <InfoRow
-            label="Orçamento"
-            value={
-              LABELS.orcamento[current.orcamento as keyof typeof LABELS.orcamento] ||
-              current.orcamento
-            }
+          <EditableRow
+            label="Valor de investimento"
+            value={current.orcamento}
+            saving={savingField === "orcamento"}
+            options={ORCAMENTO_OPTIONS.map((o) => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
+            onChange={(v) => updateQualification("orcamento", v)}
           />
         </div>
       </section>
