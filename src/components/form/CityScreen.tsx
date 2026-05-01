@@ -66,17 +66,24 @@ export const CityScreen = () => {
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(0);
   const [loading, setLoading] = useState(false);
+  // Começa com a lista local (RS/SC/PR) — instantânea, sem rede.
+  // A lista completa do IBGE só é buscada quando o usuário começar a digitar.
   const [municipios, setMunicipios] = useState<Municipio[] | null>(MUNICIPIOS_CACHE || MUNICIPIOS_SUL);
+  const fetchedRemote = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (municipios) return;
+    // Dispara o fetch IBGE só na primeira digitação (≥1 char) — economiza
+    // requisição quando o usuário pula essa etapa rápido com cidade do Sul.
+    if (fetchedRemote.current || MUNICIPIOS_CACHE) return;
+    if (query.trim().length < 1) return;
+    fetchedRemote.current = true;
     setLoading(true);
     fetchMunicipios()
       .then(setMunicipios)
-      .catch(() => setError("Não consegui carregar a lista de cidades. Tenta de novo?"))
+      .catch(() => setError("Não consegui carregar a lista completa. Use sua cidade do Sul."))
       .finally(() => setLoading(false));
-  }, [municipios]);
+  }, [query]);
 
   // Quando o usuário digita, qualquer cidade previamente confirmada é invalidada
   // até que ele selecione novamente da lista.

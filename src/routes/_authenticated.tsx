@@ -137,13 +137,28 @@ function AuthenticatedLayout() {
       setIsMaster(false);
       return;
     }
+    let cancelled = false;
+    // chave estável para cache local de "isMaster" — evita refazer query
+    // a cada navegação interna do admin.
+    const key = `is_master_${user.id}`;
+    try {
+      const cached = sessionStorage.getItem(key);
+      if (cached === "1") setIsMaster(true);
+      else if (cached === "0") setIsMaster(false);
+    } catch { /* ignore */ }
+
     supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
       .then(({ data }) => {
-        setIsMaster(!!data?.some((r) => r.role === "master"));
+        if (cancelled) return;
+        const isM = !!data?.some((r) => r.role === "master");
+        setIsMaster(isM);
+        try { sessionStorage.setItem(key, isM ? "1" : "0"); } catch { /* ignore */ }
       });
+
+    return () => { cancelled = true; };
   }, [user?.id]);
 
   const logout = async () => {

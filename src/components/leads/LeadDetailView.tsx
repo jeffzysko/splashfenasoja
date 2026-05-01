@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import confetti from "canvas-confetti";
+// canvas-confetti é carregado dinamicamente apenas quando uma venda é registrada
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -121,12 +121,12 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
 
   const dirty = (notes || "") !== (current.notes || "");
 
-  const fireSaleConfetti = () => {
+  const fireSaleConfetti = async () => {
+    const { default: confetti } = await import("canvas-confetti");
     const duration = 2500;
     const end = Date.now() + duration;
     const colors = ["#22c55e", "#fbbf24", "#3b82f6", "#ec4899", "#f97316"];
 
-    // Burst inicial dos dois lados
     confetti({
       particleCount: 120,
       spread: 80,
@@ -135,7 +135,6 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
       zIndex: 9999,
     });
 
-    // Chuva contínua de confetes
     (function frame() {
       confetti({
         particleCount: 4,

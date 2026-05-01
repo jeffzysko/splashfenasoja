@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, memo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,10 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { subscribeLeads } from "@/lib/leadsRealtime";
+import { useDebounced } from "@/hooks/useDebounced";
+
+const PAGE_LIMIT = 500; // Limite de segurança (era ilimitado)
 
 type Status = "novo" | "contatado" | "qualificado" | "vendido" | "perdido" | "descartado";
 
@@ -42,12 +46,15 @@ function LeadsListPage() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"recent" | "score" | "name">("recent");
 
+  const debouncedSearch = useDebounced(search, 250);
+
   useEffect(() => {
     const fetchLeads = async () => {
       const { data, error } = await supabase
         .from("leads")
         .select("id, nome, whatsapp, cidade, estado, temperatura, status, score, created_at")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(PAGE_LIMIT);
 
       if (!error && data) {
         setLeads(data as Lead[]);
@@ -57,58 +64,47 @@ function LeadsListPage() {
 
     fetchLeads();
 
-    const channel = supabase
-      .channel("leads-list")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "leads" },
-        (payload) => {
-          const newLead = payload.new as Lead;
-          setLeads((prev) => [newLead, ...prev]);
-          if (newLead.temperatura === "quente") {
-            toast.success(`Novo Lead Quente: ${newLead.nome}!`);
-            const audio = new Audio("https://cdn.gpteng.co/ding.mp3");
-            if (localStorage.getItem("notifSound") === "on") {
-              audio.play().catch(() => {});
-            }
-          }
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "leads" },
-        (payload) => {
-          setLeads((prev) => prev.map(l => l.id === payload.new.id ? { ...l, ...payload.new as Lead } : l));
-        }
-      )
-      .subscribe();
+    const unsub = subscribeLeads((event, payload) => {
+      if (event === "INSERT") {
+        const newLead = payload.new as Lead;
+        setLeads((prev) => [newLead, ...prev].slice(0, PAGE_LIMIT));
+      } else if (event === "UPDATE") {
+        const updated = payload.new as Lead;
+        setLeads((prev) => prev.map((l) => (l.id === updated.id ? { ...l, ...updated } : l)));
+      } else if (event === "DELETE") {
+        const oldLead = payload.old as { id: string };
+        setLeads((prev) => prev.filter((l) => l.id !== oldLead.id));
+      }
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      unsub();
     };
   }, []);
 
   const filteredLeads = useMemo(() => {
-    let result = leads.filter(l => {
-      const matchesSearch = l.nome.toLowerCase().includes(search.toLowerCase()) || 
-                            l.whatsapp.includes(search) ||
-                            l.cidade.toLowerCase().includes(search.toLowerCase());
-      const matchesTemp = filterTemp === "all" || l.temperatura === filterTemp;
-      const matchesStatus = filterStatus === "all" || l.status === filterStatus;
-      
-      return matchesSearch && matchesTemp && matchesStatus;
+    const q = debouncedSearch.trim().toLowerCase();
+    const filtered = leads.filter((l) => {
+      if (filterTemp !== "all" && l.temperatura !== filterTemp) return false;
+      if (filterStatus !== "all" && l.status !== filterStatus) return false;
+      if (!q) return true;
+      // normaliza uma vez por iteração, não 3
+      return (
+        l.nome.toLowerCase().includes(q) ||
+        l.whatsapp.includes(debouncedSearch) ||
+        l.cidade.toLowerCase().includes(q)
+      );
     });
 
     if (sortBy === "recent") {
-      result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      filtered.sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
     } else if (sortBy === "score") {
-      result.sort((a, b) => b.score - a.score);
+      filtered.sort((a, b) => b.score - a.score);
     } else if (sortBy === "name") {
-      result.sort((a, b) => a.nome.localeCompare(b.nome));
+      filtered.sort((a, b) => a.nome.localeCompare(b.nome));
     }
-
-    return result;
-  }, [leads, search, filterTemp, filterStatus, sortBy]);
+    return filtered;
+  }, [leads, debouncedSearch, filterTemp, filterStatus, sortBy]);
 
   const exportCSV = async () => {
     const ids = filteredLeads.map((l) => l.id);
@@ -248,49 +244,7 @@ function LeadsListPage() {
       </div>
       <div className="grid gap-3 pb-20">
         {filteredLeads.map((l) => (
-          <Link
-            key={l.id}
-            to="/admin/leads/$id"
-            params={{ id: l.id }}
-            className="text-left bg-card border border-border rounded-2xl p-4 flex flex-col gap-3 hover:border-primary/40 transition-all active:scale-[0.99]"
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="font-bold text-secondary text-lg leading-tight">{l.nome}</div>
-                <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                  {l.cidade}/{l.estado} • {formatDistanceToNow(new Date(l.created_at), { addSuffix: true, locale: ptBR })}
-                </div>
-              </div>
-              <span className={cn("text-[10px] font-extrabold px-2 py-0.5 rounded-full border uppercase tracking-wider", TEMP_BADGE[l.temperatura].className)}>
-                {l.temperatura}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between mt-1">
-              <div className="flex gap-2 items-center">
-                <span className={cn("inline-flex items-center gap-1.5 text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider border", STATUS_BADGE[l.status as LeadStatus].className)}>
-                  <span className={cn("w-1.5 h-1.5 rounded-full", STATUS_BADGE[l.status as LeadStatus].dot)} />
-                  {STATUS_BADGE[l.status as LeadStatus].label}
-                </span>
-                <span className="text-[10px] font-bold text-muted-foreground">
-                  Score: {l.score}
-                </span>
-              </div>
-              <span
-                role="button"
-                tabIndex={0}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  window.open(`https://wa.me/${l.whatsapp.replace(/\D/g, "")}`, "_blank", "noreferrer");
-                }}
-                className="w-9 h-9 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors cursor-pointer"
-                aria-label="Abrir WhatsApp"
-              >
-                <Phone className="w-4 h-4" />
-              </span>
-            </div>
-          </Link>
+          <LeadRow key={l.id} lead={l} />
         ))}
         {filteredLeads.length === 0 && (
           <div className="text-center py-20">
@@ -301,6 +255,59 @@ function LeadsListPage() {
     </div>
   );
 }
+
+const LeadRow = memo(function LeadRow({ lead: l }: { lead: Lead }) {
+  const relative = useMemo(
+    () => formatDistanceToNow(new Date(l.created_at), { addSuffix: true, locale: ptBR }),
+    [l.created_at]
+  );
+  const tempBadge = TEMP_BADGE[l.temperatura];
+  const statusBadge = STATUS_BADGE[l.status as LeadStatus];
+  return (
+    <Link
+      to="/admin/leads/$id"
+      params={{ id: l.id }}
+      className="text-left bg-card border border-border rounded-2xl p-4 flex flex-col gap-3 hover:border-primary/40 transition-all active:scale-[0.99]"
+    >
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="font-bold text-secondary text-lg leading-tight">{l.nome}</div>
+          <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+            {l.cidade}/{l.estado} • {relative}
+          </div>
+        </div>
+        <span className={cn("text-[10px] font-extrabold px-2 py-0.5 rounded-full border uppercase tracking-wider", tempBadge.className)}>
+          {l.temperatura}
+        </span>
+      </div>
+
+      <div className="flex items-center justify-between mt-1">
+        <div className="flex gap-2 items-center">
+          <span className={cn("inline-flex items-center gap-1.5 text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider border", statusBadge.className)}>
+            <span className={cn("w-1.5 h-1.5 rounded-full", statusBadge.dot)} />
+            {statusBadge.label}
+          </span>
+          <span className="text-[10px] font-bold text-muted-foreground">
+            Score: {l.score}
+          </span>
+        </div>
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            window.open(`https://wa.me/${l.whatsapp.replace(/\D/g, "")}`, "_blank", "noreferrer");
+          }}
+          className="w-9 h-9 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors cursor-pointer"
+          aria-label="Abrir WhatsApp"
+        >
+          <Phone className="w-4 h-4" />
+        </span>
+      </div>
+    </Link>
+  );
+});
 
 function FilterChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
