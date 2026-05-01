@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+// removed Link import (edit feature removed)
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
