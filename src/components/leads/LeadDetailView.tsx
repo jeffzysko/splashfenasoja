@@ -1,8 +1,18 @@
-// removed Link import (edit feature removed)
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Loader2,
   Phone,
@@ -13,7 +23,7 @@ import {
   User,
   Clock,
   AlertCircle,
-  
+  Trash2,
 } from "lucide-react";
 import { TEMP_BADGE, LABELS, formatWhatsappBR, type Temperatura } from "@/lib/leads";
 import { cn } from "@/lib/utils";
