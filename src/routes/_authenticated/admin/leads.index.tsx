@@ -16,7 +16,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
-type Status = "novo" | "contatado" | "qualificado" | "vendido" | "descartado";
+type Status = "novo" | "contatado" | "qualificado" | "vendido" | "perdido" | "descartado";
 
 type Lead = {
   id: string;
@@ -242,6 +242,7 @@ function LeadsListPage() {
           <FilterChip label="Contatado" active={filterStatus === "contatado"} onClick={() => setFilterStatus("contatado")} />
           <FilterChip label="Qualificado" active={filterStatus === "qualificado"} onClick={() => setFilterStatus("qualificado")} />
           <FilterChip label="Vendido 🏆" active={filterStatus === "vendido"} onClick={() => setFilterStatus("vendido")} />
+          <FilterChip label="Perdido 💔" active={filterStatus === "perdido"} onClick={() => setFilterStatus("perdido")} />
           <FilterChip label="Descartado" active={filterStatus === "descartado"} onClick={() => setFilterStatus("descartado")} />
         </div>
       </div>
