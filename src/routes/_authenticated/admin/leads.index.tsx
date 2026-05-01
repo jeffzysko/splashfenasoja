@@ -16,7 +16,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
-type Status = "novo" | "contatado" | "qualificado" | "vendido" | "descartado";
+type Status = "novo" | "contatado" | "qualificado" | "vendido" | "perdido" | "descartado";
 
 type Lead = {
   id: string;
