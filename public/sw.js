@@ -1,4 +1,4 @@
-const CACHE_NAME = 'splash-leads-v2';
+const CACHE_NAME = 'splash-leads-v3';
 const ASSETS_TO_CACHE = [
   '/',
   '/logo_splash.svg',
