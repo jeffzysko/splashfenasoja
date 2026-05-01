@@ -24,6 +24,7 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { loadPrefs, shouldNotify, isInQuietHours } from "@/lib/notifPrefs";
+import { subscribeLeads } from "@/lib/leadsRealtime";
 
 const LAST_SEEN_KEY = "notif_last_seen_v1";
 const MAX_ITEMS = 20;
@@ -65,7 +66,7 @@ export function NotificationBell() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Carrega últimos leads + realtime
+  // Carrega últimos leads + realtime (canal compartilhado)
   useEffect(() => {
     const fetchLeads = async () => {
       const { data } = await supabase
@@ -77,54 +78,47 @@ export function NotificationBell() {
     };
     fetchLeads();
 
-    const channel = supabase
-      .channel("notif-bell-leads")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "leads" },
-        (payload) => {
-          const newLead = payload.new as NotifLead;
-          setItems((prev) => [newLead, ...prev].slice(0, MAX_ITEMS));
+    const unsub = subscribeLeads((event, payload) => {
+      if (event === "INSERT") {
+        const newLead = payload.new as NotifLead;
+        setItems((prev) => [newLead, ...prev].slice(0, MAX_ITEMS));
 
-          const prefs = loadPrefs();
-          const { toast: shouldToast, sound: shouldSound } = shouldNotify(
-            prefs,
-            newLead.temperatura
-          );
+        const prefs = loadPrefs();
+        const { toast: shouldToast, sound: shouldSound } = shouldNotify(
+          prefs,
+          newLead.temperatura
+        );
 
-          if (shouldToast) {
-            const isHot = newLead.temperatura === "quente";
-            toast(isHot ? "🔥 Lead QUENTE chegou!" : "🔔 Novo lead", {
-              description: `${newLead.nome} • ${newLead.cidade}/${newLead.estado}`,
-              duration: isHot ? 8000 : 4000,
-            });
-          }
-
-          if (shouldSound) {
-            try {
-              if (!audioRef.current) {
-                audioRef.current = new Audio("https://cdn.gpteng.co/ding.mp3");
-              }
-              audioRef.current.currentTime = 0;
-              audioRef.current.play().catch(() => {});
-            } catch {}
-          }
+        if (shouldToast) {
+          const isHot = newLead.temperatura === "quente";
+          toast(isHot ? "🔥 Lead QUENTE chegou!" : "🔔 Novo lead", {
+            description: `${newLead.nome} • ${newLead.cidade}/${newLead.estado}`,
+            duration: isHot ? 8000 : 4000,
+          });
         }
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "leads" },
-        (payload) => {
-          const updated = payload.new as NotifLead;
-          setItems((prev) =>
-            prev.map((l) => (l.id === updated.id ? { ...l, ...updated } : l))
-          );
+
+        if (shouldSound) {
+          try {
+            if (!audioRef.current) {
+              audioRef.current = new Audio("https://cdn.gpteng.co/ding.mp3");
+            }
+            audioRef.current.currentTime = 0;
+            audioRef.current.play().catch(() => {});
+          } catch {}
         }
-      )
-      .subscribe();
+      } else if (event === "UPDATE") {
+        const updated = payload.new as NotifLead;
+        setItems((prev) =>
+          prev.map((l) => (l.id === updated.id ? { ...l, ...updated } : l))
+        );
+      } else if (event === "DELETE") {
+        const oldLead = payload.old as { id: string };
+        setItems((prev) => prev.filter((l) => l.id !== oldLead.id));
+      }
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      unsub();
     };
   }, []);
 
