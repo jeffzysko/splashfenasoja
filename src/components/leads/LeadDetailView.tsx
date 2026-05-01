@@ -81,10 +81,9 @@ export function useLeadDetail(id: string | null) {
 type Props = {
   lead: LeadDetail;
   onUpdate?: (lead: LeadDetail) => void;
-  showEditLink?: boolean;
 };
 
-export function LeadDetailView({ lead, onUpdate, showEditLink = true }: Props) {
+export function LeadDetailView({ lead, onUpdate }: Props) {
   const [current, setCurrent] = useState<LeadDetail>(lead);
   const [notes, setNotes] = useState(lead.notes || "");
   const [saving, setSaving] = useState(false);
