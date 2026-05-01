@@ -110,19 +110,86 @@ function LeadsListPage() {
     return result;
   }, [leads, search, filterTemp, filterStatus, sortBy]);
 
-  const exportCSV = () => {
-    const headers = "id,data,nome,whatsapp,cidade,estado,temperatura,status,score\n";
-    const csvContent = filteredLeads.map(l => 
-      `${l.id},${l.created_at},"${l.nome}",${l.whatsapp},"${l.cidade}",${l.estado},${l.temperatura},${l.status},${l.score}`
-    ).join("\n");
-    
-    const blob = new Blob(["\uFEFF" + headers + csvContent], { type: "text/csv;charset=utf-8;" });
+  const exportCSV = async () => {
+    const ids = filteredLeads.map((l) => l.id);
+    if (ids.length === 0) {
+      toast.error("Nenhum lead para exportar.");
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("leads")
+      .select(
+        "id, created_at, nome, whatsapp, email, cidade, estado, tamanho_quintal, prazo_compra, orcamento, temperatura, status, score, notes"
+      )
+      .in("id", ids);
+
+    if (error || !data) {
+      toast.error("Erro ao exportar CSV.");
+      return;
+    }
+
+    // Mantém a ordem do filteredLeads
+    const byId = new Map(data.map((l) => [l.id, l]));
+    const ordered = filteredLeads.map((l) => byId.get(l.id)).filter(Boolean) as typeof data;
+
+    const esc = (v: unknown) => {
+      const s = v === null || v === undefined ? "" : String(v);
+      return `"${s.replace(/"/g, '""').replace(/\r?\n/g, " ")}"`;
+    };
+
+    const headers = [
+      "ID",
+      "Data",
+      "Nome",
+      "WhatsApp",
+      "E-mail",
+      "Cidade",
+      "Estado",
+      "Tamanho do Quintal",
+      "Prazo de Compra",
+      "Orçamento",
+      "Temperatura",
+      "Status",
+      "Score",
+      "Notas",
+    ];
+
+    const rows = ordered.map((l) => {
+      const dataFmt = new Date(l.created_at).toLocaleString("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+      });
+      return [
+        l.id,
+        dataFmt,
+        l.nome,
+        formatWhatsappBR(l.whatsapp),
+        l.email || "",
+        l.cidade,
+        l.estado,
+        LABELS.tamanho_quintal[l.tamanho_quintal as keyof typeof LABELS.tamanho_quintal] ||
+          l.tamanho_quintal,
+        LABELS.prazo_compra[l.prazo_compra as keyof typeof LABELS.prazo_compra] ||
+          l.prazo_compra,
+        LABELS.orcamento[l.orcamento as keyof typeof LABELS.orcamento] || l.orcamento,
+        l.temperatura,
+        l.status,
+        l.score,
+        l.notes || "",
+      ]
+        .map(esc)
+        .join(";");
+    });
+
+    const csv = "\uFEFF" + headers.map(esc).join(";") + "\n" + rows.join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `leads-fenasoja-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `leads-fenasoja-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
-    toast.success("CSV exportado!");
+    window.URL.revokeObjectURL(url);
+    toast.success(`${ordered.length} leads exportados!`);
   };
 
   if (loading) {
