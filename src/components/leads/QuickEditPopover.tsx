@@ -207,7 +207,7 @@ export function QuickEditPopover({
       description: "Tamanho, investimento e prazo sincronizados.",
     });
     setBaseline(parsed.data);
-    markSaved(changed);
+    recordSaved(parsed.data, changed);
     onSaved?.({ ...parsed.data, score, temperatura });
   };
 
