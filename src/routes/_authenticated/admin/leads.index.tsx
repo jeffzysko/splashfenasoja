@@ -1000,7 +1000,7 @@ function FilterChip({ label, active, onClick }: { label: string; active: boolean
 function LeadListSkeleton() {
   return (
     <div
-      className="grid gap-3 pb-20"
+      className="grid gap-3 pb-4"
       role="status"
       aria-live="polite"
       aria-label="Carregando lista de leads"

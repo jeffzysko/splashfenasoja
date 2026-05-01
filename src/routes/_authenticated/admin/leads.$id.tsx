@@ -31,7 +31,7 @@ export const Route = createFileRoute("/_authenticated/admin/leads/$id")({
 
 function PendingDetail() {
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" asChild className="rounded-full">
           <Link to="/admin/leads">
@@ -48,7 +48,7 @@ function PendingDetail() {
 function ErrorDetail({ error }: { error: Error }) {
   const router = useRouter();
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" asChild className="rounded-full">
           <Link to="/admin/leads">
@@ -99,7 +99,7 @@ function LeadDetailPage() {
   };
 
   return (
-    <div className="space-y-6 pb-20 animate-in fade-in slide-in-from-right-4 duration-400">
+    <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-400">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" asChild className="rounded-full">
           <Link to="/admin/leads">
