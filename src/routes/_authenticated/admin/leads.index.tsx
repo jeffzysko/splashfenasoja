@@ -24,8 +24,49 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 const PAGE_SIZE = 50;
 const VIRTUALIZE_THRESHOLD = 80;
 const ROW_HEIGHT = 124; // altura aproximada do card + gap
+const CACHE_PREFIX = "leadsList:v2:";
+const CACHE_TTL_MS = 2 * 60 * 1000; // 2 min
 
-type Cursor = { created_at: string; id: string } | null;
+type SortBy = "recent" | "score" | "name";
+
+// Cursor por chave composta dependendo do sort.
+type Cursor =
+  | { kind: "recent"; created_at: string; id: string }
+  | { kind: "score"; score: number; created_at: string; id: string }
+  | { kind: "name"; nome: string; id: string }
+  | null;
+
+type CacheEntry = {
+  ts: number;
+  leads: Lead[];
+  cursor: Cursor;
+  hasMore: boolean;
+  totalCount: number | null;
+};
+
+function cacheKey(temp: string, status: string, search: string, sort: SortBy) {
+  return `${CACHE_PREFIX}${temp}|${status}|${sort}|${search.trim().toLowerCase()}`;
+}
+
+function readCache(key: string): CacheEntry | null {
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CacheEntry;
+    if (Date.now() - parsed.ts > CACHE_TTL_MS) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(key: string, entry: CacheEntry) {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(entry));
+  } catch {
+    // quota — ignora
+  }
+}
 
 /** Escapa vírgulas e parênteses para uso em filtros .or() do PostgREST. */
 function escapeOrValue(s: string) {
