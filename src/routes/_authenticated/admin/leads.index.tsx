@@ -562,3 +562,57 @@ function FilterChip({ label, active, onClick }: { label: string; active: boolean
     </button>
   );
 }
+
+function LeadListSkeleton() {
+  return (
+    <div className="grid gap-3 pb-20">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="bg-card border border-border rounded-2xl p-4 flex flex-col gap-3">
+          <div className="flex items-start justify-between">
+            <div className="space-y-2 flex-1">
+              <Skeleton className="h-5 w-2/3" />
+              <Skeleton className="h-3 w-1/2" />
+            </div>
+            <Skeleton className="h-5 w-14 rounded-full" />
+          </div>
+          <div className="flex items-center justify-between mt-1">
+            <div className="flex gap-2">
+              <Skeleton className="h-4 w-20 rounded-md" />
+              <Skeleton className="h-4 w-16 rounded-md" />
+            </div>
+            <Skeleton className="h-9 w-9 rounded-full" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EmptyState({
+  hasActiveFilters,
+  onClear,
+}: {
+  hasActiveFilters: boolean;
+  onClear: () => void;
+}) {
+  return (
+    <div className="text-center py-20 px-4">
+      <div className="w-14 h-14 mx-auto rounded-2xl bg-muted flex items-center justify-center mb-3">
+        <Search className="w-6 h-6 text-muted-foreground" />
+      </div>
+      <p className="text-secondary font-bold mb-1">
+        {hasActiveFilters ? "Nenhum lead encontrado" : "Ainda não há leads"}
+      </p>
+      <p className="text-xs text-muted-foreground mb-4">
+        {hasActiveFilters
+          ? "Tente ajustar a busca ou limpar os filtros."
+          : "Assim que chegarem novos leads eles aparecerão aqui."}
+      </p>
+      {hasActiveFilters && (
+        <Button onClick={onClear} variant="outline" size="sm" className="rounded-xl">
+          Limpar filtros
+        </Button>
+      )}
+    </div>
+  );
+}
