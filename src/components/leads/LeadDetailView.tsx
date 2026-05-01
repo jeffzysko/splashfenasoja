@@ -32,7 +32,7 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 
-export type LeadStatus = "novo" | "contatado" | "qualificado" | "vendido" | "descartado";
+export type LeadStatus = "novo" | "contatado" | "qualificado" | "vendido" | "perdido" | "descartado";
 
 export type LeadDetail = {
   id: string;
