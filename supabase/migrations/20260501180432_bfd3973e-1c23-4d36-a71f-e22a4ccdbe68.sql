@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.log_admin_role_assignment() FROM PUBLIC, anon, authenticated;

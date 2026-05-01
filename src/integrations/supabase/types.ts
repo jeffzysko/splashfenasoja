@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          notes: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          source: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          notes?: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          source?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          notes?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           cidade: string
