@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 // canvas-confetti é carregado dinamicamente apenas quando uma venda é registrada
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import {
   Clock,
   AlertCircle,
   Trash2,
+  Undo2,
 } from "lucide-react";
 import { TEMP_BADGE, LABELS, formatWhatsappBR, calcScore, TAMANHO_OPTIONS, PRAZO_OPTIONS, ORCAMENTO_OPTIONS, type Temperatura } from "@/lib/leads";
 import {
@@ -102,37 +103,61 @@ type Props = {
   onDeleted?: () => void;
 };
 
+type QField = "tamanho_quintal" | "prazo_compra" | "orcamento";
+
+const FIELD_META: Record<
+  QField,
+  { label: string; options: ReadonlyArray<{ value: string; label: string }> }
+> = {
+  tamanho_quintal: { label: "Tamanho da piscina", options: TAMANHO_OPTIONS },
+  prazo_compra: { label: "Quando quer instalar", options: PRAZO_OPTIONS },
+  orcamento: { label: "Valor de investimento", options: ORCAMENTO_OPTIONS },
+};
+
 export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
   const [current, setCurrent] = useState<LeadDetail>(lead);
   const [notes, setNotes] = useState(lead.notes || "");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [savingField, setSavingField] = useState<null | "tamanho_quintal" | "prazo_compra" | "orcamento">(null);
+  const [savingField, setSavingField] = useState<QField | null>(null);
+  const [savedField, setSavedField] = useState<QField | null>(null);
+  const [lastChange, setLastChange] = useState<{ field: QField; previousValue: string } | null>(null);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { user } = useSupabaseAuth();
 
-  const TAMANHO_VALUES = TAMANHO_OPTIONS.map((o) => o.value as string);
-  const PRAZO_VALUES = PRAZO_OPTIONS.map((o) => o.value as string);
-  const ORCAMENTO_VALUES = ORCAMENTO_OPTIONS.map((o) => o.value as string);
+  useEffect(() => {
+    return () => {
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    };
+  }, []);
+
+  const flashSaved = (field: QField) => {
+    setSavedField(field);
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    savedTimerRef.current = setTimeout(
+      () => setSavedField((cur) => (cur === field ? null : cur)),
+      2500
+    );
+  };
 
   const updateQualification = async (
-    field: "tamanho_quintal" | "prazo_compra" | "orcamento",
-    value: string
+    field: QField,
+    value: string,
+    opts?: { silent?: boolean; skipUndo?: boolean }
   ) => {
-    // Validação: o valor precisa pertencer ao enum correspondente.
-    const allowed =
-      field === "tamanho_quintal"
-        ? TAMANHO_VALUES
-        : field === "prazo_compra"
-          ? PRAZO_VALUES
-          : ORCAMENTO_VALUES;
-    if (!allowed.includes(value)) {
-      toast.error("Valor inválido para este campo.");
+    const meta = FIELD_META[field];
+    const allowedValues = meta.options.map((o) => o.value);
+    if (!allowedValues.includes(value)) {
+      const allowedLabels = meta.options.map((o) => o.label).join(", ");
+      toast.error(`"${meta.label}" inválido`, {
+        description: `Valor "${value}" não é aceito. Opções válidas: ${allowedLabels}.`,
+      });
       return;
     }
 
     const prev = current;
+    const previousValue = current[field];
     const draft = { ...current, [field]: value };
-    // Recalcula score/temperatura porque os 3 campos influenciam.
     const { score, temperatura } = calcScore({
       tamanho_quintal: draft.tamanho_quintal,
       prazo_compra: draft.prazo_compra,
@@ -152,20 +177,35 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
           ? { prazo_compra: value, score, temperatura }
           : { orcamento: value, score, temperatura };
 
-    const { error } = await supabase
-      .from("leads")
-      .update(patch)
-      .eq("id", current.id);
+    const { error } = await supabase.from("leads").update(patch).eq("id", current.id);
 
     setSavingField(null);
 
     if (error) {
       setCurrent(prev);
       onUpdate?.(prev);
-      toast.error("Erro ao salvar alteração.");
+      toast.error(`Erro ao salvar "${meta.label}"`, {
+        description: error.message || "Tente novamente em instantes.",
+      });
       return;
     }
-    toast.success("Atualizado!");
+
+    if (opts?.skipUndo) setLastChange(null);
+    else setLastChange({ field, previousValue });
+
+    flashSaved(field);
+
+    if (!opts?.silent) {
+      const newLabel = meta.options.find((o) => o.value === value)?.label ?? value;
+      toast.success(`${meta.label} atualizado para "${newLabel}".`);
+    }
+  };
+
+  const undoLastChange = async () => {
+    if (!lastChange || savingField) return;
+    const { field, previousValue } = lastChange;
+    await updateQualification(field, previousValue, { silent: true, skipUndo: true });
+    toast.success("Alteração desfeita.");
   };
 
   const deleteLead = async () => {
@@ -329,6 +369,7 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
             label="Tamanho da piscina"
             value={current.tamanho_quintal}
             saving={savingField === "tamanho_quintal"}
+            saved={savedField === "tamanho_quintal"}
             options={TAMANHO_OPTIONS.map((o) => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
             onChange={(v) => updateQualification("tamanho_quintal", v)}
           />
@@ -336,6 +377,7 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
             label="Quando quer instalar"
             value={current.prazo_compra}
             saving={savingField === "prazo_compra"}
+            saved={savedField === "prazo_compra"}
             options={PRAZO_OPTIONS.map((o) => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
             onChange={(v) => updateQualification("prazo_compra", v)}
           />
@@ -343,10 +385,27 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
             label="Valor de investimento"
             value={current.orcamento}
             saving={savingField === "orcamento"}
+            saved={savedField === "orcamento"}
             options={ORCAMENTO_OPTIONS.map((o) => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
             onChange={(v) => updateQualification("orcamento", v)}
           />
         </div>
+        {lastChange && (
+          <div className="flex items-center justify-between gap-3 px-4 py-3 bg-amber-500/5 border border-amber-500/20 rounded-2xl text-xs">
+            <span className="text-secondary font-semibold">
+              Último: <span className="text-muted-foreground font-normal">{FIELD_META[lastChange.field].label}</span>
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={undoLastChange}
+              disabled={!!savingField}
+              className="rounded-xl h-8 text-xs font-bold border-amber-500/40 text-amber-700 hover:bg-amber-500/10 hover:text-amber-800"
+            >
+              <Undo2 className="w-3.5 h-3.5 mr-1.5" /> Desfazer
+            </Button>
+          </div>
+        )}
       </section>
 
       <section className="space-y-3">
@@ -571,18 +630,29 @@ function EditableRow({
   value,
   options,
   saving,
+  saved,
   onChange,
 }: {
   label: string;
   value: string;
   options: { value: string; label: string }[];
   saving: boolean;
+  saved?: boolean;
   onChange: (v: string) => void;
 }) {
   return (
     <div className="p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-      <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
+      <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
         {label}
+        {saved && (
+          <span
+            className="inline-flex items-center gap-1 text-[9px] font-extrabold tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 normal-case animate-in fade-in zoom-in-95 duration-200"
+            role="status"
+            aria-live="polite"
+          >
+            <CheckCircle2 className="w-3 h-3" /> Salvo
+          </span>
+        )}
       </span>
       <div className="flex items-center gap-2 sm:max-w-[60%] w-full sm:w-auto">
         <Select value={value} onValueChange={onChange} disabled={saving}>
@@ -600,7 +670,7 @@ function EditableRow({
             ))}
           </SelectContent>
         </Select>
-        {saving && <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />}
+        {saving && <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" aria-label="Salvando" />}
       </div>
     </div>
   );
