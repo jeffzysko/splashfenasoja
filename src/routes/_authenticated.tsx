@@ -34,7 +34,7 @@ export const Route = createFileRoute("/_authenticated")({
     }
 
     if (location.pathname === "/" || location.pathname === "/admin") {
-      throw redirect({ to: "/admin/" });
+      throw redirect({ to: "/admin" });
     }
   },
   component: AuthenticatedLayout,
