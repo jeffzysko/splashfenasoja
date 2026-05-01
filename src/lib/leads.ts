@@ -90,5 +90,22 @@ export const TEMP_BADGE: Record<Temperatura, { label: string; className: string 
   frio: { label: "❄️ Frio", className: "bg-sky-500/15 text-sky-700 border-sky-500/30" },
 };
 
+export type LeadStatus =
+  | "novo"
+  | "contatado"
+  | "qualificado"
+  | "vendido"
+  | "perdido"
+  | "descartado";
+
+export const STATUS_BADGE: Record<LeadStatus, { label: string; className: string; dot: string }> = {
+  novo:        { label: "Novo",        className: "bg-blue-500/15 text-blue-700 border-blue-500/30",      dot: "bg-blue-500" },
+  contatado:   { label: "Contatado",   className: "bg-violet-500/15 text-violet-700 border-violet-500/30", dot: "bg-violet-500" },
+  qualificado: { label: "Qualificado", className: "bg-amber-500/15 text-amber-700 border-amber-500/30",   dot: "bg-amber-500" },
+  vendido:     { label: "Vendido",     className: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30", dot: "bg-emerald-500" },
+  perdido:     { label: "Perdido",     className: "bg-red-500/15 text-red-700 border-red-500/30",         dot: "bg-red-500" },
+  descartado:  { label: "Descartado",  className: "bg-muted text-muted-foreground border-border",         dot: "bg-muted-foreground" },
+};
+
 // WhatsApp da Splash (placeholder configurável). Troque pelo número real.
 export const SPLASH_WHATSAPP = "555531980098";
