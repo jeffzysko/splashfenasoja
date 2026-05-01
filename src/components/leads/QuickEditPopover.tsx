@@ -72,11 +72,14 @@ export function QuickEditPopover({
   const [values, setValues] = useState<QuickEditValues>(initial);
   const [baseline, setBaseline] = useState<QuickEditValues>(initial);
   const [saving, setSaving] = useState(false);
-  // Persistente entre aberturas: marca campos cujo último valor salvo == valor atual do servidor.
-  const [savedFields, setSavedFields] = useState<Record<QField, boolean>>({
-    tamanho_quintal: false,
-    prazo_compra: false,
-    orcamento: false,
+  // Último valor que ESTE popover salvou para cada campo. Persistente entre
+  // aberturas. O badge "Salvo" só aparece quando o valor atual do servidor
+  // (initial[f]) ainda é igual ao último valor salvo aqui — se o lead for
+  // alterado externamente, o badge some automaticamente.
+  const [lastSaved, setLastSaved] = useState<Record<QField, string | null>>({
+    tamanho_quintal: null,
+    prazo_compra: null,
+    orcamento: null,
   });
 
   // Sincroniza baseline quando o lead muda externamente.
@@ -91,6 +94,23 @@ export function QuickEditPopover({
   const dirty = dirtyFields.length > 0;
   const blocking = saving || dirty;
 
+  // Badge "Salvo" derivado: somente para campos não modificados localmente
+  // E cujo valor atual do servidor bate com o último valor salvo por aqui.
+  const savedFields: Record<QField, boolean> = {
+    tamanho_quintal:
+      values.tamanho_quintal === baseline.tamanho_quintal &&
+      lastSaved.tamanho_quintal !== null &&
+      lastSaved.tamanho_quintal === initial.tamanho_quintal,
+    orcamento:
+      values.orcamento === baseline.orcamento &&
+      lastSaved.orcamento !== null &&
+      lastSaved.orcamento === initial.orcamento,
+    prazo_compra:
+      values.prazo_compra === baseline.prazo_compra &&
+      lastSaved.prazo_compra !== null &&
+      lastSaved.prazo_compra === initial.prazo_compra,
+  };
+
   // Confirmação ao sair da página enquanto há alterações não salvas / salvamento em andamento.
   useEffect(() => {
     if (!blocking) return;
@@ -102,11 +122,11 @@ export function QuickEditPopover({
     return () => window.removeEventListener("beforeunload", handler);
   }, [blocking]);
 
-  const markSaved = (fields: QField[]) => {
+  const recordSaved = (data: QuickEditValues, fields: QField[]) => {
     if (fields.length === 0) return;
-    setSavedFields((prev) => {
+    setLastSaved((prev) => {
       const next = { ...prev };
-      for (const f of fields) next[f] = true;
+      for (const f of fields) next[f] = data[f];
       return next;
     });
   };
