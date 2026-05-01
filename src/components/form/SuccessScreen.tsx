@@ -64,7 +64,7 @@ export const SuccessScreen = () => {
             className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white h-[60px] rounded-2xl text-lg font-bold shadow-lg gap-2"
           >
             <SiWhatsapp />
-            Abrir WhatsApp agora
+            Chame um consultor agora!
           </Button>
         </a>
 
