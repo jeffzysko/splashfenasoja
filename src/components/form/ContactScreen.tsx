@@ -56,7 +56,7 @@ export const ContactScreen = () => {
         Como te encontramos?
       </h2>
       <p className="text-muted-foreground mb-8 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-forwards">
-        Promessa: nada de spam. Só o catálogo e um oi do consultor.
+        Promessa: nada de spam. Só o catálogo e um oi do especialista.
       </p>
 
       <Form {...form}>
@@ -67,7 +67,7 @@ export const ContactScreen = () => {
             render={({ field }) => (
               <FormItem>
                 <Label className="text-secondary font-bold uppercase text-[11px] tracking-wider">
-                  Nome
+                  Qual o seu Nome?
                 </Label>
                 <FormControl>
                   <Input
@@ -88,7 +88,7 @@ export const ContactScreen = () => {
             render={({ field }) => (
               <FormItem>
                 <Label className="text-secondary font-bold uppercase text-[11px] tracking-wider">
-                  WhatsApp
+                  Qual o seu WhatsApp?
                 </Label>
                 <FormControl>
                   <Input
@@ -111,7 +111,7 @@ export const ContactScreen = () => {
             render={({ field }) => (
               <FormItem>
                 <Label className="text-secondary font-bold uppercase text-[11px] tracking-wider">
-                  E-mail (opcional)
+                  Qual o seu E-mail? (opcional)
                 </Label>
                 <FormControl>
                   <Input
