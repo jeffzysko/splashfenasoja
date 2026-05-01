@@ -187,10 +187,8 @@ export function QuickEditPopover({
       description: "Tamanho, investimento e prazo sincronizados.",
     });
     setBaseline(parsed.data);
-    flashSaved(changed);
+    markSaved(changed);
     onSaved?.({ ...parsed.data, score, temperatura });
-    // Mantém o popover aberto por um instante para o usuário ver o badge.
-    setTimeout(() => setOpen(false), 900);
   };
 
   return (
