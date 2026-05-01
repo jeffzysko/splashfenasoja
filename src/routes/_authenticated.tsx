@@ -146,13 +146,6 @@ function AuthenticatedLayout() {
       });
   }, [user?.id]);
 
-  const toggleSound = () => {
-    const newVal = !soundEnabled;
-    setSoundEnabled(newVal);
-    localStorage.setItem("notifSound", newVal ? "on" : "off");
-    toast.info(newVal ? "Som de notificação ativado 🔔" : "Som desativado");
-  };
-
   const logout = async () => {
     await supabase.auth.signOut();
     toast.success("Você saiu.");
