@@ -16,13 +16,17 @@ export const Logo: React.FC<LogoProps> = ({
   height = 56,
 }) => {
   return (
-    <div className={cn("relative inline-block overflow-hidden", className)} style={{ height }}>
+    <div className={cn("relative inline-block overflow-hidden flex items-center justify-center", className)} style={{ height }}>
       <img 
         src={logoUrl} 
         alt="Splash Piscinas"
         className="h-full w-auto block object-contain"
         loading="eager"
         fetchPriority="high"
+        onError={(e) => {
+          console.error("Logo failed to load, falling back to text");
+          e.currentTarget.style.display = 'none';
+        }}
       />
     </div>
   );
