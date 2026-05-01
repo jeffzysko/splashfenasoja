@@ -126,6 +126,14 @@ function LoginPage() {
             >
               {loading ? (<><Loader2 className="w-5 h-5 animate-spin mr-2" /> Entrando...</>) : "Entrar"}
             </Button>
+            {error && (
+              <div
+                role="alert"
+                className="rounded-2xl border-2 border-destructive/40 bg-destructive/10 text-destructive text-sm font-semibold px-4 py-3"
+              >
+                {error}
+              </div>
+            )}
           </form>
         </div>
 
