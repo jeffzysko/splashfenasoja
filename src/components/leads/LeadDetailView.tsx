@@ -384,7 +384,7 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
             label="Quando quer instalar"
             value={current.prazo_compra}
             saving={savingField === "prazo_compra"}
-            saved={savedField === "prazo_compra"}
+            saved={savedField.prazo_compra}
             options={PRAZO_OPTIONS.map((o) => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
             onChange={(v) => updateQualification("prazo_compra", v)}
           />
