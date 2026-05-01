@@ -121,6 +121,42 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
 
   const dirty = (notes || "") !== (current.notes || "");
 
+  const fireSaleConfetti = () => {
+    const duration = 2500;
+    const end = Date.now() + duration;
+    const colors = ["#22c55e", "#fbbf24", "#3b82f6", "#ec4899", "#f97316"];
+
+    // Burst inicial dos dois lados
+    confetti({
+      particleCount: 120,
+      spread: 80,
+      origin: { y: 0.6 },
+      colors,
+      zIndex: 9999,
+    });
+
+    // Chuva contínua de confetes
+    (function frame() {
+      confetti({
+        particleCount: 4,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0, y: 0.7 },
+        colors,
+        zIndex: 9999,
+      });
+      confetti({
+        particleCount: 4,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1, y: 0.7 },
+        colors,
+        zIndex: 9999,
+      });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    })();
+  };
+
   const updateStatus = async (newStatus: LeadStatus) => {
     const prev = current.status;
     const next = { ...current, status: newStatus };
@@ -138,7 +174,12 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
       setCurrent(reverted);
       onUpdate?.(reverted);
     } else {
-      toast.success(`Status alterado para ${newStatus}`);
+      if (newStatus === "vendido" && prev !== "vendido") {
+        toast.success("🏆 Parabéns! Venda registrada!");
+        fireSaleConfetti();
+      } else {
+        toast.success(`Status alterado para ${newStatus}`);
+      }
     }
   };
 
