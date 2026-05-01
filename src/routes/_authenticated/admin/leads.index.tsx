@@ -8,11 +8,11 @@ import {
   Download,
   ArrowLeft,
   Loader2,
-  Phone,
   X,
   SlidersHorizontal,
   ArrowUpDown,
 } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import {
   Select,
   SelectContent,
