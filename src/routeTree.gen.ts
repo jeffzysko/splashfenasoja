@@ -16,6 +16,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as AuthenticatedAdminLeadsIndexRouteImport } from './routes/_authenticated/admin/leads.index'
 import { Route as AuthenticatedAdminLeadsIdRouteImport } from './routes/_authenticated/admin/leads.$id'
+import { Route as AuthenticatedAdminLeadsIdEditRouteImport } from './routes/_authenticated/admin/leads.$id.edit'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -53,21 +54,29 @@ const AuthenticatedAdminLeadsIdRoute =
     path: '/leads/$id',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminLeadsIdEditRoute =
+  AuthenticatedAdminLeadsIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthenticatedAdminLeadsIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/admin/': typeof AuthenticatedAdminIndexRoute
-  '/admin/leads/$id': typeof AuthenticatedAdminLeadsIdRoute
+  '/admin/leads/$id': typeof AuthenticatedAdminLeadsIdRouteWithChildren
   '/admin/leads/': typeof AuthenticatedAdminLeadsIndexRoute
+  '/admin/leads/$id/edit': typeof AuthenticatedAdminLeadsIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
-  '/admin/leads/$id': typeof AuthenticatedAdminLeadsIdRoute
+  '/admin/leads/$id': typeof AuthenticatedAdminLeadsIdRouteWithChildren
   '/admin/leads': typeof AuthenticatedAdminLeadsIndexRoute
+  '/admin/leads/$id/edit': typeof AuthenticatedAdminLeadsIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -76,8 +85,9 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
-  '/_authenticated/admin/leads/$id': typeof AuthenticatedAdminLeadsIdRoute
+  '/_authenticated/admin/leads/$id': typeof AuthenticatedAdminLeadsIdRouteWithChildren
   '/_authenticated/admin/leads/': typeof AuthenticatedAdminLeadsIndexRoute
+  '/_authenticated/admin/leads/$id/edit': typeof AuthenticatedAdminLeadsIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -88,8 +98,15 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/admin/leads/$id'
     | '/admin/leads/'
+    | '/admin/leads/$id/edit'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/admin' | '/admin/leads/$id' | '/admin/leads'
+  to:
+    | '/'
+    | '/login'
+    | '/admin'
+    | '/admin/leads/$id'
+    | '/admin/leads'
+    | '/admin/leads/$id/edit'
   id:
     | '__root__'
     | '/'
@@ -99,6 +116,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/'
     | '/_authenticated/admin/leads/$id'
     | '/_authenticated/admin/leads/'
+    | '/_authenticated/admin/leads/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -158,18 +176,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminLeadsIdRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/leads/$id/edit': {
+      id: '/_authenticated/admin/leads/$id/edit'
+      path: '/edit'
+      fullPath: '/admin/leads/$id/edit'
+      preLoaderRoute: typeof AuthenticatedAdminLeadsIdEditRouteImport
+      parentRoute: typeof AuthenticatedAdminLeadsIdRoute
+    }
   }
 }
 
+interface AuthenticatedAdminLeadsIdRouteChildren {
+  AuthenticatedAdminLeadsIdEditRoute: typeof AuthenticatedAdminLeadsIdEditRoute
+}
+
+const AuthenticatedAdminLeadsIdRouteChildren: AuthenticatedAdminLeadsIdRouteChildren =
+  {
+    AuthenticatedAdminLeadsIdEditRoute: AuthenticatedAdminLeadsIdEditRoute,
+  }
+
+const AuthenticatedAdminLeadsIdRouteWithChildren =
+  AuthenticatedAdminLeadsIdRoute._addFileChildren(
+    AuthenticatedAdminLeadsIdRouteChildren,
+  )
+
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
-  AuthenticatedAdminLeadsIdRoute: typeof AuthenticatedAdminLeadsIdRoute
+  AuthenticatedAdminLeadsIdRoute: typeof AuthenticatedAdminLeadsIdRouteWithChildren
   AuthenticatedAdminLeadsIndexRoute: typeof AuthenticatedAdminLeadsIndexRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
-  AuthenticatedAdminLeadsIdRoute: AuthenticatedAdminLeadsIdRoute,
+  AuthenticatedAdminLeadsIdRoute: AuthenticatedAdminLeadsIdRouteWithChildren,
   AuthenticatedAdminLeadsIndexRoute: AuthenticatedAdminLeadsIndexRoute,
 }
 
