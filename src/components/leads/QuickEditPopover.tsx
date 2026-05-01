@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Pencil, Loader2 } from "lucide-react";
+import { Pencil, Loader2, Check } from "lucide-react";
 import {
   TAMANHO_OPTIONS,
   PRAZO_OPTIONS,
@@ -28,13 +28,15 @@ const tamanhoValues = TAMANHO_OPTIONS.map((o) => o.value) as [string, ...string[
 const prazoValues = PRAZO_OPTIONS.map((o) => o.value) as [string, ...string[]];
 const orcamentoValues = ORCAMENTO_OPTIONS.map((o) => o.value) as [string, ...string[]];
 
-const FIELD_LABEL: Record<"tamanho_quintal" | "prazo_compra" | "orcamento", string> = {
+type QField = "tamanho_quintal" | "prazo_compra" | "orcamento";
+
+const FIELD_LABEL: Record<QField, string> = {
   tamanho_quintal: "Tamanho da piscina",
   prazo_compra: "Quando quer instalar",
   orcamento: "Valor de investimento",
 };
 
-const FIELD_OPTIONS: Record<"tamanho_quintal" | "prazo_compra" | "orcamento", ReadonlyArray<{ value: string; label: string }>> = {
+const FIELD_OPTIONS: Record<QField, ReadonlyArray<{ value: string; label: string }>> = {
   tamanho_quintal: TAMANHO_OPTIONS,
   prazo_compra: PRAZO_OPTIONS,
   orcamento: ORCAMENTO_OPTIONS,
@@ -54,9 +56,7 @@ type Props = {
   email?: string | null;
   onSaved?: (next: QuickEditValues & { score: number; temperatura: "quente" | "morno" | "frio" }) => void;
   className?: string;
-  /** Quando true, renderiza só o conteúdo (sem trigger). Útil para inline. */
   triggerless?: boolean;
-  /** Trigger customizado (ex.: ícone diferente). */
   trigger?: React.ReactNode;
 };
 
@@ -70,19 +70,80 @@ export function QuickEditPopover({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [values, setValues] = useState<QuickEditValues>(initial);
+  const [baseline, setBaseline] = useState<QuickEditValues>(initial);
   const [saving, setSaving] = useState(false);
+  const [savedFields, setSavedFields] = useState<Record<QField, boolean>>({
+    tamanho_quintal: false,
+    prazo_compra: false,
+    orcamento: false,
+  });
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const dirty =
-    values.tamanho_quintal !== initial.tamanho_quintal ||
-    values.prazo_compra !== initial.prazo_compra ||
-    values.orcamento !== initial.orcamento;
+  // Sincroniza baseline quando o lead muda externamente.
+  useEffect(() => {
+    setBaseline(initial);
+    if (!open) setValues(initial);
+  }, [initial.tamanho_quintal, initial.prazo_compra, initial.orcamento]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const dirtyFields: QField[] = (
+    ["tamanho_quintal", "prazo_compra", "orcamento"] as QField[]
+  ).filter((f) => values[f] !== baseline[f]);
+  const dirty = dirtyFields.length > 0;
+  const blocking = saving || dirty;
+
+  // Confirmação ao sair da página enquanto há alterações não salvas / salvamento em andamento.
+  useEffect(() => {
+    if (!blocking) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [blocking]);
+
+  useEffect(() => {
+    return () => {
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    };
+  }, []);
+
+  const flashSaved = (fields: QField[]) => {
+    setSavedFields((prev) => {
+      const next = { ...prev };
+      for (const f of fields) next[f] = true;
+      return next;
+    });
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    savedTimerRef.current = setTimeout(() => {
+      setSavedFields({ tamanho_quintal: false, prazo_compra: false, orcamento: false });
+    }, 2500);
+  };
+
+  const tryClose = (next: boolean) => {
+    if (next) {
+      setOpen(true);
+      return;
+    }
+    if (saving) {
+      toast.info("Aguarde o salvamento concluir antes de fechar.");
+      return;
+    }
+    if (dirty) {
+      const ok = window.confirm(
+        "Você tem alterações não salvas na edição rápida. Deseja descartar?"
+      );
+      if (!ok) return;
+      setValues(baseline);
+    }
+    setOpen(false);
+  };
 
   const handleSave = async () => {
     const parsed = schema.safeParse(values);
     if (!parsed.success) {
-      // Mensagem rica: identifica o campo e as opções esperadas.
       const issue = parsed.error.issues[0];
-      const path = issue?.path?.[0] as keyof typeof FIELD_LABEL | undefined;
+      const path = issue?.path?.[0] as QField | undefined;
       if (path && FIELD_LABEL[path]) {
         const allowed = FIELD_OPTIONS[path].map((o) => o.label).join(", ");
         toast.error(`"${FIELD_LABEL[path]}" inválido`, {
@@ -103,6 +164,8 @@ export function QuickEditPopover({
       orcamento: parsed.data.orcamento,
       email: email ?? null,
     });
+
+    const changed = [...dirtyFields];
 
     const { error } = await supabase
       .from("leads")
@@ -127,12 +190,15 @@ export function QuickEditPopover({
     toast.success("Lead atualizado!", {
       description: "Tamanho, investimento e prazo sincronizados.",
     });
+    setBaseline(parsed.data);
+    flashSaved(changed);
     onSaved?.({ ...parsed.data, score, temperatura });
-    setOpen(false);
+    // Mantém o popover aberto por um instante para o usuário ver o badge.
+    setTimeout(() => setOpen(false), 900);
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={tryClose}>
       <PopoverTrigger asChild>
         {trigger ?? (
           <button
@@ -155,8 +221,25 @@ export function QuickEditPopover({
       <PopoverContent
         className="w-80 rounded-2xl"
         align="end"
-        // Impede que o clique vaze para o <Link> do card pai
         onClick={(e) => e.stopPropagation()}
+        onEscapeKeyDown={(e) => {
+          if (blocking) {
+            e.preventDefault();
+            tryClose(false);
+          }
+        }}
+        onPointerDownOutside={(e) => {
+          if (blocking) {
+            e.preventDefault();
+            tryClose(false);
+          }
+        }}
+        onInteractOutside={(e) => {
+          if (blocking) {
+            e.preventDefault();
+            tryClose(false);
+          }
+        }}
       >
         <div className="space-y-4">
           <div>
@@ -166,7 +249,7 @@ export function QuickEditPopover({
             </p>
           </div>
 
-          <Field label="Tamanho da piscina">
+          <Field label="Tamanho da piscina" saved={savedFields.tamanho_quintal}>
             <Select
               value={values.tamanho_quintal}
               onValueChange={(v) => setValues((s) => ({ ...s, tamanho_quintal: v }))}
@@ -184,7 +267,7 @@ export function QuickEditPopover({
             </Select>
           </Field>
 
-          <Field label="Valor de investimento">
+          <Field label="Valor de investimento" saved={savedFields.orcamento}>
             <Select
               value={values.orcamento}
               onValueChange={(v) => setValues((s) => ({ ...s, orcamento: v }))}
@@ -202,7 +285,7 @@ export function QuickEditPopover({
             </Select>
           </Field>
 
-          <Field label="Quando quer instalar">
+          <Field label="Quando quer instalar" saved={savedFields.prazo_compra}>
             <Select
               value={values.prazo_compra}
               onValueChange={(v) => setValues((s) => ({ ...s, prazo_compra: v }))}
@@ -225,10 +308,7 @@ export function QuickEditPopover({
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => {
-                setValues(initial);
-                setOpen(false);
-              }}
+              onClick={() => tryClose(false)}
               disabled={saving}
               className="rounded-xl"
             >
@@ -256,11 +336,30 @@ export function QuickEditPopover({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  saved,
+  children,
+}: {
+  label: string;
+  saved?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block space-y-1.5">
-      <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-        {label}
+      <span className="flex items-center gap-2">
+        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+          {label}
+        </span>
+        {saved && (
+          <span
+            role="status"
+            aria-live="polite"
+            className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-700 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider animate-in fade-in zoom-in-95"
+          >
+            <Check className="w-2.5 h-2.5" /> Salvo
+          </span>
+        )}
       </span>
       {children}
     </label>
