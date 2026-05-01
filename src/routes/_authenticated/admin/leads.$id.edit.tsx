@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ export const Route = createFileRoute("/_authenticated/admin/leads/$id/edit")({
 function LeadEditPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
+  const router = useRouter();
   const { lead, loading, error } = useLeadDetail(id);
   const [form, setForm] = useState<LeadDetail | null>(null);
   const [saving, setSaving] = useState(false);
@@ -73,6 +74,8 @@ function LeadEditPage() {
       return;
     }
     toast.success("Lead atualizado!");
+    // Invalida o cache do router pra que a página de detalhe recarregue com os dados frescos
+    await router.invalidate();
     navigate({ to: "/admin/leads/$id", params: { id } });
   };
 
