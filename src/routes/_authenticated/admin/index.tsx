@@ -17,7 +17,7 @@ import { TEMP_BADGE, type Temperatura } from "@/lib/leads";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-type Status = "novo" | "contatado" | "qualificado" | "descartado";
+type Status = "novo" | "contatado" | "qualificado" | "vendido" | "descartado";
 
 type Lead = {
   id: string;
