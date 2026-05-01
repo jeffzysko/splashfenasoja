@@ -197,11 +197,11 @@ function LeadsListPage() {
       </div>
       <div className="grid gap-3 pb-20">
         {filteredLeads.map((l) => (
-          <Link
+          <button
             key={l.id}
-            to="/admin/leads/$id"
-            params={{ id: l.id }}
-            className="bg-card border border-border rounded-2xl p-4 flex flex-col gap-3 hover:border-primary/40 transition-all active:scale-[0.99]"
+            type="button"
+            onClick={() => setOpenLeadId(l.id)}
+            className="text-left bg-card border border-border rounded-2xl p-4 flex flex-col gap-3 hover:border-primary/40 transition-all active:scale-[0.99]"
           >
             <div className="flex items-start justify-between">
               <div>
@@ -214,7 +214,7 @@ function LeadsListPage() {
                 {l.temperatura}
               </span>
             </div>
-            
+
             <div className="flex items-center justify-between mt-1">
               <div className="flex gap-2 items-center">
                 <span className="text-[10px] bg-muted text-muted-foreground font-black px-2 py-0.5 rounded-md uppercase">
@@ -224,19 +224,20 @@ function LeadsListPage() {
                   Score: {l.score}
                 </span>
               </div>
-              <div className="flex gap-2">
-                <a 
-                  href={`https://wa.me/${l.whatsapp.replace(/\D/g, '')}`} 
+              <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                <a
+                  href={`https://wa.me/${l.whatsapp.replace(/\D/g, "")}`}
                   onClick={(e) => e.stopPropagation()}
-                  target="_blank" 
+                  target="_blank"
                   rel="noreferrer"
                   className="w-9 h-9 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors"
+                  aria-label="Abrir WhatsApp"
                 >
                   <Phone className="w-4 h-4" />
                 </a>
               </div>
             </div>
-          </Link>
+          </button>
         ))}
         {filteredLeads.length === 0 && (
           <div className="text-center py-20">
