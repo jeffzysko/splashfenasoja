@@ -244,49 +244,7 @@ function LeadsListPage() {
       </div>
       <div className="grid gap-3 pb-20">
         {filteredLeads.map((l) => (
-          <Link
-            key={l.id}
-            to="/admin/leads/$id"
-            params={{ id: l.id }}
-            className="text-left bg-card border border-border rounded-2xl p-4 flex flex-col gap-3 hover:border-primary/40 transition-all active:scale-[0.99]"
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="font-bold text-secondary text-lg leading-tight">{l.nome}</div>
-                <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                  {l.cidade}/{l.estado} • {formatDistanceToNow(new Date(l.created_at), { addSuffix: true, locale: ptBR })}
-                </div>
-              </div>
-              <span className={cn("text-[10px] font-extrabold px-2 py-0.5 rounded-full border uppercase tracking-wider", TEMP_BADGE[l.temperatura].className)}>
-                {l.temperatura}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between mt-1">
-              <div className="flex gap-2 items-center">
-                <span className={cn("inline-flex items-center gap-1.5 text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider border", STATUS_BADGE[l.status as LeadStatus].className)}>
-                  <span className={cn("w-1.5 h-1.5 rounded-full", STATUS_BADGE[l.status as LeadStatus].dot)} />
-                  {STATUS_BADGE[l.status as LeadStatus].label}
-                </span>
-                <span className="text-[10px] font-bold text-muted-foreground">
-                  Score: {l.score}
-                </span>
-              </div>
-              <span
-                role="button"
-                tabIndex={0}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  window.open(`https://wa.me/${l.whatsapp.replace(/\D/g, "")}`, "_blank", "noreferrer");
-                }}
-                className="w-9 h-9 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors cursor-pointer"
-                aria-label="Abrir WhatsApp"
-              >
-                <Phone className="w-4 h-4" />
-              </span>
-            </div>
-          </Link>
+          <LeadRow key={l.id} lead={l} />
         ))}
         {filteredLeads.length === 0 && (
           <div className="text-center py-20">
@@ -297,6 +255,59 @@ function LeadsListPage() {
     </div>
   );
 }
+
+const LeadRow = memo(function LeadRow({ lead: l }: { lead: Lead }) {
+  const relative = useMemo(
+    () => formatDistanceToNow(new Date(l.created_at), { addSuffix: true, locale: ptBR }),
+    [l.created_at]
+  );
+  const tempBadge = TEMP_BADGE[l.temperatura];
+  const statusBadge = STATUS_BADGE[l.status as LeadStatus];
+  return (
+    <Link
+      to="/admin/leads/$id"
+      params={{ id: l.id }}
+      className="text-left bg-card border border-border rounded-2xl p-4 flex flex-col gap-3 hover:border-primary/40 transition-all active:scale-[0.99]"
+    >
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="font-bold text-secondary text-lg leading-tight">{l.nome}</div>
+          <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+            {l.cidade}/{l.estado} • {relative}
+          </div>
+        </div>
+        <span className={cn("text-[10px] font-extrabold px-2 py-0.5 rounded-full border uppercase tracking-wider", tempBadge.className)}>
+          {l.temperatura}
+        </span>
+      </div>
+
+      <div className="flex items-center justify-between mt-1">
+        <div className="flex gap-2 items-center">
+          <span className={cn("inline-flex items-center gap-1.5 text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider border", statusBadge.className)}>
+            <span className={cn("w-1.5 h-1.5 rounded-full", statusBadge.dot)} />
+            {statusBadge.label}
+          </span>
+          <span className="text-[10px] font-bold text-muted-foreground">
+            Score: {l.score}
+          </span>
+        </div>
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            window.open(`https://wa.me/${l.whatsapp.replace(/\D/g, "")}`, "_blank", "noreferrer");
+          }}
+          className="w-9 h-9 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors cursor-pointer"
+          aria-label="Abrir WhatsApp"
+        >
+          <Phone className="w-4 h-4" />
+        </span>
+      </div>
+    </Link>
+  );
+});
 
 function FilterChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
