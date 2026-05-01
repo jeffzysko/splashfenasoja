@@ -72,12 +72,12 @@ export function QuickEditPopover({
   const [values, setValues] = useState<QuickEditValues>(initial);
   const [baseline, setBaseline] = useState<QuickEditValues>(initial);
   const [saving, setSaving] = useState(false);
+  // Persistente entre aberturas: marca campos cujo último valor salvo == valor atual do servidor.
   const [savedFields, setSavedFields] = useState<Record<QField, boolean>>({
     tamanho_quintal: false,
     prazo_compra: false,
     orcamento: false,
   });
-  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sincroniza baseline quando o lead muda externamente.
   useEffect(() => {
@@ -102,22 +102,17 @@ export function QuickEditPopover({
     return () => window.removeEventListener("beforeunload", handler);
   }, [blocking]);
 
-  useEffect(() => {
-    return () => {
-      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
-    };
-  }, []);
-
-  const flashSaved = (fields: QField[]) => {
+  const markSaved = (fields: QField[]) => {
+    if (fields.length === 0) return;
     setSavedFields((prev) => {
       const next = { ...prev };
       for (const f of fields) next[f] = true;
       return next;
     });
-    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
-    savedTimerRef.current = setTimeout(() => {
-      setSavedFields({ tamanho_quintal: false, prazo_compra: false, orcamento: false });
-    }, 2500);
+  };
+
+  const discardChanges = () => {
+    setValues(baseline);
   };
 
   const tryClose = (next: boolean) => {
@@ -130,11 +125,12 @@ export function QuickEditPopover({
       return;
     }
     if (dirty) {
+      const labels = dirtyFields.map((f) => `• ${FIELD_LABEL[f]}`).join("\n");
       const ok = window.confirm(
-        "Você tem alterações não salvas na edição rápida. Deseja descartar?"
+        `Você tem alterações não salvas em:\n\n${labels}\n\nDeseja descartar essas alterações e fechar?`
       );
       if (!ok) return;
-      setValues(baseline);
+      discardChanges();
     }
     setOpen(false);
   };
