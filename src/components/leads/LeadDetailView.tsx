@@ -392,7 +392,7 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
             label="Valor de investimento"
             value={current.orcamento}
             saving={savingField === "orcamento"}
-            saved={savedField === "orcamento"}
+            saved={savedField.orcamento}
             options={ORCAMENTO_OPTIONS.map((o) => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
             onChange={(v) => updateQualification("orcamento", v)}
           />
