@@ -28,16 +28,22 @@ const tamanhoValues = TAMANHO_OPTIONS.map((o) => o.value) as [string, ...string[
 const prazoValues = PRAZO_OPTIONS.map((o) => o.value) as [string, ...string[]];
 const orcamentoValues = ORCAMENTO_OPTIONS.map((o) => o.value) as [string, ...string[]];
 
+const FIELD_LABEL: Record<"tamanho_quintal" | "prazo_compra" | "orcamento", string> = {
+  tamanho_quintal: "Tamanho da piscina",
+  prazo_compra: "Quando quer instalar",
+  orcamento: "Valor de investimento",
+};
+
+const FIELD_OPTIONS: Record<"tamanho_quintal" | "prazo_compra" | "orcamento", ReadonlyArray<{ value: string; label: string }>> = {
+  tamanho_quintal: TAMANHO_OPTIONS,
+  prazo_compra: PRAZO_OPTIONS,
+  orcamento: ORCAMENTO_OPTIONS,
+};
+
 const schema = z.object({
-  tamanho_quintal: z.enum(tamanhoValues, {
-    message: "Selecione um tamanho de piscina válido.",
-  }),
-  prazo_compra: z.enum(prazoValues, {
-    message: "Selecione um prazo de instalação válido.",
-  }),
-  orcamento: z.enum(orcamentoValues, {
-    message: "Selecione um valor de investimento válido.",
-  }),
+  tamanho_quintal: z.enum(tamanhoValues),
+  prazo_compra: z.enum(prazoValues),
+  orcamento: z.enum(orcamentoValues),
 });
 
 export type QuickEditValues = z.infer<typeof schema>;
