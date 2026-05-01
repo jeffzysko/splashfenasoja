@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { subscribeLeads } from "@/lib/leadsRealtime";
 import {
   LeadDetailView,
   LeadDetailLoading,
@@ -71,6 +72,26 @@ function LeadDetailPage() {
   useEffect(() => {
     setLead(initial);
   }, [initial]);
+
+  // Realtime: aplica UPDATE/DELETE deste lead vindos de outras abas/usuários
+  // sem precisar recarregar a página. Isso faz o badge "Salvo" no
+  // LeadDetailView refletir automaticamente mudanças externas — quando o
+  // valor do lead muda, ele deixa de bater com lastSaved e o badge some.
+  useEffect(() => {
+    const unsub = subscribeLeads((event, payload) => {
+      if (event === "UPDATE") {
+        const next = payload.new as Partial<LeadDetail> & { id: string };
+        if (next.id !== initial.id) return;
+        setLead((prev) => ({ ...prev, ...(next as LeadDetail) }));
+      } else if (event === "DELETE") {
+        const old = payload.old as { id: string };
+        if (old.id !== initial.id) return;
+        // Lead apagado em outra aba — volta para a lista.
+        router.navigate({ to: "/admin/leads" });
+      }
+    });
+    return () => unsub();
+  }, [initial.id, router]);
 
   const handleDeleted = () => {
     router.invalidate();

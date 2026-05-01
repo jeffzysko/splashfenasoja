@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 // canvas-confetti é carregado dinamicamente apenas quando uma venda é registrada
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -120,24 +120,31 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [savingField, setSavingField] = useState<QField | null>(null);
-  const [savedField, setSavedField] = useState<QField | null>(null);
+  // Último valor salvo por ESTA sessão para cada campo. O badge "Salvo"
+  // aparece sse current[field] === lastSaved[field]. Quando o lead é
+  // atualizado externamente (outra aba/usuário) via realtime, current[field]
+  // muda e o badge some automaticamente sem precisar recarregar.
+  const [lastSaved, setLastSaved] = useState<Record<QField, string | null>>({
+    tamanho_quintal: null,
+    prazo_compra: null,
+    orcamento: null,
+  });
   const [lastChange, setLastChange] = useState<{ field: QField; previousValue: string } | null>(null);
-  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { user } = useSupabaseAuth();
 
-  useEffect(() => {
-    return () => {
-      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
-    };
-  }, []);
+  const savedField: Record<QField, boolean> = {
+    tamanho_quintal:
+      lastSaved.tamanho_quintal !== null &&
+      lastSaved.tamanho_quintal === current.tamanho_quintal,
+    prazo_compra:
+      lastSaved.prazo_compra !== null &&
+      lastSaved.prazo_compra === current.prazo_compra,
+    orcamento:
+      lastSaved.orcamento !== null && lastSaved.orcamento === current.orcamento,
+  };
 
-  const flashSaved = (field: QField) => {
-    setSavedField(field);
-    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
-    savedTimerRef.current = setTimeout(
-      () => setSavedField((cur) => (cur === field ? null : cur)),
-      2500
-    );
+  const recordSaved = (field: QField, value: string) => {
+    setLastSaved((prev) => ({ ...prev, [field]: value }));
   };
 
   const updateQualification = async (
@@ -193,7 +200,7 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
     if (opts?.skipUndo) setLastChange(null);
     else setLastChange({ field, previousValue });
 
-    flashSaved(field);
+    recordSaved(field, value);
 
     if (!opts?.silent) {
       const newLabel = meta.options.find((o) => o.value === value)?.label ?? value;
@@ -369,7 +376,7 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
             label="Tamanho da piscina"
             value={current.tamanho_quintal}
             saving={savingField === "tamanho_quintal"}
-            saved={savedField === "tamanho_quintal"}
+            saved={savedField.tamanho_quintal}
             options={TAMANHO_OPTIONS.map((o) => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
             onChange={(v) => updateQualification("tamanho_quintal", v)}
           />
@@ -377,7 +384,7 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
             label="Quando quer instalar"
             value={current.prazo_compra}
             saving={savingField === "prazo_compra"}
-            saved={savedField === "prazo_compra"}
+            saved={savedField.prazo_compra}
             options={PRAZO_OPTIONS.map((o) => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
             onChange={(v) => updateQualification("prazo_compra", v)}
           />
@@ -385,7 +392,7 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
             label="Valor de investimento"
             value={current.orcamento}
             saving={savingField === "orcamento"}
-            saved={savedField === "orcamento"}
+            saved={savedField.orcamento}
             options={ORCAMENTO_OPTIONS.map((o) => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
             onChange={(v) => updateQualification("orcamento", v)}
           />
