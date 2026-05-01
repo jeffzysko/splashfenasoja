@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
-import { LogOut, Volume2, VolumeX, LayoutDashboard, Users, Bell, Shield } from "lucide-react";
+import { LogOut, Volume2, VolumeX, LayoutDashboard, Users, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { NotificationBell } from "@/components/NotificationBell";
 
 // Cache de auth para evitar refazer getSession + user_roles em toda navegação.
 // Persiste em sessionStorage (sobrevive F5) e usa stale-while-revalidate.
@@ -178,9 +179,13 @@ function AuthenticatedLayout() {
           </div>
           
           <div className="flex items-center gap-1 sm:gap-3">
-            <button 
+            <NotificationBell />
+
+            <button
               onClick={toggleSound}
               className="p-2 text-muted-foreground hover:text-primary transition-colors"
+              aria-label={soundEnabled ? "Desativar som" : "Ativar som"}
+              title={soundEnabled ? "Som ativado" : "Som desativado"}
             >
               {soundEnabled ? <Volume2 className="w-5 h-5 text-primary" /> : <VolumeX className="w-5 h-5" />}
             </button>
@@ -220,12 +225,7 @@ function AuthenticatedLayout() {
         <NavButton to="/admin/leads" icon={<Users className="w-6 h-6" />} label="Leads" active={location.pathname.startsWith("/admin/leads")} />
         {isMaster ? (
           <NavButton to="/admin/admins" icon={<Shield className="w-6 h-6" />} label="Admins" active={location.pathname.startsWith("/admin/admins")} />
-        ) : (
-          <button className="flex flex-col items-center gap-1 text-muted-foreground opacity-40">
-            <Bell className="w-6 h-6" />
-            <span className="text-[9px] font-bold uppercase">Alertas</span>
-          </button>
-        )}
+        ) : null}
       </nav>
     </div>
   );
