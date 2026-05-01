@@ -52,7 +52,7 @@ export const OptionScreen = ({
               onClick={() => choose(opt.value)}
               className={cn(
                 "w-full text-left p-5 rounded-2xl border-2 transition-all active:scale-[0.98] flex items-center gap-3",
-                "opacity-0 animate-in fade-in slide-in-from-bottom-2 fill-mode-forwards",
+                "animate-in fade-in slide-in-from-bottom-2 fill-mode-forwards",
                 isSelected
                   ? "border-primary bg-primary/5 shadow-[0_8px_24px_-8px_color-mix(in_oklab,var(--primary)_40%,transparent)]"
                   : "border-border bg-card hover:border-primary/40 hover:bg-muted/40"

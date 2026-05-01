@@ -9,25 +9,25 @@ export const WelcomeScreen = () => {
 
   return (
     <ScreenContainer centered>
-      <div className="mb-6 opacity-0 animate-in fade-in zoom-in duration-500 fill-mode-forwards">
+      <div className="mb-6 animate-in fade-in zoom-in duration-500 fill-mode-forwards">
         <Logo height={72} />
       </div>
 
-      <span className="inline-flex items-center gap-1.5 bg-secondary text-secondary-foreground text-[11px] font-bold uppercase tracking-[0.12em] px-3 py-1.5 rounded-full mb-8 opacity-0 animate-in fade-in slide-in-from-bottom-2 duration-400 delay-150 fill-mode-forwards">
+      <span className="inline-flex items-center gap-1.5 bg-secondary text-secondary-foreground text-[11px] font-bold uppercase tracking-[0.12em] px-3 py-1.5 rounded-full mb-8 animate-in fade-in slide-in-from-bottom-2 duration-400 delay-150 fill-mode-forwards">
         <Sparkles className="w-3 h-3" />
         FENASOJA 2026
       </span>
 
-      <h1 className="text-[34px] leading-[1.1] font-extrabold text-secondary mb-4 max-w-sm tracking-tight opacity-0 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-250 fill-mode-forwards">
+      <h1 className="text-[34px] leading-[1.1] font-extrabold text-secondary mb-4 max-w-sm tracking-tight animate-in fade-in slide-in-from-bottom-3 duration-500 delay-250 fill-mode-forwards">
         Bora descobrir a piscina ideal pro seu quintal?
       </h1>
 
-      <p className="text-lg text-muted-foreground mb-10 max-w-md opacity-0 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-350 fill-mode-forwards">
+      <p className="text-lg text-muted-foreground mb-10 max-w-md animate-in fade-in slide-in-from-bottom-3 duration-500 delay-350 fill-mode-forwards">
         São <strong className="text-secondary">4 perguntinhas</strong>. Em menos de
         1 minuto a gente já manda o catálogo pro seu WhatsApp.
       </p>
 
-      <div className="w-full max-w-xs opacity-0 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-450 fill-mode-forwards">
+      <div className="w-full max-w-xs animate-in fade-in slide-in-from-bottom-4 duration-500 delay-450 fill-mode-forwards">
         <Button
           onClick={() => setStep(1)}
           size="lg"
