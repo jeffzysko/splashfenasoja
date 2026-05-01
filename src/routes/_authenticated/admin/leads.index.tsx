@@ -416,6 +416,11 @@ function LeadsListPage() {
   // Ordenação já é server-side; mantemos a referência direta.
   const filteredLeads = leads;
 
+  // Persiste IDs visíveis para navegação Próximo/Anterior na página de detalhe.
+  useEffect(() => {
+    setVisibleLeadIds(filteredLeads.map((l) => l.id));
+  }, [filteredLeads]);
+
 
   // Virtualização só ligada quando há muitas linhas (evita custo em listas pequenas)
   const shouldVirtualize = filteredLeads.length >= VIRTUALIZE_THRESHOLD;
