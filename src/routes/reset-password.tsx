@@ -73,6 +73,8 @@ function ResetPasswordPage() {
 
     setDone(true);
     toast.success("Senha atualizada com sucesso!");
+    // Invalida a sessão de recuperação imediatamente — link é de uso único.
+    await supabase.auth.signOut();
     setTimeout(() => {
       navigate({ to: "/login" });
     }, 1800);
