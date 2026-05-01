@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { useFormStore } from "@/store/useFormStore";
 import { Logo } from "@/components/Logo";
 import { ScreenContainer } from "./ScreenContainer";
-import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 
 export const WelcomeScreen = () => {
@@ -10,50 +9,25 @@ export const WelcomeScreen = () => {
 
   return (
     <ScreenContainer centered>
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        className="mb-6"
-      >
+      <div className="mb-6 opacity-0 animate-in fade-in zoom-in duration-500 fill-mode-forwards">
         <Logo height={72} />
-      </motion.div>
+      </div>
 
-      <motion.span
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15, duration: 0.4 }}
-        className="inline-flex items-center gap-1.5 bg-secondary text-secondary-foreground text-[11px] font-bold uppercase tracking-[0.12em] px-3 py-1.5 rounded-full mb-8"
-      >
+      <span className="inline-flex items-center gap-1.5 bg-secondary text-secondary-foreground text-[11px] font-bold uppercase tracking-[0.12em] px-3 py-1.5 rounded-full mb-8 opacity-0 animate-in fade-in slide-in-from-bottom-2 duration-400 delay-150 fill-mode-forwards">
         <Sparkles className="w-3 h-3" />
         FENASOJA 2026
-      </motion.span>
+      </span>
 
-      <motion.h1
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25, duration: 0.5 }}
-        className="text-[34px] leading-[1.1] font-extrabold text-secondary mb-4 max-w-sm tracking-tight"
-      >
+      <h1 className="text-[34px] leading-[1.1] font-extrabold text-secondary mb-4 max-w-sm tracking-tight opacity-0 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-250 fill-mode-forwards">
         Bora descobrir a piscina ideal pro seu quintal?
-      </motion.h1>
+      </h1>
 
-      <motion.p
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.35, duration: 0.5 }}
-        className="text-lg text-muted-foreground mb-10 max-w-md"
-      >
+      <p className="text-lg text-muted-foreground mb-10 max-w-md opacity-0 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-350 fill-mode-forwards">
         São <strong className="text-secondary">4 perguntinhas</strong>. Em menos de
         1 minuto a gente já manda o catálogo pro seu WhatsApp.
-      </motion.p>
+      </p>
 
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.45, duration: 0.5 }}
-        className="w-full max-w-xs"
-      >
+      <div className="w-full max-w-xs opacity-0 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-450 fill-mode-forwards">
         <Button
           onClick={() => setStep(1)}
           size="lg"
@@ -64,7 +38,7 @@ export const WelcomeScreen = () => {
         <p className="text-xs text-muted-foreground mt-4">
           🔒 Seus dados ficam só com a Splash. Sem spam.
         </p>
-      </motion.div>
+      </div>
     </ScreenContainer>
   );
 };

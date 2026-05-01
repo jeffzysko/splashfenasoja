@@ -10,7 +10,6 @@ import { SuccessScreen } from "@/components/form/SuccessScreen";
 import { useFormStore } from "@/store/useFormStore";
 import { ArrowLeft } from "lucide-react";
 import { Logo } from "@/components/Logo";
-import { AnimatePresence, motion } from "framer-motion";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -26,7 +25,7 @@ export const Route = createFileRoute("/")({
   }),
 });
 
-const TOTAL_STEPS = 6; // 1..6 são os passos com progresso
+const TOTAL_STEPS = 6;
 
 function Index() {
   const { step, setStep } = useFormStore();
@@ -52,7 +51,6 @@ function Index() {
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-[var(--splash-blue-soft)] via-background to-background overflow-x-hidden relative">
-      {/* Decorative blobs */}
       <div
         aria-hidden
         className="absolute top-[-120px] right-[-80px] w-[320px] h-[320px] rounded-full bg-accent/15 blur-3xl pointer-events-none"
@@ -62,7 +60,6 @@ function Index() {
         className="absolute top-[40%] left-[-100px] w-[260px] h-[260px] rounded-full bg-primary/10 blur-3xl pointer-events-none"
       />
 
-      {/* Top bar */}
       <header className="sticky top-0 z-50 backdrop-blur-md bg-background/70 border-b border-border/50">
         <div className="max-w-md mx-auto flex items-center px-4 h-16 gap-3">
           {showBack ? (
@@ -82,11 +79,9 @@ function Index() {
           {showProgress && (
             <>
               <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                <motion.div
-                  className="h-full bg-primary rounded-full"
-                  initial={false}
-                  animate={{ width: `${progressPct}%` }}
-                  transition={{ duration: 0.4, ease: "easeOut" }}
+                <div
+                  className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${progressPct}%` }}
                 />
               </div>
               <span className="text-[11px] font-bold text-muted-foreground tabular-nums shrink-0">
@@ -99,7 +94,7 @@ function Index() {
       </header>
 
       <main className="flex-1 flex flex-col w-full relative">
-        <AnimatePresence mode="wait">{renderStep()}</AnimatePresence>
+        {renderStep()}
       </main>
     </div>
   );

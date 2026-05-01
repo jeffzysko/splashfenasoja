@@ -1,7 +1,7 @@
 import { useFormStore, type LeadData } from "@/store/useFormStore";
 import { ScreenContainer } from "./ScreenContainer";
-import { motion } from "framer-motion";
 import { Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type OptionField = "tamanho_quintal" | "prazo_compra" | "orcamento";
 
@@ -47,17 +47,17 @@ export const OptionScreen = ({
         {options.map((opt, i) => {
           const isSelected = selected === opt.value;
           return (
-            <motion.button
+            <button
               key={opt.value}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05, duration: 0.3 }}
               onClick={() => choose(opt.value)}
-              className={`w-full text-left p-5 rounded-2xl border-2 transition-all active:scale-[0.98] flex items-center gap-3 ${
+              className={cn(
+                "w-full text-left p-5 rounded-2xl border-2 transition-all active:scale-[0.98] flex items-center gap-3",
+                "opacity-0 animate-in fade-in slide-in-from-bottom-2 fill-mode-forwards",
                 isSelected
                   ? "border-primary bg-primary/5 shadow-[0_8px_24px_-8px_color-mix(in_oklab,var(--primary)_40%,transparent)]"
                   : "border-border bg-card hover:border-primary/40 hover:bg-muted/40"
-              }`}
+              )}
+              style={{ animationDelay: `${i * 50}ms`, animationDuration: '400ms' }}
             >
               {opt.emoji && <span className="text-2xl shrink-0">{opt.emoji}</span>}
               <div className="flex-1 min-w-0">
@@ -69,15 +69,16 @@ export const OptionScreen = ({
                 )}
               </div>
               <div
-                className={`w-6 h-6 rounded-full border-2 shrink-0 flex items-center justify-center transition-all ${
+                className={cn(
+                  "w-6 h-6 rounded-full border-2 shrink-0 flex items-center justify-center transition-all",
                   isSelected
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-border"
-                }`}
+                )}
               >
                 {isSelected && <Check className="w-4 h-4" strokeWidth={3} />}
               </div>
-            </motion.button>
+            </button>
           );
         })}
       </div>
