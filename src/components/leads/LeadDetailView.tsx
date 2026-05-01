@@ -629,18 +629,29 @@ function EditableRow({
   value,
   options,
   saving,
+  saved,
   onChange,
 }: {
   label: string;
   value: string;
   options: { value: string; label: string }[];
   saving: boolean;
+  saved?: boolean;
   onChange: (v: string) => void;
 }) {
   return (
     <div className="p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-      <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
+      <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
         {label}
+        {saved && (
+          <span
+            className="inline-flex items-center gap-1 text-[9px] font-extrabold tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 normal-case animate-in fade-in zoom-in-95 duration-200"
+            role="status"
+            aria-live="polite"
+          >
+            <CheckCircle2 className="w-3 h-3" /> Salvo
+          </span>
+        )}
       </span>
       <div className="flex items-center gap-2 sm:max-w-[60%] w-full sm:w-auto">
         <Select value={value} onValueChange={onChange} disabled={saving}>
@@ -658,7 +669,7 @@ function EditableRow({
             ))}
           </SelectContent>
         </Select>
-        {saving && <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />}
+        {saving && <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" aria-label="Salvando" />}
       </div>
     </div>
   );
