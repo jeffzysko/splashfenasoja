@@ -225,12 +225,7 @@ function AuthenticatedLayout() {
         <NavButton to="/admin/leads" icon={<Users className="w-6 h-6" />} label="Leads" active={location.pathname.startsWith("/admin/leads")} />
         {isMaster ? (
           <NavButton to="/admin/admins" icon={<Shield className="w-6 h-6" />} label="Admins" active={location.pathname.startsWith("/admin/admins")} />
-        ) : (
-          <button className="flex flex-col items-center gap-1 text-muted-foreground opacity-40">
-            <Bell className="w-6 h-6" />
-            <span className="text-[9px] font-bold uppercase">Alertas</span>
-          </button>
-        )}
+        ) : null}
       </nav>
     </div>
   );
