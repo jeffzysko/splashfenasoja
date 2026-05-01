@@ -24,8 +24,49 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 const PAGE_SIZE = 50;
 const VIRTUALIZE_THRESHOLD = 80;
 const ROW_HEIGHT = 124; // altura aproximada do card + gap
+const CACHE_PREFIX = "leadsList:v2:";
+const CACHE_TTL_MS = 2 * 60 * 1000; // 2 min
 
-type Cursor = { created_at: string; id: string } | null;
+type SortBy = "recent" | "score" | "name";
+
+// Cursor por chave composta dependendo do sort.
+type Cursor =
+  | { kind: "recent"; created_at: string; id: string }
+  | { kind: "score"; score: number; created_at: string; id: string }
+  | { kind: "name"; nome: string; id: string }
+  | null;
+
+type CacheEntry = {
+  ts: number;
+  leads: Lead[];
+  cursor: Cursor;
+  hasMore: boolean;
+  totalCount: number | null;
+};
+
+function cacheKey(temp: string, status: string, search: string, sort: SortBy) {
+  return `${CACHE_PREFIX}${temp}|${status}|${sort}|${search.trim().toLowerCase()}`;
+}
+
+function readCache(key: string): CacheEntry | null {
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CacheEntry;
+    if (Date.now() - parsed.ts > CACHE_TTL_MS) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(key: string, entry: CacheEntry) {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(entry));
+  } catch {
+    // quota — ignora
+  }
+}
 
 /** Escapa vírgulas e parênteses para uso em filtros .or() do PostgREST. */
 function escapeOrValue(s: string) {
@@ -67,14 +108,30 @@ function LeadsListPage() {
   const parentRef = useRef<HTMLDivElement | null>(null);
   const reqIdRef = useRef(0);
   const firstLoadRef = useRef(true);
+  // Compensa cursor após INSERT/DELETE em tempo real para evitar gaps/duplicações
+  const insertedSinceLoadRef = useRef(0);
+  const deletedIdsRef = useRef<Set<string>>(new Set());
 
-  // Aplica todos os filtros server-side (temp, status, busca textual) + cursor.
+  function buildCursorFromLast(items: Lead[], sort: SortBy): Cursor {
+    const last = items[items.length - 1];
+    if (!last) return null;
+    if (sort === "score") {
+      return { kind: "score", score: last.score, created_at: last.created_at, id: last.id };
+    }
+    if (sort === "name") {
+      return { kind: "name", nome: last.nome, id: last.id };
+    }
+    return { kind: "recent", created_at: last.created_at, id: last.id };
+  }
+
+  // Aplica todos os filtros server-side (temp, status, busca textual) + cursor + sort.
   const fetchPage = useCallback(
     async (
       cur: Cursor,
       temp: string,
       status: string,
       searchText: string,
+      sort: SortBy,
       withCount: boolean
     ) => {
       let q = supabase
@@ -83,9 +140,20 @@ function LeadsListPage() {
           "id, nome, whatsapp, cidade, estado, temperatura, status, score, created_at",
           withCount ? { count: "exact" } : undefined
         )
-        .order("created_at", { ascending: false })
-        .order("id", { ascending: false })
         .limit(PAGE_SIZE);
+
+      // Sort + tie-breaker por id para keyset estável
+      if (sort === "score") {
+        q = q.order("score", { ascending: false })
+             .order("created_at", { ascending: false })
+             .order("id", { ascending: false });
+      } else if (sort === "name") {
+        q = q.order("nome", { ascending: true })
+             .order("id", { ascending: true });
+      } else {
+        q = q.order("created_at", { ascending: false })
+             .order("id", { ascending: false });
+      }
 
       if (temp !== "all") q = q.eq("temperatura", temp);
       if (status !== "all") q = q.eq("status", status);
@@ -104,11 +172,23 @@ function LeadsListPage() {
         }
       }
 
-      // Paginação por cursor: keyset (created_at, id) DESC
+      // Paginação por cursor (keyset) coerente com o sort
       if (cur) {
-        q = q.or(
-          `created_at.lt.${cur.created_at},and(created_at.eq.${cur.created_at},id.lt.${cur.id})`
-        );
+        if (cur.kind === "recent") {
+          q = q.or(
+            `created_at.lt.${cur.created_at},and(created_at.eq.${cur.created_at},id.lt.${cur.id})`
+          );
+        } else if (cur.kind === "score") {
+          q = q.or(
+            `score.lt.${cur.score},and(score.eq.${cur.score},created_at.lt.${cur.created_at}),and(score.eq.${cur.score},created_at.eq.${cur.created_at},id.lt.${cur.id})`
+          );
+        } else {
+          // name asc
+          const safeName = cur.nome.replace(/[(),]/g, " ");
+          q = q.or(
+            `nome.gt.${safeName},and(nome.eq.${safeName},id.gt.${cur.id})`
+          );
+        }
       }
 
       const { data, error, count } = await q;
@@ -126,27 +206,54 @@ function LeadsListPage() {
     []
   );
 
-  // Recarrega do zero quando filtros ou busca mudam
+  // Recarrega do zero quando filtros, sort ou busca mudam
   useEffect(() => {
     const reqId = ++reqIdRef.current;
-    if (firstLoadRef.current) setLoading(true);
-    else setRefreshing(true);
-    setHasMore(true);
+    const key = cacheKey(filterTemp, filterStatus, debouncedSearch, sortBy);
+    const cached = readCache(key);
 
-    fetchPage(null, filterTemp, filterStatus, debouncedSearch, true).then(
+    // Sempre zera contadores de drift na recarga
+    insertedSinceLoadRef.current = 0;
+    deletedIdsRef.current = new Set();
+
+    if (cached) {
+      // Hidrata imediatamente da cache (sem flicker)
+      setLeads(cached.leads);
+      setCursor(cached.cursor);
+      setHasMore(cached.hasMore);
+      setTotalCount(cached.totalCount);
+      setLoading(false);
+      setRefreshing(true);
+      firstLoadRef.current = false;
+    } else {
+      if (firstLoadRef.current) setLoading(true);
+      else setRefreshing(true);
+      setHasMore(true);
+    }
+
+    fetchPage(null, filterTemp, filterStatus, debouncedSearch, sortBy, true).then(
       ({ items, end, count }) => {
         if (reqId !== reqIdRef.current) return;
         setLeads(items);
         setHasMore(!end);
         setTotalCount(count);
-        const last = items[items.length - 1];
-        setCursor(last ? { created_at: last.created_at, id: last.id } : null);
+        const nextCursor = buildCursorFromLast(items, sortBy);
+        setCursor(nextCursor);
         setLoading(false);
         setRefreshing(false);
         firstLoadRef.current = false;
+        insertedSinceLoadRef.current = 0;
+        deletedIdsRef.current = new Set();
+        writeCache(key, {
+          ts: Date.now(),
+          leads: items,
+          cursor: nextCursor,
+          hasMore: !end,
+          totalCount: count,
+        });
       }
     );
-  }, [filterTemp, filterStatus, debouncedSearch, fetchPage]);
+  }, [filterTemp, filterStatus, debouncedSearch, sortBy, fetchPage]);
 
   // Realtime: aplica em memória sem refetch
   useEffect(() => {
@@ -155,7 +262,11 @@ function LeadsListPage() {
         const l = payload.new as Lead;
         if (filterTemp !== "all" && l.temperatura !== filterTemp) return;
         if (filterStatus !== "all" && l.status !== filterStatus) return;
-        setLeads((prev) => (prev.some((x) => x.id === l.id) ? prev : [l, ...prev]));
+        setLeads((prev) => {
+          if (prev.some((x) => x.id === l.id)) return prev;
+          insertedSinceLoadRef.current += 1;
+          return [l, ...prev];
+        });
         setTotalCount((c) => (c === null ? c : c + 1));
       } else if (event === "UPDATE") {
         const l = payload.new as Lead;
@@ -170,6 +281,7 @@ function LeadsListPage() {
         );
       } else if (event === "DELETE") {
         const old = payload.old as { id: string };
+        deletedIdsRef.current.add(old.id);
         setLeads((prev) => {
           const next = prev.filter((x) => x.id !== old.id);
           if (next.length !== prev.length) {
@@ -192,25 +304,39 @@ function LeadsListPage() {
       filterTemp,
       filterStatus,
       debouncedSearch,
+      sortBy,
       false
     );
+    // Filtra IDs já presentes (dedupe) e que foram deletados em tempo real (evita ressuscitar)
+    const deleted = deletedIdsRef.current;
     setLeads((prev) => {
       const seen = new Set(prev.map((l) => l.id));
-      return [...prev, ...items.filter((l) => !seen.has(l.id))];
+      const merged = [
+        ...prev,
+        ...items.filter((l) => !seen.has(l.id) && !deleted.has(l.id)),
+      ];
+      // Atualiza cache com a página acumulada
+      const key = cacheKey(filterTemp, filterStatus, debouncedSearch, sortBy);
+      const nextCursor = buildCursorFromLast(items.length ? items : prev, sortBy);
+      writeCache(key, {
+        ts: Date.now(),
+        leads: merged,
+        cursor: nextCursor,
+        hasMore: !end && items.length > 0,
+        totalCount,
+      });
+      return merged;
     });
-    setHasMore(!end);
-    const last = items[items.length - 1];
-    if (last) setCursor({ created_at: last.created_at, id: last.id });
+    setHasMore(!end && items.length > 0);
+    const nextCursor = buildCursorFromLast(items, sortBy);
+    if (nextCursor) setCursor(nextCursor);
     else setHasMore(false);
     setLoadingMore(false);
-  }, [cursor, filterTemp, filterStatus, debouncedSearch, fetchPage, hasMore, loadingMore]);
+  }, [cursor, filterTemp, filterStatus, debouncedSearch, sortBy, fetchPage, hasMore, loadingMore, totalCount]);
 
-  // Sort client-side sobre o que já foi carregado (busca já é server-side).
-  const filteredLeads = useMemo(() => {
-    if (sortBy === "score") return [...leads].sort((a, b) => b.score - a.score);
-    if (sortBy === "name") return [...leads].sort((a, b) => a.nome.localeCompare(b.nome));
-    return leads;
-  }, [leads, sortBy]);
+  // Ordenação já é server-side; mantemos a referência direta.
+  const filteredLeads = leads;
+
 
   // Virtualização só ligada quando há muitas linhas (evita custo em listas pequenas)
   const shouldVirtualize = filteredLeads.length >= VIRTUALIZE_THRESHOLD;
@@ -392,7 +518,34 @@ function LeadsListPage() {
           <FilterChip label="Perdido 💔" active={filterStatus === "perdido"} onClick={() => setFilterStatus("perdido")} />
           <FilterChip label="Descartado" active={filterStatus === "descartado"} onClick={() => setFilterStatus("descartado")} />
         </div>
+
+        <div
+          className="flex gap-2 items-center overflow-x-auto pb-1 no-scrollbar border-t border-border/40 pt-2"
+          role="radiogroup"
+          aria-label="Ordenar leads"
+        >
+          <span className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground pr-1">
+            Ordenar:
+          </span>
+          <FilterChip label="Mais recentes" active={sortBy === "recent"} onClick={() => setSortBy("recent")} />
+          <FilterChip label="Maior score" active={sortBy === "score"} onClick={() => setSortBy("score")} />
+          <FilterChip label="Nome (A-Z)" active={sortBy === "name"} onClick={() => setSortBy("name")} />
+        </div>
       </div>
+
+      {/* Live region para leitores de tela */}
+      <p className="sr-only" aria-live="polite" aria-atomic="true">
+        {showInitialSkeleton
+          ? "Carregando leads..."
+          : refreshing
+          ? "Atualizando lista de leads..."
+          : loadingMore
+          ? "Carregando mais leads..."
+          : totalCount !== null
+          ? `${filteredLeads.length} de ${totalCount} leads exibidos.`
+          : `${filteredLeads.length} leads exibidos.`}
+      </p>
+
 
       {showInitialSkeleton ? (
         <LeadListSkeleton />
@@ -472,18 +625,20 @@ function LoadMoreFooter({
     );
   }
   return (
-    <div className="flex justify-center py-4">
+    <div className="flex justify-center py-4" role="status" aria-live="polite">
       <Button
         onClick={onClick}
         disabled={loading}
         variant="outline"
         size="sm"
         className="rounded-xl"
+        aria-label={loading ? "Carregando mais leads" : "Carregar mais leads"}
+        aria-busy={loading}
       >
         {loading ? (
           <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Carregando...
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
+            Carregando mais leads...
           </>
         ) : (
           "Carregar mais"
@@ -565,9 +720,19 @@ function FilterChip({ label, active, onClick }: { label: string; active: boolean
 
 function LeadListSkeleton() {
   return (
-    <div className="grid gap-3 pb-20">
+    <div
+      className="grid gap-3 pb-20"
+      role="status"
+      aria-live="polite"
+      aria-label="Carregando lista de leads"
+    >
+      <span className="sr-only">Carregando lista de leads...</span>
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="bg-card border border-border rounded-2xl p-4 flex flex-col gap-3">
+        <div
+          key={i}
+          aria-hidden="true"
+          className="bg-card border border-border rounded-2xl p-4 flex flex-col gap-3"
+        >
           <div className="flex items-start justify-between">
             <div className="space-y-2 flex-1">
               <Skeleton className="h-5 w-2/3" />
