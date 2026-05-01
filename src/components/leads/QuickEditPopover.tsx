@@ -80,13 +80,23 @@ export function QuickEditPopover({
   const handleSave = async () => {
     const parsed = schema.safeParse(values);
     if (!parsed.success) {
-      const first = parsed.error.issues[0]?.message ?? "Valores inválidos.";
-      toast.error(first);
+      // Mensagem rica: identifica o campo e as opções esperadas.
+      const issue = parsed.error.issues[0];
+      const path = issue?.path?.[0] as keyof typeof FIELD_LABEL | undefined;
+      if (path && FIELD_LABEL[path]) {
+        const allowed = FIELD_OPTIONS[path].map((o) => o.label).join(", ");
+        toast.error(`"${FIELD_LABEL[path]}" inválido`, {
+          description: `Selecione uma opção válida: ${allowed}.`,
+        });
+      } else {
+        toast.error("Valores inválidos.", {
+          description: issue?.message ?? "Revise os campos selecionados.",
+        });
+      }
       return;
     }
 
     setSaving(true);
-    // Recalcula score/temperatura porque os 3 campos influenciam nele.
     const { score, temperatura } = calcScore({
       tamanho_quintal: parsed.data.tamanho_quintal,
       prazo_compra: parsed.data.prazo_compra,
@@ -108,11 +118,15 @@ export function QuickEditPopover({
     setSaving(false);
 
     if (error) {
-      toast.error("Erro ao salvar alterações.");
+      toast.error("Erro ao salvar alterações.", {
+        description: error.message || "Tente novamente em instantes.",
+      });
       return;
     }
 
-    toast.success("Lead atualizado!");
+    toast.success("Lead atualizado!", {
+      description: "Tamanho, investimento e prazo sincronizados.",
+    });
     onSaved?.({ ...parsed.data, score, temperatura });
     setOpen(false);
   };
