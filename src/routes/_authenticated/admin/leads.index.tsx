@@ -241,6 +241,8 @@ function LeadsListPage() {
           <FilterChip label="Novo" active={filterStatus === "novo"} onClick={() => setFilterStatus("novo")} />
           <FilterChip label="Contatado" active={filterStatus === "contatado"} onClick={() => setFilterStatus("contatado")} />
           <FilterChip label="Qualificado" active={filterStatus === "qualificado"} onClick={() => setFilterStatus("qualificado")} />
+          <FilterChip label="Vendido 🏆" active={filterStatus === "vendido"} onClick={() => setFilterStatus("vendido")} />
+          <FilterChip label="Descartado" active={filterStatus === "descartado"} onClick={() => setFilterStatus("descartado")} />
         </div>
       </div>
       <div className="grid gap-3 pb-20">
