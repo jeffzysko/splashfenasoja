@@ -769,7 +769,7 @@ const LeadRow = memo(function LeadRow({ lead: l }: { lead: Lead }) {
             className="w-11 h-11 rounded-full bg-green-500/10 active:bg-green-500/25 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors cursor-pointer"
             aria-label={`Abrir WhatsApp de ${l.nome}`}
           >
-            <Phone className="w-4 h-4" />
+            <WhatsAppIcon className="w-5 h-5" />
           </button>
         </div>
       </div>
