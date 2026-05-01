@@ -36,6 +36,28 @@ export const Route = createFileRoute("/_authenticated/admin/")({
 function DashboardPage() {
   const [leads, setLeads] = useState<Lead[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [globalStats, setGlobalStats] = useState({ total: 0, quentes: 0, hoje: 0, qualificados: 0 });
+
+  // Recalcula contagens globais via count exato (não limitado aos 100 últimos)
+  const refreshGlobalStats = async () => {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const todayIso = startOfToday.toISOString();
+
+    const [totalR, quentesR, hojeR, qualifR] = await Promise.all([
+      supabase.from("leads").select("id", { count: "exact", head: true }),
+      supabase.from("leads").select("id", { count: "exact", head: true }).eq("temperatura", "quente"),
+      supabase.from("leads").select("id", { count: "exact", head: true }).gte("created_at", todayIso),
+      supabase.from("leads").select("id", { count: "exact", head: true }).eq("status", "qualificado"),
+    ]);
+
+    setGlobalStats({
+      total: totalR.count || 0,
+      quentes: quentesR.count || 0,
+      hoje: hojeR.count || 0,
+      qualificados: qualifR.count || 0,
+    });
+  };
 
   useEffect(() => {
     const fetchLeads = async () => {
@@ -52,6 +74,7 @@ function DashboardPage() {
     };
 
     fetchLeads();
+    refreshGlobalStats();
 
     // Realtime subscription
     const channel = supabase
@@ -62,7 +85,8 @@ function DashboardPage() {
         (payload) => {
           const newLead = payload.new as Lead;
           setLeads((current) => (current ? [newLead, ...current].slice(0, 100) : [newLead]));
-          
+          refreshGlobalStats();
+
           if (newLead.temperatura === "quente") {
             try {
               const audio = new Audio("https://cdn.gpteng.co/ding.mp3");
@@ -73,6 +97,11 @@ function DashboardPage() {
           }
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "leads" },
+        () => refreshGlobalStats()
+      )
       .subscribe();
 
     return () => {
@@ -81,15 +110,10 @@ function DashboardPage() {
   }, []);
 
   const stats = useMemo(() => {
-    if (!leads) return { total: 0, quentes: 0, hoje: 0, convRate: 0 };
-    const today = new Date().toISOString().slice(0, 10);
-    const quentes = leads.filter((l) => l.temperatura === "quente").length;
-    const hoje = leads.filter((l) => l.created_at.slice(0, 10) === today).length;
-    const qualificados = leads.filter((l) => l.status === "qualificado").length;
-    const convRate = leads.length > 0 ? Math.round((qualificados / leads.length) * 100) : 0;
-
-    return { total: leads.length, quentes, hoje, convRate };
-  }, [leads]);
+    const { total, quentes, hoje, qualificados } = globalStats;
+    const convRate = total > 0 ? Math.round((qualificados / total) * 100) : 0;
+    return { total, quentes, hoje, convRate };
+  }, [globalStats]);
 
   if (loading) {
     return (
