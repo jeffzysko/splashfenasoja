@@ -91,13 +91,27 @@ export function useLeadDetail(id: string | null) {
 type Props = {
   lead: LeadDetail;
   onUpdate?: (lead: LeadDetail) => void;
+  onDeleted?: () => void;
 };
 
-export function LeadDetailView({ lead, onUpdate }: Props) {
+export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
   const [current, setCurrent] = useState<LeadDetail>(lead);
   const [notes, setNotes] = useState(lead.notes || "");
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { user } = useSupabaseAuth();
+
+  const deleteLead = async () => {
+    setDeleting(true);
+    const { error } = await supabase.from("leads").delete().eq("id", current.id);
+    setDeleting(false);
+    if (error) {
+      toast.error("Erro ao excluir lead.");
+      return;
+    }
+    toast.success("Lead excluído.");
+    onDeleted?.();
+  };
 
   useEffect(() => {
     setCurrent(lead);
