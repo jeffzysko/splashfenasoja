@@ -575,6 +575,46 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function EditableRow({
+  label,
+  value,
+  options,
+  saving,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  saving: boolean;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+      <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
+        {label}
+      </span>
+      <div className="flex items-center gap-2 sm:max-w-[60%] w-full sm:w-auto">
+        <Select value={value} onValueChange={onChange} disabled={saving}>
+          <SelectTrigger
+            className="rounded-xl bg-muted/30 border-border h-10 font-bold text-secondary"
+            aria-label={label}
+          >
+            <SelectValue placeholder="Selecione" />
+          </SelectTrigger>
+          <SelectContent>
+            {options.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {saving && <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />}
+      </div>
+    </div>
+  );
+}
+
 function StatusButton({
   active,
   label,
