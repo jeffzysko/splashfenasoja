@@ -41,13 +41,6 @@ function LeadsListPage() {
   const [filterTemp, setFilterTemp] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"recent" | "score" | "name">("recent");
-  const [openLeadId, setOpenLeadId] = useState<string | null>(null);
-  const {
-    lead: openLead,
-    setLead: setOpenLead,
-    loading: openLoading,
-    error: openError,
-  } = useLeadDetail(openLeadId);
 
   useEffect(() => {
     const fetchLeads = async () => {
