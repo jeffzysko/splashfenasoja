@@ -133,8 +133,8 @@ function DashboardPage() {
   }, []);
 
   const stats = useMemo(() => {
-    const { total, quentes, hoje, vendidos } = globalStats;
-    const convRate = total > 0 ? Math.round((vendidos / total) * 100) : 0;
+    const { total, quentes, hoje, vendido } = globalStats;
+    const convRate = total > 0 ? Math.round((vendido / total) * 100) : 0;
     return { total, quentes, hoje, convRate };
   }, [globalStats]);
 
@@ -147,6 +147,15 @@ function DashboardPage() {
   }
 
   const recentLeads = leads?.slice(0, 10) || [];
+
+  const statusList: { key: LeadStatus; count: number }[] = [
+    { key: "novo", count: globalStats.novo },
+    { key: "contatado", count: globalStats.contatado },
+    { key: "qualificado", count: globalStats.qualificado },
+    { key: "vendido", count: globalStats.vendido },
+    { key: "perdido", count: globalStats.perdido },
+    { key: "descartado", count: globalStats.descartado },
+  ];
 
   return (
     <div className="space-y-6">
@@ -162,6 +171,31 @@ function DashboardPage() {
         <StatCard title="Quentes" value={stats.quentes} icon={<Flame className="w-4 h-4" />} variant="hot" />
         <StatCard title="Hoje" value={stats.hoje} icon={<Calendar className="w-4 h-4" />} />
         <StatCard title="Conversão" value={`${stats.convRate}%`} icon={<TrendingUp className="w-4 h-4" />} />
+      </div>
+
+      <div className="space-y-3">
+        <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+          Por status
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {statusList.map(({ key, count }) => {
+            const badge = STATUS_BADGE[key];
+            return (
+              <div
+                key={key}
+                className={`rounded-2xl border p-3 flex items-center justify-between ${badge.className}`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`w-2.5 h-2.5 rounded-full ${badge.dot}`} />
+                  <span className="text-xs font-extrabold uppercase tracking-wider">
+                    {badge.label}
+                  </span>
+                </div>
+                <span className="text-lg font-black tabular-nums">{count}</span>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="space-y-4">
