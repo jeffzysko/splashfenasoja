@@ -87,7 +87,7 @@ function Index() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-[var(--splash-blue-soft)] via-background to-background overflow-x-hidden relative">
+    <div className="flex min-h-dvh flex-col bg-gradient-to-b from-[var(--splash-blue-soft)] via-background to-background overflow-x-hidden relative">
       <div
         aria-hidden
         className="absolute top-[-120px] right-[-80px] w-[320px] h-[320px] rounded-full bg-accent/15 blur-3xl pointer-events-none"
