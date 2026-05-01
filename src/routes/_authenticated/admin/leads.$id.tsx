@@ -66,10 +66,16 @@ function ErrorDetail({ error }: { error: Error }) {
 
 function LeadDetailPage() {
   const initial = Route.useLoaderData();
+  const router = useRouter();
   const [lead, setLead] = useState<LeadDetail>(initial);
   useEffect(() => {
     setLead(initial);
   }, [initial]);
+
+  const handleDeleted = () => {
+    router.invalidate();
+    router.navigate({ to: "/admin/leads" });
+  };
 
   return (
     <div className="space-y-6 pb-20 animate-in fade-in slide-in-from-right-4 duration-400">
@@ -81,7 +87,7 @@ function LeadDetailPage() {
         </Button>
         <h2 className="text-xl font-extrabold text-secondary tracking-tight">Detalhes do Lead</h2>
       </div>
-      <LeadDetailView lead={lead} onUpdate={setLead} />
+      <LeadDetailView lead={lead} onUpdate={setLead} onDeleted={handleDeleted} />
     </div>
   );
 }
