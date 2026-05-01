@@ -32,7 +32,7 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 
-export type LeadStatus = "novo" | "contatado" | "qualificado" | "descartado";
+export type LeadStatus = "novo" | "contatado" | "qualificado" | "vendido" | "descartado";
 
 export type LeadDetail = {
   id: string;
@@ -311,6 +311,12 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
             label="Qualificado"
             color="bg-green-500"
             onClick={() => updateStatus("qualificado")}
+          />
+          <StatusButton
+            active={current.status === "vendido"}
+            label="🏆 Vendido"
+            color="bg-emerald-600"
+            onClick={() => updateStatus("vendido")}
           />
           <StatusButton
             active={current.status === "descartado"}

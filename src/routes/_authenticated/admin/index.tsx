@@ -17,7 +17,7 @@ import { TEMP_BADGE, type Temperatura } from "@/lib/leads";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-type Status = "novo" | "contatado" | "qualificado" | "descartado";
+type Status = "novo" | "contatado" | "qualificado" | "vendido" | "descartado";
 
 type Lead = {
   id: string;
@@ -36,7 +36,7 @@ export const Route = createFileRoute("/_authenticated/admin/")({
 function DashboardPage() {
   const [leads, setLeads] = useState<Lead[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [globalStats, setGlobalStats] = useState({ total: 0, quentes: 0, hoje: 0, qualificados: 0 });
+  const [globalStats, setGlobalStats] = useState({ total: 0, quentes: 0, hoje: 0, vendidos: 0 });
 
   // Recalcula contagens globais via count exato (não limitado aos 100 últimos)
   const refreshGlobalStats = async () => {
@@ -44,18 +44,18 @@ function DashboardPage() {
     startOfToday.setHours(0, 0, 0, 0);
     const todayIso = startOfToday.toISOString();
 
-    const [totalR, quentesR, hojeR, qualifR] = await Promise.all([
+    const [totalR, quentesR, hojeR, vendidosR] = await Promise.all([
       supabase.from("leads").select("id", { count: "exact", head: true }),
       supabase.from("leads").select("id", { count: "exact", head: true }).eq("temperatura", "quente"),
       supabase.from("leads").select("id", { count: "exact", head: true }).gte("created_at", todayIso),
-      supabase.from("leads").select("id", { count: "exact", head: true }).eq("status", "qualificado"),
+      supabase.from("leads").select("id", { count: "exact", head: true }).eq("status", "vendido"),
     ]);
 
     setGlobalStats({
       total: totalR.count || 0,
       quentes: quentesR.count || 0,
       hoje: hojeR.count || 0,
-      qualificados: qualifR.count || 0,
+      vendidos: vendidosR.count || 0,
     });
   };
 
@@ -110,8 +110,8 @@ function DashboardPage() {
   }, []);
 
   const stats = useMemo(() => {
-    const { total, quentes, hoje, qualificados } = globalStats;
-    const convRate = total > 0 ? Math.round((qualificados / total) * 100) : 0;
+    const { total, quentes, hoje, vendidos } = globalStats;
+    const convRate = total > 0 ? Math.round((vendidos / total) * 100) : 0;
     return { total, quentes, hoje, convRate };
   }, [globalStats]);
 
