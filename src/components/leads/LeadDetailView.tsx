@@ -26,7 +26,14 @@ import {
   AlertCircle,
   Trash2,
 } from "lucide-react";
-import { TEMP_BADGE, LABELS, formatWhatsappBR, type Temperatura } from "@/lib/leads";
+import { TEMP_BADGE, LABELS, formatWhatsappBR, calcScore, TAMANHO_OPTIONS, PRAZO_OPTIONS, ORCAMENTO_OPTIONS, type Temperatura } from "@/lib/leads";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -100,7 +107,66 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
   const [notes, setNotes] = useState(lead.notes || "");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [savingField, setSavingField] = useState<null | "tamanho_quintal" | "prazo_compra" | "orcamento">(null);
   const { user } = useSupabaseAuth();
+
+  const TAMANHO_VALUES = TAMANHO_OPTIONS.map((o) => o.value as string);
+  const PRAZO_VALUES = PRAZO_OPTIONS.map((o) => o.value as string);
+  const ORCAMENTO_VALUES = ORCAMENTO_OPTIONS.map((o) => o.value as string);
+
+  const updateQualification = async (
+    field: "tamanho_quintal" | "prazo_compra" | "orcamento",
+    value: string
+  ) => {
+    // Validação: o valor precisa pertencer ao enum correspondente.
+    const allowed =
+      field === "tamanho_quintal"
+        ? TAMANHO_VALUES
+        : field === "prazo_compra"
+          ? PRAZO_VALUES
+          : ORCAMENTO_VALUES;
+    if (!allowed.includes(value)) {
+      toast.error("Valor inválido para este campo.");
+      return;
+    }
+
+    const prev = current;
+    const draft = { ...current, [field]: value };
+    // Recalcula score/temperatura porque os 3 campos influenciam.
+    const { score, temperatura } = calcScore({
+      tamanho_quintal: draft.tamanho_quintal,
+      prazo_compra: draft.prazo_compra,
+      orcamento: draft.orcamento,
+      email: draft.email,
+    });
+    const next = { ...draft, score, temperatura };
+
+    setSavingField(field);
+    setCurrent(next);
+    onUpdate?.(next);
+
+    const patch =
+      field === "tamanho_quintal"
+        ? { tamanho_quintal: value, score, temperatura }
+        : field === "prazo_compra"
+          ? { prazo_compra: value, score, temperatura }
+          : { orcamento: value, score, temperatura };
+
+    const { error } = await supabase
+      .from("leads")
+      .update(patch)
+      .eq("id", current.id);
+
+    setSavingField(null);
+
+    if (error) {
+      setCurrent(prev);
+      onUpdate?.(prev);
+      toast.error("Erro ao salvar alteração.");
+      return;
+    }
+    toast.success("Atualizado!");
+  };
 
   const deleteLead = async () => {
     setDeleting(true);
@@ -254,29 +320,31 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
       <section className="space-y-3">
         <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4" /> Qualificação
+          <span className="text-[10px] font-semibold text-muted-foreground/70 normal-case tracking-normal ml-auto">
+            Edite direto aqui
+          </span>
         </h3>
         <div className="bg-card border border-border rounded-2xl divide-y divide-border">
-          <InfoRow
-            label="Espaço"
-            value={
-              LABELS.tamanho_quintal[
-                current.tamanho_quintal as keyof typeof LABELS.tamanho_quintal
-              ] || current.tamanho_quintal
-            }
+          <EditableRow
+            label="Tamanho da piscina"
+            value={current.tamanho_quintal}
+            saving={savingField === "tamanho_quintal"}
+            options={TAMANHO_OPTIONS.map((o) => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
+            onChange={(v) => updateQualification("tamanho_quintal", v)}
           />
-          <InfoRow
-            label="Prazo"
-            value={
-              LABELS.prazo_compra[current.prazo_compra as keyof typeof LABELS.prazo_compra] ||
-              current.prazo_compra
-            }
+          <EditableRow
+            label="Quando quer instalar"
+            value={current.prazo_compra}
+            saving={savingField === "prazo_compra"}
+            options={PRAZO_OPTIONS.map((o) => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
+            onChange={(v) => updateQualification("prazo_compra", v)}
           />
-          <InfoRow
-            label="Orçamento"
-            value={
-              LABELS.orcamento[current.orcamento as keyof typeof LABELS.orcamento] ||
-              current.orcamento
-            }
+          <EditableRow
+            label="Valor de investimento"
+            value={current.orcamento}
+            saving={savingField === "orcamento"}
+            options={ORCAMENTO_OPTIONS.map((o) => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
+            onChange={(v) => updateQualification("orcamento", v)}
           />
         </div>
       </section>
@@ -496,13 +564,44 @@ export function LeadDetailError({
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+
+
+function EditableRow({
+  label,
+  value,
+  options,
+  saving,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  saving: boolean;
+  onChange: (v: string) => void;
+}) {
   return (
-    <div className="p-4 flex justify-between items-center">
+    <div className="p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
       <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
         {label}
       </span>
-      <span className="font-bold text-secondary text-right">{value}</span>
+      <div className="flex items-center gap-2 sm:max-w-[60%] w-full sm:w-auto">
+        <Select value={value} onValueChange={onChange} disabled={saving}>
+          <SelectTrigger
+            className="rounded-xl bg-muted/30 border-border h-10 font-bold text-secondary"
+            aria-label={label}
+          >
+            <SelectValue placeholder="Selecione" />
+          </SelectTrigger>
+          <SelectContent>
+            {options.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {saving && <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />}
+      </div>
     </div>
   );
 }
