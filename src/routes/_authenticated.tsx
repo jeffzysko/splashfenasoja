@@ -8,19 +8,42 @@ import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
+// Cache em memória (client-side) para evitar refazer getSession + query user_roles
+// em toda navegação dentro de /admin/*. Cada checagem custava ~2 round-trips ao
+// servidor, deixando a navegação visivelmente lenta.
+let authCache: { userId: string; hasAccess: boolean; expiresAt: number } | null = null;
+const AUTH_CACHE_TTL_MS = 60_000; // 1 minuto
+
+// Invalida o cache quando a sessão muda (signOut, troca de usuário, refresh expirado)
+if (typeof window !== "undefined") {
+  supabase.auth.onAuthStateChange((event) => {
+    if (event === "SIGNED_OUT" || event === "SIGNED_IN" || event === "USER_UPDATED") {
+      authCache = null;
+    }
+  });
+}
+
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async ({ location }) => {
-    // Só roda a checagem no cliente — no SSR não há localStorage,
-    // então getSession() sempre retorna null e cai em loop pro /login.
+    // Só roda no cliente — no SSR não há localStorage e cai em loop pro /login.
     if (typeof window === "undefined") return;
+
+    const now = Date.now();
+    if (authCache && authCache.expiresAt > now) {
+      if (!authCache.hasAccess) {
+        throw redirect({ to: "/login" });
+      }
+      return;
+    }
 
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
+      authCache = null;
       const currentPath = location.pathname + (location.searchStr || "");
       throw redirect({
         to: "/login",
-        search: { redirect: currentPath.includes("/login") ? undefined : currentPath }
+        search: { redirect: currentPath.includes("/login") ? undefined : currentPath },
       });
     }
 
@@ -31,7 +54,8 @@ export const Route = createFileRoute("/_authenticated")({
 
     if (roleErr) console.error("Erro ao verificar papel:", roleErr);
 
-    const hasAccess = roles?.some(r => ["master", "admin"].includes(r.role));
+    const hasAccess = !!roles?.some(r => ["master", "admin"].includes(r.role));
+    authCache = { userId: session.user.id, hasAccess, expiresAt: now + AUTH_CACHE_TTL_MS };
 
     if (!hasAccess) {
       throw redirect({ to: "/login" });
