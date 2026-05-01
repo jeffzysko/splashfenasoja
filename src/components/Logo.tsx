@@ -1,5 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
+import logoUrl from "@/assets/logo.svg";
 
 interface LogoProps {
   className?: string;
@@ -17,7 +18,7 @@ export const Logo: React.FC<LogoProps> = ({
   return (
     <div className={cn("relative inline-block overflow-hidden", className)} style={{ height }}>
       <img 
-        src="/logo_splash.svg" 
+        src={logoUrl} 
         alt="Splash Piscinas"
         className="h-full w-auto block object-contain"
         loading="eager"
