@@ -13,7 +13,7 @@ import {
   Clock,
   Phone,
 } from "lucide-react";
-import { TEMP_BADGE, type Temperatura } from "@/lib/leads";
+import { TEMP_BADGE, STATUS_BADGE, type Temperatura, type LeadStatus } from "@/lib/leads";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
