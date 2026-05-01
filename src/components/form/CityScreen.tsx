@@ -5,29 +5,40 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScreenContainer } from "./ScreenContainer";
 import { Search, Loader2 } from "lucide-react";
+import MUNICIPIOS_DATA from "@/data/municipios-sul.json";
 
 type Municipio = { nome: string; uf: string };
 
-// Cache em memória (lifetime da sessão)
+const MUNICIPIOS_SUL = MUNICIPIOS_DATA as Municipio[];
+
+// Cache em memória para resultados de busca
 let MUNICIPIOS_CACHE: Municipio[] | null = null;
 let MUNICIPIOS_PROMISE: Promise<Municipio[]> | null = null;
 
 async function fetchMunicipios(): Promise<Municipio[]> {
   if (MUNICIPIOS_CACHE) return MUNICIPIOS_CACHE;
   if (MUNICIPIOS_PROMISE) return MUNICIPIOS_PROMISE;
+  
   MUNICIPIOS_PROMISE = (async () => {
-    const res = await fetch(
-      "https://servicodados.ibge.gov.br/api/v1/localidades/municipios",
-    );
-    if (!res.ok) throw new Error("Falha IBGE");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const json: any[] = await res.json();
-    const list: Municipio[] = json.map((m) => ({
-      nome: m.nome,
-      uf: m?.microrregiao?.mesorregiao?.UF?.sigla ?? "",
-    }));
-    MUNICIPIOS_CACHE = list;
-    return list;
+    try {
+      // Tenta carregar do IBGE em background para ter a lista completa
+      const res = await fetch(
+        "https://servicodados.ibge.gov.br/api/v1/localidades/municipios",
+        { signal: AbortSignal.timeout(5000) } // Timeout curto para não travar
+      );
+      if (!res.ok) throw new Error("Falha IBGE");
+      const json: any[] = await res.json();
+      const list: Municipio[] = json.map((m) => ({
+        nome: m.nome,
+        uf: m?.microrregiao?.mesorregiao?.UF?.sigla ?? "",
+      }));
+      MUNICIPIOS_CACHE = list;
+      return list;
+    } catch (e) {
+      console.warn("Usando lista estática de municípios (offline ou erro IBGE)");
+      MUNICIPIOS_CACHE = MUNICIPIOS_SUL;
+      return MUNICIPIOS_SUL;
+    }
   })();
   return MUNICIPIOS_PROMISE;
 }
@@ -42,7 +53,7 @@ export const CityScreen = () => {
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [municipios, setMunicipios] = useState<Municipio[] | null>(MUNICIPIOS_CACHE);
+  const [municipios, setMunicipios] = useState<Municipio[] | null>(MUNICIPIOS_CACHE || MUNICIPIOS_SUL);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
