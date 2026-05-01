@@ -23,18 +23,18 @@ export const SuccessScreen = () => {
 
   return (
     <ScreenContainer centered>
-      <div className="w-20 h-20 rounded-full bg-accent/15 flex items-center justify-center mb-5 shadow-[0_12px_40px_-12px_color-mix(in_oklab,var(--accent)_55%,transparent)] animate-in zoom-in-50 fade-in duration-500 delay-100 fill-mode-forwards opacity-0 scale-50">
+      <div className="w-20 h-20 rounded-full bg-accent/15 flex items-center justify-center mb-5 shadow-[0_12px_40px_-12px_color-mix(in_oklab,var(--accent)_55%,transparent)] animate-in zoom-in-50 fade-in duration-500 delay-100 fill-mode-forwards">
         <CheckCircle2 className="w-12 h-12 text-accent" strokeWidth={2.2} />
       </div>
 
-      <h1 className="text-[30px] leading-tight font-extrabold text-secondary mb-2 max-w-sm tracking-tight animate-in fade-in slide-in-from-bottom-2 duration-500 delay-250 fill-mode-forwards opacity-0">
+      <h1 className="text-[30px] leading-tight font-extrabold text-secondary mb-2 max-w-sm tracking-tight animate-in fade-in slide-in-from-bottom-2 duration-500 delay-250">
         Pronto, {firstName}! 🎉
       </h1>
-      <p className="text-base text-muted-foreground mb-6 max-w-md animate-in fade-in slide-in-from-bottom-2 duration-500 delay-350 fill-mode-forwards opacity-0">
+      <p className="text-base text-muted-foreground mb-6 max-w-md animate-in fade-in slide-in-from-bottom-2 duration-500 delay-350">
         Já mandamos o catálogo pro seu WhatsApp.
       </p>
 
-      <div className="w-full max-w-sm bg-card border-2 border-border rounded-2xl p-5 mb-6 text-left animate-in fade-in slide-in-from-bottom-3 duration-500 delay-450 fill-mode-forwards opacity-0">
+      <div className="w-full max-w-sm bg-card border-2 border-border rounded-2xl p-5 mb-6 text-left animate-in fade-in slide-in-from-bottom-3 duration-500 delay-450">
         <div className="flex items-center justify-between mb-3">
           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
             Lead nº {leadShort}
@@ -57,7 +57,7 @@ export const SuccessScreen = () => {
         </div>
       </div>
 
-      <div className="w-full max-w-sm space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-550 fill-mode-forwards opacity-0">
+      <div className="w-full max-w-sm space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-550">
         <a href={waLink} target="_blank" rel="noreferrer" className="block">
           <Button
             size="lg"
