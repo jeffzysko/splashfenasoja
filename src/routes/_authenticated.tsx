@@ -3,11 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
-import { LogOut, Volume2, VolumeX, LayoutDashboard, Users, Shield } from "lucide-react";
+import { LogOut, LayoutDashboard, Users, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { NotificationBell } from "@/components/NotificationBell";
+import { NotificationSettings } from "@/components/NotificationSettings";
 
 // Cache de auth para evitar refazer getSession + user_roles em toda navegação.
 // Persiste em sessionStorage (sobrevive F5) e usa stale-while-revalidate.
