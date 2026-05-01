@@ -21,16 +21,20 @@ export const Route = createFileRoute("/_authenticated")({
     }
 
     // 3. Simple check for roles
-    const { data: roles } = await supabase
+    const { data: roles, error: roleErr } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", session.user.id);
 
+    if (roleErr) {
+      console.error("Erro ao verificar papel:", roleErr);
+    }
+
     const hasAccess = roles?.some(r => ["master", "admin"].includes(r.role));
 
     if (!hasAccess) {
-      console.error("Acesso negado: Usuário sem permissões.");
-      // Do not sign out immediately to avoid auth loops, just redirect
+      console.error("Acesso negado: Usuário sem permissões.", { userId: session.user.id, roles });
+      // Clear session only if we are sure there is no access, but let's just redirect first
       throw redirect({ to: "/login" });
     }
 
