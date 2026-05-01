@@ -9,9 +9,11 @@ import {
   ArrowLeft,
   Loader2,
   Phone,
+  X,
 } from "lucide-react";
 import { TEMP_BADGE, STATUS_BADGE, LABELS, formatWhatsappBR, type Temperatura, type LeadStatus } from "@/lib/leads";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -22,6 +24,13 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 const PAGE_SIZE = 50;
 const VIRTUALIZE_THRESHOLD = 80;
 const ROW_HEIGHT = 124; // altura aproximada do card + gap
+
+type Cursor = { created_at: string; id: string } | null;
+
+/** Escapa vírgulas e parênteses para uso em filtros .or() do PostgREST. */
+function escapeOrValue(s: string) {
+  return s.replace(/[(),]/g, " ").trim();
+}
 
 type Status = "novo" | "contatado" | "qualificado" | "vendido" | "perdido" | "descartado";
 
@@ -44,64 +53,110 @@ export const Route = createFileRoute("/_authenticated/admin/leads/")({
 function LeadsListPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [cursor, setCursor] = useState<Cursor>(null);
+  const [totalCount, setTotalCount] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [filterTemp, setFilterTemp] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"recent" | "score" | "name">("recent");
 
-  const debouncedSearch = useDebounced(search, 250);
+  const debouncedSearch = useDebounced(search, 300);
   const parentRef = useRef<HTMLDivElement | null>(null);
+  const reqIdRef = useRef(0);
+  const firstLoadRef = useRef(true);
 
-  // Reset paginação quando filtros server-side mudam
+  // Aplica todos os filtros server-side (temp, status, busca textual) + cursor.
   const fetchPage = useCallback(
-    async (offset: number, temp: string, status: string) => {
+    async (
+      cur: Cursor,
+      temp: string,
+      status: string,
+      searchText: string,
+      withCount: boolean
+    ) => {
       let q = supabase
         .from("leads")
-        .select("id, nome, whatsapp, cidade, estado, temperatura, status, score, created_at")
+        .select(
+          "id, nome, whatsapp, cidade, estado, temperatura, status, score, created_at",
+          withCount ? { count: "exact" } : undefined
+        )
         .order("created_at", { ascending: false })
-        .range(offset, offset + PAGE_SIZE - 1);
+        .order("id", { ascending: false })
+        .limit(PAGE_SIZE);
 
       if (temp !== "all") q = q.eq("temperatura", temp);
       if (status !== "all") q = q.eq("status", status);
 
-      const { data, error } = await q;
+      const term = searchText.trim();
+      if (term) {
+        const safe = escapeOrValue(term);
+        if (safe) {
+          const digits = term.replace(/\D/g, "");
+          const ors: string[] = [
+            `nome.ilike.*${safe}*`,
+            `cidade.ilike.*${safe}*`,
+          ];
+          if (digits) ors.push(`whatsapp.ilike.*${digits}*`);
+          q = q.or(ors.join(","));
+        }
+      }
+
+      // Paginação por cursor: keyset (created_at, id) DESC
+      if (cur) {
+        q = q.or(
+          `created_at.lt.${cur.created_at},and(created_at.eq.${cur.created_at},id.lt.${cur.id})`
+        );
+      }
+
+      const { data, error, count } = await q;
       if (error) {
         toast.error("Erro ao carregar leads.");
-        return { items: [] as Lead[], end: true };
+        return { items: [] as Lead[], end: true, count: null as number | null };
       }
       const items = (data ?? []) as Lead[];
-      return { items, end: items.length < PAGE_SIZE };
+      return {
+        items,
+        end: items.length < PAGE_SIZE,
+        count: typeof count === "number" ? count : null,
+      };
     },
     []
   );
 
-  // Recarrega do zero quando filtros server-side (temp/status) mudam
+  // Recarrega do zero quando filtros ou busca mudam
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
+    const reqId = ++reqIdRef.current;
+    if (firstLoadRef.current) setLoading(true);
+    else setRefreshing(true);
     setHasMore(true);
-    fetchPage(0, filterTemp, filterStatus).then(({ items, end }) => {
-      if (cancelled) return;
-      setLeads(items);
-      setHasMore(!end);
-      setLoading(false);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [filterTemp, filterStatus, fetchPage]);
+
+    fetchPage(null, filterTemp, filterStatus, debouncedSearch, true).then(
+      ({ items, end, count }) => {
+        if (reqId !== reqIdRef.current) return;
+        setLeads(items);
+        setHasMore(!end);
+        setTotalCount(count);
+        const last = items[items.length - 1];
+        setCursor(last ? { created_at: last.created_at, id: last.id } : null);
+        setLoading(false);
+        setRefreshing(false);
+        firstLoadRef.current = false;
+      }
+    );
+  }, [filterTemp, filterStatus, debouncedSearch, fetchPage]);
 
   // Realtime: aplica em memória sem refetch
   useEffect(() => {
     const unsub = subscribeLeads((event, payload) => {
       if (event === "INSERT") {
         const l = payload.new as Lead;
-        // só insere se passa nos filtros server-side ativos
         if (filterTemp !== "all" && l.temperatura !== filterTemp) return;
         if (filterStatus !== "all" && l.status !== filterStatus) return;
         setLeads((prev) => (prev.some((x) => x.id === l.id) ? prev : [l, ...prev]));
+        setTotalCount((c) => (c === null ? c : c + 1));
       } else if (event === "UPDATE") {
         const l = payload.new as Lead;
         setLeads((prev) =>
@@ -115,7 +170,13 @@ function LeadsListPage() {
         );
       } else if (event === "DELETE") {
         const old = payload.old as { id: string };
-        setLeads((prev) => prev.filter((x) => x.id !== old.id));
+        setLeads((prev) => {
+          const next = prev.filter((x) => x.id !== old.id);
+          if (next.length !== prev.length) {
+            setTotalCount((c) => (c === null ? c : Math.max(0, c - 1)));
+          }
+          return next;
+        });
       }
     });
     return () => {
@@ -124,41 +185,32 @@ function LeadsListPage() {
   }, [filterTemp, filterStatus]);
 
   const loadMore = useCallback(async () => {
-    if (loadingMore || !hasMore) return;
+    if (loadingMore || !hasMore || !cursor) return;
     setLoadingMore(true);
-    const { items, end } = await fetchPage(leads.length, filterTemp, filterStatus);
+    const { items, end } = await fetchPage(
+      cursor,
+      filterTemp,
+      filterStatus,
+      debouncedSearch,
+      false
+    );
     setLeads((prev) => {
-      // dedupe por id
       const seen = new Set(prev.map((l) => l.id));
       return [...prev, ...items.filter((l) => !seen.has(l.id))];
     });
     setHasMore(!end);
+    const last = items[items.length - 1];
+    if (last) setCursor({ created_at: last.created_at, id: last.id });
+    else setHasMore(false);
     setLoadingMore(false);
-  }, [leads.length, filterTemp, filterStatus, fetchPage, hasMore, loadingMore]);
+  }, [cursor, filterTemp, filterStatus, debouncedSearch, fetchPage, hasMore, loadingMore]);
 
-  // Filtro de busca + sort: client-side sobre o que já foi carregado (responsivo)
+  // Sort client-side sobre o que já foi carregado (busca já é server-side).
   const filteredLeads = useMemo(() => {
-    const q = debouncedSearch.trim().toLowerCase();
-    const filtered = q
-      ? leads.filter(
-          (l) =>
-            l.nome.toLowerCase().includes(q) ||
-            l.whatsapp.includes(debouncedSearch) ||
-            l.cidade.toLowerCase().includes(q)
-        )
-      : leads;
-
-    if (sortBy === "recent") {
-      return [...filtered].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
-    }
-    if (sortBy === "score") {
-      return [...filtered].sort((a, b) => b.score - a.score);
-    }
-    if (sortBy === "name") {
-      return [...filtered].sort((a, b) => a.nome.localeCompare(b.nome));
-    }
-    return filtered;
-  }, [leads, debouncedSearch, sortBy]);
+    if (sortBy === "score") return [...leads].sort((a, b) => b.score - a.score);
+    if (sortBy === "name") return [...leads].sort((a, b) => a.nome.localeCompare(b.nome));
+    return leads;
+  }, [leads, sortBy]);
 
   // Virtualização só ligada quando há muitas linhas (evita custo em listas pequenas)
   const shouldVirtualize = filteredLeads.length >= VIRTUALIZE_THRESHOLD;
@@ -171,7 +223,7 @@ function LeadsListPage() {
   });
 
   const exportCSV = async () => {
-    // Exporta TODOS os leads que batem nos filtros server-side, não só os carregados
+    // Exporta TODOS os leads que batem nos filtros server-side (incluindo busca)
     let q = supabase
       .from("leads")
       .select(
@@ -180,6 +232,18 @@ function LeadsListPage() {
       .order("created_at", { ascending: false });
     if (filterTemp !== "all") q = q.eq("temperatura", filterTemp);
     if (filterStatus !== "all") q = q.eq("status", filterStatus);
+
+    const term = debouncedSearch.trim();
+    if (term) {
+      const safe = escapeOrValue(term);
+      if (safe) {
+        const digits = term.replace(/\D/g, "");
+        const ors = [`nome.ilike.*${safe}*`, `cidade.ilike.*${safe}*`];
+        if (digits) ors.push(`whatsapp.ilike.*${digits}*`);
+        q = q.or(ors.join(","));
+      }
+    }
+
     const { data, error } = await q;
 
     if (error || !data || data.length === 0) {
@@ -187,21 +251,7 @@ function LeadsListPage() {
       return;
     }
 
-    // Aplica busca textual local também na exportação
-    const qStr = debouncedSearch.trim().toLowerCase();
-    const filtered = qStr
-      ? data.filter(
-          (l) =>
-            l.nome.toLowerCase().includes(qStr) ||
-            l.whatsapp.includes(debouncedSearch) ||
-            l.cidade.toLowerCase().includes(qStr)
-        )
-      : data;
-
-    if (filtered.length === 0) {
-      toast.error("Nenhum lead para exportar.");
-      return;
-    }
+    const filtered = data;
 
     const esc = (v: unknown) => {
       const s = v === null || v === undefined ? "" : String(v);
@@ -262,13 +312,10 @@ function LeadsListPage() {
     toast.success(`${filtered.length} leads exportados!`);
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-      </div>
-    );
-  }
+  const hasActiveFilters =
+    filterTemp !== "all" || filterStatus !== "all" || debouncedSearch.trim().length > 0;
+
+  const showInitialSkeleton = loading;
 
   return (
     <div className="space-y-4">
@@ -279,12 +326,27 @@ function LeadsListPage() {
           </Button>
           <div>
             <h2 className="text-xl font-extrabold text-secondary tracking-tight">Leads</h2>
-            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
-              {filteredLeads.length} carregados {hasMore && "• mais disponíveis"}
+            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-1.5">
+              {showInitialSkeleton ? (
+                <Skeleton className="h-3 w-32" />
+              ) : (
+                <>
+                  {filteredLeads.length}
+                  {totalCount !== null && (
+                    <>
+                      {" "}de {totalCount.toLocaleString("pt-BR")}
+                    </>
+                  )}
+                  {hasMore && " • mais disponíveis"}
+                  {refreshing && (
+                    <Loader2 className="w-3 h-3 animate-spin text-primary ml-1" />
+                  )}
+                </>
+              )}
             </p>
           </div>
         </div>
-        <Button onClick={exportCSV} size="sm" className="bg-orange-500 hover:bg-orange-600 text-white font-bold h-10 px-4 rounded-xl shadow-md">
+        <Button onClick={exportCSV} size="sm" disabled={showInitialSkeleton} className="bg-orange-500 hover:bg-orange-600 text-white font-bold h-10 px-4 rounded-xl shadow-md">
           <Download className="w-4 h-4 mr-2" /> Exportar
         </Button>
       </div>
@@ -295,8 +357,23 @@ function LeadsListPage() {
             placeholder="Buscar por nome, zap ou cidade..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-12 bg-card border-border rounded-xl focus-visible:border-primary focus-visible:ring-0"
+            className="pl-9 pr-16 h-12 bg-card border-border rounded-xl focus-visible:border-primary focus-visible:ring-0"
           />
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            {refreshing && !showInitialSkeleton && (
+              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+            )}
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="w-7 h-7 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground"
+                aria-label="Limpar busca"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
@@ -317,10 +394,19 @@ function LeadsListPage() {
         </div>
       </div>
 
-      {filteredLeads.length === 0 ? (
-        <div className="text-center py-20">
-          <p className="text-muted-foreground font-medium">Nenhum lead encontrado com esses filtros.</p>
-        </div>
+      {showInitialSkeleton ? (
+        <LeadListSkeleton />
+      ) : refreshing && filteredLeads.length === 0 ? (
+        <LeadListSkeleton />
+      ) : filteredLeads.length === 0 ? (
+        <EmptyState
+          hasActiveFilters={hasActiveFilters}
+          onClear={() => {
+            setSearch("");
+            setFilterTemp("all");
+            setFilterStatus("all");
+          }}
+        />
       ) : shouldVirtualize ? (
         <div
           ref={parentRef}
@@ -474,5 +560,59 @@ function FilterChip({ label, active, onClick }: { label: string; active: boolean
     >
       {label}
     </button>
+  );
+}
+
+function LeadListSkeleton() {
+  return (
+    <div className="grid gap-3 pb-20">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="bg-card border border-border rounded-2xl p-4 flex flex-col gap-3">
+          <div className="flex items-start justify-between">
+            <div className="space-y-2 flex-1">
+              <Skeleton className="h-5 w-2/3" />
+              <Skeleton className="h-3 w-1/2" />
+            </div>
+            <Skeleton className="h-5 w-14 rounded-full" />
+          </div>
+          <div className="flex items-center justify-between mt-1">
+            <div className="flex gap-2">
+              <Skeleton className="h-4 w-20 rounded-md" />
+              <Skeleton className="h-4 w-16 rounded-md" />
+            </div>
+            <Skeleton className="h-9 w-9 rounded-full" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EmptyState({
+  hasActiveFilters,
+  onClear,
+}: {
+  hasActiveFilters: boolean;
+  onClear: () => void;
+}) {
+  return (
+    <div className="text-center py-20 px-4">
+      <div className="w-14 h-14 mx-auto rounded-2xl bg-muted flex items-center justify-center mb-3">
+        <Search className="w-6 h-6 text-muted-foreground" />
+      </div>
+      <p className="text-secondary font-bold mb-1">
+        {hasActiveFilters ? "Nenhum lead encontrado" : "Ainda não há leads"}
+      </p>
+      <p className="text-xs text-muted-foreground mb-4">
+        {hasActiveFilters
+          ? "Tente ajustar a busca ou limpar os filtros."
+          : "Assim que chegarem novos leads eles aparecerão aqui."}
+      </p>
+      {hasActiveFilters && (
+        <Button onClick={onClear} variant="outline" size="sm" className="rounded-xl">
+          Limpar filtros
+        </Button>
+      )}
+    </div>
   );
 }
