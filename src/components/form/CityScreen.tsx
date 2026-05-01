@@ -18,24 +18,37 @@ let MUNICIPIOS_PROMISE: Promise<Municipio[]> | null = null;
 async function fetchMunicipios(): Promise<Municipio[]> {
   if (MUNICIPIOS_CACHE) return MUNICIPIOS_CACHE;
   if (MUNICIPIOS_PROMISE) return MUNICIPIOS_PROMISE;
-  
+
   MUNICIPIOS_PROMISE = (async () => {
     try {
-      // Tenta carregar do IBGE em background para ter a lista completa
+      // Busca a lista completa de TODOS os municípios do Brasil no IBGE
       const res = await fetch(
         "https://servicodados.ibge.gov.br/api/v1/localidades/municipios",
-        { signal: AbortSignal.timeout(5000) } // Timeout curto para não travar
+        { signal: AbortSignal.timeout(8000) }
       );
       if (!res.ok) throw new Error("Falha IBGE");
       const json: any[] = await res.json();
-      const list: Municipio[] = json.map((m) => ({
-        nome: m.nome,
-        uf: m?.microrregiao?.mesorregiao?.UF?.sigla ?? "",
-      }));
+      const list: Municipio[] = json
+        .map((m) => ({
+          nome: m.nome,
+          uf: m?.microrregiao?.mesorregiao?.UF?.sigla ?? "",
+        }))
+        .filter((m) => m.uf);
+
+      // Mescla com a lista local do Sul (garantia de cobertura caso a API venha incompleta)
+      const seen = new Set(list.map((m) => `${m.nome}|${m.uf}`));
+      for (const m of MUNICIPIOS_SUL) {
+        const key = `${m.nome}|${m.uf}`;
+        if (!seen.has(key)) {
+          list.push(m);
+          seen.add(key);
+        }
+      }
+
       MUNICIPIOS_CACHE = list;
       return list;
     } catch (e) {
-      console.warn("Usando lista estática de municípios (offline ou erro IBGE)");
+      console.warn("Usando lista local de municípios (offline ou erro IBGE)");
       MUNICIPIOS_CACHE = MUNICIPIOS_SUL;
       return MUNICIPIOS_SUL;
     }
