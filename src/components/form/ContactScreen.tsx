@@ -52,15 +52,15 @@ export const ContactScreen = () => {
 
   return (
     <ScreenContainer>
-      <h2 className="text-[28px] leading-tight font-extrabold text-secondary mb-2 tracking-tight opacity-0 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-forwards">
+      <h2 className="text-[28px] leading-tight font-extrabold text-secondary mb-2 tracking-tight animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-forwards">
         Como te encontramos?
       </h2>
-      <p className="text-muted-foreground mb-8 opacity-0 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-forwards">
+      <p className="text-muted-foreground mb-8 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-forwards">
         Promessa: nada de spam. Só o catálogo e um oi do consultor.
       </p>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 opacity-0 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200 fill-mode-forwards">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200 fill-mode-forwards">
           <FormField
             control={form.control}
             name="nome"
