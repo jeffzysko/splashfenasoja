@@ -52,7 +52,7 @@ function LeadDetailPage() {
   const [saving, setSaving] = useState(false);
   const [notes, setNotes] = useState("");
   const { user } = useSupabaseAuth();
-  const notesTimeoutRef = useRef<Timer | null>(null);
+  const notesTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const fetchLead = async () => {
