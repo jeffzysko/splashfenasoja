@@ -1,0 +1,251 @@
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Search,
+  Download,
+  Filter,
+  ArrowLeft,
+  Loader2,
+  Phone,
+  LayoutGrid,
+  List,
+} from "lucide-react";
+import { TEMP_BADGE, LABELS, type Temperatura } from "@/lib/leads";
+import { cn } from "@/lib/utils";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
+
+type Status = "novo" | "contatado" | "qualificado" | "descartado";
+
+type Lead = {
+  id: string;
+  nome: string;
+  whatsapp: string;
+  cidade: string;
+  estado: string;
+  temperatura: Temperatura;
+  status: Status;
+  score: number;
+  created_at: string;
+};
+
+export const Route = createFileRoute("/_authenticated/admin/leads")({
+  component: LeadsListPage,
+});
+
+function LeadsListPage() {
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [filterTemp, setFilterTemp] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<"recent" | "score" | "name">("recent");
+
+  useEffect(() => {
+    const fetchLeads = async () => {
+      const { data, error } = await supabase
+        .from("leads")
+        .select("id, nome, whatsapp, cidade, estado, temperatura, status, score, created_at")
+        .order("created_at", { ascending: false });
+
+      if (!error && data) {
+        setLeads(data as Lead[]);
+      }
+      setLoading(false);
+    };
+
+    fetchLeads();
+
+    const channel = supabase
+      .channel("leads-list")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "leads" },
+        (payload) => {
+          const newLead = payload.new as Lead;
+          setLeads((prev) => [newLead, ...prev]);
+          if (newLead.temperatura === "quente") {
+            toast.success(`Novo Lead Quente: ${newLead.nome}!`);
+            const audio = new Audio("https://cdn.gpteng.co/ding.mp3");
+            if (localStorage.getItem("notifSound") === "on") {
+              audio.play().catch(() => {});
+            }
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "leads" },
+        (payload) => {
+          setLeads((prev) => prev.map(l => l.id === payload.new.id ? { ...l, ...payload.new as Lead } : l));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const filteredLeads = useMemo(() => {
+    let result = leads.filter(l => {
+      const matchesSearch = l.nome.toLowerCase().includes(search.toLowerCase()) || 
+                            l.whatsapp.includes(search) ||
+                            l.cidade.toLowerCase().includes(search.toLowerCase());
+      const matchesTemp = filterTemp === "all" || l.temperatura === filterTemp;
+      const matchesStatus = filterStatus === "all" || l.status === filterStatus;
+      
+      return matchesSearch && matchesTemp && matchesStatus;
+    });
+
+    if (sortBy === "recent") {
+      result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    } else if (sortBy === "score") {
+      result.sort((a, b) => b.score - a.score);
+    } else if (sortBy === "name") {
+      result.sort((a, b) => a.nome.localeCompare(b.nome));
+    }
+
+    return result;
+  }, [leads, search, filterTemp, filterStatus, sortBy]);
+
+  const exportCSV = () => {
+    const headers = "id,data,nome,whatsapp,cidade,estado,temperatura,status,score\n";
+    const csvContent = filteredLeads.map(l => 
+      `${l.id},${l.created_at},"${l.nome}",${l.whatsapp},"${l.cidade}",${l.estado},${l.temperatura},${l.status},${l.score}`
+    ).join("\n");
+    
+    const blob = new Blob(["\uFEFF" + headers + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `leads-fenasoja-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    toast.success("CSV exportado!");
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" asChild className="rounded-full">
+            <Link to="/admin"><ArrowLeft className="w-5 h-5" /></Link>
+          </Button>
+          <div>
+            <h2 className="text-xl font-extrabold text-secondary tracking-tight">Leads</h2>
+            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+              {filteredLeads.length} de {leads.length} encontrados
+            </p>
+          </div>
+        </div>
+        <Button onClick={exportCSV} size="sm" className="bg-orange-500 hover:bg-orange-600 text-white font-bold h-10 px-4 rounded-xl shadow-md">
+          <Download className="w-4 h-4 mr-2" /> Exportar
+        </Button>
+      </div>
+
+      <div className="sticky top-[56px] z-30 bg-muted/30 -mx-4 px-4 py-3 space-y-3 backdrop-blur-md">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input 
+            placeholder="Buscar por nome, zap ou cidade..." 
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 h-12 bg-card border-border rounded-xl focus-visible:border-primary focus-visible:ring-0"
+          />
+        </div>
+
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          <FilterChip label="Todos" active={filterTemp === "all"} onClick={() => setFilterTemp("all")} />
+          <FilterChip label="Quente 🔥" active={filterTemp === "quente"} onClick={() => setFilterTemp("quente")} />
+          <FilterChip label="Morno 🌤️" active={filterTemp === "morno"} onClick={() => setFilterTemp("morno")} />
+          <FilterChip label="Frio ❄️" active={filterTemp === "frio"} onClick={() => setFilterTemp("frio")} />
+        </div>
+
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar border-t border-border/40 pt-2">
+          <FilterChip label="Todos Status" active={filterStatus === "all"} onClick={() => setFilterStatus("all")} />
+          <FilterChip label="Novo" active={filterStatus === "novo"} onClick={() => setFilterStatus("novo")} />
+          <FilterChip label="Contatado" active={filterStatus === "contatado"} onClick={() => setFilterStatus("contatado")} />
+          <FilterChip label="Qualificado" active={filterStatus === "qualificado"} onClick={() => setFilterStatus("qualificado")} />
+        </div>
+      </div>
+
+      <div className="grid gap-3 pb-20">
+        {filteredLeads.map((l) => (
+          <Link
+            key={l.id}
+            to="/admin/leads/$id"
+            params={{ id: l.id }}
+            className="bg-card border border-border rounded-2xl p-4 flex flex-col gap-3 hover:border-primary/40 transition-all active:scale-[0.99]"
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="font-bold text-secondary text-lg leading-tight">{l.nome}</div>
+                <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                  {l.cidade}/{l.estado} • {formatDistanceToNow(new Date(l.created_at), { addSuffix: true, locale: ptBR })}
+                </div>
+              </div>
+              <span className={cn("text-[10px] font-extrabold px-2 py-0.5 rounded-full border uppercase tracking-wider", TEMP_BADGE[l.temperatura].className)}>
+                {l.temperatura}
+              </span>
+            </div>
+            
+            <div className="flex items-center justify-between mt-1">
+              <div className="flex gap-2 items-center">
+                <span className="text-[10px] bg-muted text-muted-foreground font-black px-2 py-0.5 rounded-md uppercase">
+                  {l.status}
+                </span>
+                <span className="text-[10px] font-bold text-muted-foreground">
+                  Score: {l.score}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <a 
+                  href={`https://wa.me/${l.whatsapp.replace(/\D/g, '')}`} 
+                  onClick={(e) => e.stopPropagation()}
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="w-9 h-9 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors"
+                >
+                  <Phone className="w-4 h-4" />
+                </a>
+              </div>
+            </div>
+          </Link>
+        ))}
+        {filteredLeads.length === 0 && (
+          <div className="text-center py-20">
+            <p className="text-muted-foreground font-medium">Nenhum lead encontrado com esses filtros.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FilterChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border-2 transition-all",
+        active 
+          ? "bg-primary border-primary text-primary-foreground shadow-md" 
+          : "bg-card border-border text-muted-foreground hover:border-primary/40"
+      )}
+    >
+      {label}
+    </button>
+  );
+}
