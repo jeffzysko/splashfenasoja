@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+// removed Link import (edit feature removed)
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import {
   User,
   Clock,
   AlertCircle,
-  Pencil,
+  
 } from "lucide-react";
 import { TEMP_BADGE, LABELS, type Temperatura } from "@/lib/leads";
 import { cn } from "@/lib/utils";
@@ -81,10 +81,9 @@ export function useLeadDetail(id: string | null) {
 type Props = {
   lead: LeadDetail;
   onUpdate?: (lead: LeadDetail) => void;
-  showEditLink?: boolean;
 };
 
-export function LeadDetailView({ lead, onUpdate, showEditLink = true }: Props) {
+export function LeadDetailView({ lead, onUpdate }: Props) {
   const [current, setCurrent] = useState<LeadDetail>(lead);
   const [notes, setNotes] = useState(lead.notes || "");
   const [saving, setSaving] = useState(false);
@@ -188,17 +187,6 @@ export function LeadDetailView({ lead, onUpdate, showEditLink = true }: Props) {
         >
           <Phone className="w-6 h-6 fill-current" /> WhatsApp
         </Button>
-        {showEditLink && (
-          <Button
-            asChild
-            variant="outline"
-            className="w-full font-black py-7 rounded-2xl text-lg border-2"
-          >
-            <Link to="/admin/leads/$id/edit" params={{ id: current.id }}>
-              <Pencil className="w-5 h-5 mr-2" /> Editar
-            </Link>
-          </Button>
-        )}
       </div>
 
       <section className="space-y-3">
