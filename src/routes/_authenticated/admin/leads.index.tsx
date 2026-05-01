@@ -268,8 +268,9 @@ function LeadsListPage() {
 
             <div className="flex items-center justify-between mt-1">
               <div className="flex gap-2 items-center">
-                <span className="text-[10px] bg-muted text-muted-foreground font-black px-2 py-0.5 rounded-md uppercase">
-                  {l.status}
+                <span className={cn("inline-flex items-center gap-1.5 text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider border", STATUS_BADGE[l.status as LeadStatus].className)}>
+                  <span className={cn("w-1.5 h-1.5 rounded-full", STATUS_BADGE[l.status as LeadStatus].dot)} />
+                  {STATUS_BADGE[l.status as LeadStatus].label}
                 </span>
                 <span className="text-[10px] font-bold text-muted-foreground">
                   Score: {l.score}
