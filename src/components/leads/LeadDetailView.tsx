@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Loader2,
-  Phone,
   MessageSquare,
   Copy,
   Mail,
