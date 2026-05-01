@@ -766,8 +766,8 @@ const LeadRow = memo(function LeadRow({ lead: l }: { lead: Lead }) {
               e.stopPropagation();
               window.open(`https://wa.me/${l.whatsapp.replace(/\D/g, "")}`, "_blank", "noreferrer");
             }}
-            className="w-9 h-9 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors cursor-pointer"
-            aria-label="Abrir WhatsApp"
+            className="w-11 h-11 rounded-full bg-green-500/10 active:bg-green-500/25 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors cursor-pointer"
+            aria-label={`Abrir WhatsApp de ${l.nome}`}
           >
             <Phone className="w-4 h-4" />
           </button>
