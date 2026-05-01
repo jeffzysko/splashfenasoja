@@ -376,7 +376,7 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
             label="Tamanho da piscina"
             value={current.tamanho_quintal}
             saving={savingField === "tamanho_quintal"}
-            saved={savedField === "tamanho_quintal"}
+            saved={savedField.tamanho_quintal}
             options={TAMANHO_OPTIONS.map((o) => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
             onChange={(v) => updateQualification("tamanho_quintal", v)}
           />
