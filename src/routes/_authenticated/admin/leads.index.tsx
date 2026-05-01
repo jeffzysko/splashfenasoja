@@ -554,62 +554,23 @@ function LeadsListPage() {
           <Download className="w-4 h-4 mr-2" /> Exportar
         </Button>
       </div>
-      <div className="sticky top-[56px] z-30 bg-muted/30 -mx-4 px-4 py-3 space-y-3 backdrop-blur-md">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome, zap ou cidade..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 pr-16 h-12 bg-card border-border rounded-xl focus-visible:border-primary focus-visible:ring-0"
-          />
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-            {refreshing && !showInitialSkeleton && (
-              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-            )}
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                className="w-7 h-7 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground"
-                aria-label="Limpar busca"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-          <FilterChip label="Todos" active={filterTemp === "all"} onClick={() => setFilterTemp("all")} />
-          <FilterChip label="Quente 🔥" active={filterTemp === "quente"} onClick={() => setFilterTemp("quente")} />
-          <FilterChip label="Morno 🌤️" active={filterTemp === "morno"} onClick={() => setFilterTemp("morno")} />
-          <FilterChip label="Frio ❄️" active={filterTemp === "frio"} onClick={() => setFilterTemp("frio")} />
-        </div>
-
-        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar border-t border-border/40 pt-2">
-          <FilterChip label="Todos Status" active={filterStatus === "all"} onClick={() => setFilterStatus("all")} />
-          <FilterChip label="Novo" active={filterStatus === "novo"} onClick={() => setFilterStatus("novo")} />
-          <FilterChip label="Contatado" active={filterStatus === "contatado"} onClick={() => setFilterStatus("contatado")} />
-          <FilterChip label="Qualificado" active={filterStatus === "qualificado"} onClick={() => setFilterStatus("qualificado")} />
-          <FilterChip label="Vendido 🏆" active={filterStatus === "vendido"} onClick={() => setFilterStatus("vendido")} />
-          <FilterChip label="Perdido 💔" active={filterStatus === "perdido"} onClick={() => setFilterStatus("perdido")} />
-          <FilterChip label="Descartado" active={filterStatus === "descartado"} onClick={() => setFilterStatus("descartado")} />
-        </div>
-
-        <div
-          className="flex gap-2 items-center overflow-x-auto pb-1 no-scrollbar border-t border-border/40 pt-2"
-          role="radiogroup"
-          aria-label="Ordenar leads"
-        >
-          <span className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground pr-1">
-            Ordenar:
-          </span>
-          <FilterChip label="Mais recentes" active={sortBy === "recent"} onClick={() => setSortBy("recent")} />
-          <FilterChip label="Maior score" active={sortBy === "score"} onClick={() => setSortBy("score")} />
-          <FilterChip label="Nome (A-Z)" active={sortBy === "name"} onClick={() => setSortBy("name")} />
-        </div>
-      </div>
+      <FiltersBar
+        search={search}
+        onSearchChange={setSearch}
+        refreshing={refreshing && !showInitialSkeleton}
+        filterTemp={filterTemp}
+        setFilterTemp={setFilterTemp}
+        filterStatus={filterStatus}
+        setFilterStatus={setFilterStatus}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        onClearAll={() => {
+          setSearch("");
+          setFilterTemp("all");
+          setFilterStatus("all");
+          setSortBy("recent");
+        }}
+      />
 
       {/* Live region para leitores de tela */}
       <p className="sr-only" aria-live="polite" aria-atomic="true">
