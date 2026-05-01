@@ -88,12 +88,13 @@ export function LeadDetailView({ lead, onUpdate }: Props) {
   const [notes, setNotes] = useState(lead.notes || "");
   const [saving, setSaving] = useState(false);
   const { user } = useSupabaseAuth();
-  const notesTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setCurrent(lead);
     setNotes(lead.notes || "");
   }, [lead]);
+
+  const dirty = (notes || "") !== (current.notes || "");
 
   const updateStatus = async (newStatus: LeadStatus) => {
     const prev = current.status;
@@ -116,25 +117,21 @@ export function LeadDetailView({ lead, onUpdate }: Props) {
     }
   };
 
-  const saveNotes = async (val: string) => {
+  const saveNotes = async () => {
     setSaving(true);
     const { error } = await supabase
       .from("leads")
-      .update({ notes: val })
+      .update({ notes })
       .eq("id", current.id);
-    if (error) toast.error("Erro ao salvar nota.");
-    else {
-      const next = { ...current, notes: val };
-      setCurrent(next);
-      onUpdate?.(next);
-    }
     setSaving(false);
-  };
-
-  const handleNotesChange = (val: string) => {
-    setNotes(val);
-    if (notesTimeoutRef.current) clearTimeout(notesTimeoutRef.current);
-    notesTimeoutRef.current = setTimeout(() => saveNotes(val), 1000);
+    if (error) {
+      toast.error("Erro ao salvar nota.");
+      return;
+    }
+    const next = { ...current, notes };
+    setCurrent(next);
+    onUpdate?.(next);
+    toast.success("Notas salvas!");
   };
 
   const openWhatsApp = () => {
