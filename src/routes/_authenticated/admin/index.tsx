@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, memo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,8 +16,9 @@ import {
 import { TEMP_BADGE, STATUS_BADGE, type Temperatura, type LeadStatus } from "@/lib/leads";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { subscribeLeads } from "@/lib/leadsRealtime";
 
-type Status = "novo" | "contatado" | "qualificado" | "vendido" | "perdido" | "descartado";
+type Status = LeadStatus;
 
 type Lead = {
   id: string;
@@ -29,6 +30,30 @@ type Lead = {
   score: number;
 };
 
+type Stats = {
+  total: number;
+  quentes: number;
+  hoje: number;
+  novo: number;
+  contatado: number;
+  qualificado: number;
+  vendido: number;
+  perdido: number;
+  descartado: number;
+};
+
+const ZERO_STATS: Stats = {
+  total: 0,
+  quentes: 0,
+  hoje: 0,
+  novo: 0,
+  contatado: 0,
+  qualificado: 0,
+  vendido: 0,
+  perdido: 0,
+  descartado: 0,
+};
+
 export const Route = createFileRoute("/_authenticated/admin/")({
   component: DashboardPage,
 });
@@ -36,50 +61,21 @@ export const Route = createFileRoute("/_authenticated/admin/")({
 function DashboardPage() {
   const [leads, setLeads] = useState<Lead[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [globalStats, setGlobalStats] = useState({
-    total: 0,
-    quentes: 0,
-    hoje: 0,
-    novo: 0,
-    contatado: 0,
-    qualificado: 0,
-    vendido: 0,
-    perdido: 0,
-    descartado: 0,
-  });
+  const [globalStats, setGlobalStats] = useState<Stats>(ZERO_STATS);
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Recalcula contagens globais via count exato (não limitado aos 100 últimos)
+  // Uma única RPC traz todas as 9 contagens de uma vez.
   const refreshGlobalStats = async () => {
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-    const todayIso = startOfToday.toISOString();
+    const { data, error } = await supabase.rpc("leads_dashboard_stats");
+    if (!error && data) {
+      setGlobalStats({ ...ZERO_STATS, ...(data as Stats) });
+    }
+  };
 
-    const countByStatus = (s: LeadStatus) =>
-      supabase.from("leads").select("id", { count: "exact", head: true }).eq("status", s);
-
-    const [totalR, quentesR, hojeR, novoR, contatadoR, qualificadoR, vendidoR, perdidoR, descartadoR] = await Promise.all([
-      supabase.from("leads").select("id", { count: "exact", head: true }),
-      supabase.from("leads").select("id", { count: "exact", head: true }).eq("temperatura", "quente"),
-      supabase.from("leads").select("id", { count: "exact", head: true }).gte("created_at", todayIso),
-      countByStatus("novo"),
-      countByStatus("contatado"),
-      countByStatus("qualificado"),
-      countByStatus("vendido"),
-      countByStatus("perdido"),
-      countByStatus("descartado"),
-    ]);
-
-    setGlobalStats({
-      total: totalR.count || 0,
-      quentes: quentesR.count || 0,
-      hoje: hojeR.count || 0,
-      novo: novoR.count || 0,
-      contatado: contatadoR.count || 0,
-      qualificado: qualificadoR.count || 0,
-      vendido: vendidoR.count || 0,
-      perdido: perdidoR.count || 0,
-      descartado: descartadoR.count || 0,
-    });
+  // Debounce: rajadas de eventos realtime resultam em 1 RPC, não N.
+  const scheduleRefresh = () => {
+    if (refreshTimer.current) clearTimeout(refreshTimer.current);
+    refreshTimer.current = setTimeout(refreshGlobalStats, 400);
   };
 
   useEffect(() => {
@@ -88,47 +84,34 @@ function DashboardPage() {
         .from("leads")
         .select("id, nome, whatsapp, temperatura, status, created_at, score")
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(10); // dashboard só mostra 10 — não precisa de 100
 
-      if (!error && data) {
-        setLeads(data as Lead[]);
-      }
+      if (!error && data) setLeads(data as Lead[]);
       setLoading(false);
     };
 
     fetchLeads();
     refreshGlobalStats();
 
-    // Realtime subscription
-    const channel = supabase
-      .channel("dashboard-leads")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "leads" },
-        (payload) => {
-          const newLead = payload.new as Lead;
-          setLeads((current) => (current ? [newLead, ...current].slice(0, 100) : [newLead]));
-          refreshGlobalStats();
-
-          if (newLead.temperatura === "quente") {
-            try {
-              const audio = new Audio("https://cdn.gpteng.co/ding.mp3");
-              if (localStorage.getItem("notifSound") === "on") {
-                audio.play().catch(() => {});
-              }
-            } catch (e) {}
-          }
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "leads" },
-        () => refreshGlobalStats()
-      )
-      .subscribe();
+    const unsub = subscribeLeads((event, payload) => {
+      if (event === "INSERT") {
+        const newLead = payload.new as Lead;
+        setLeads((current) => (current ? [newLead, ...current].slice(0, 10) : [newLead]));
+      } else if (event === "UPDATE") {
+        const updated = payload.new as Lead;
+        setLeads((current) =>
+          current ? current.map((l) => (l.id === updated.id ? { ...l, ...updated } : l)) : current
+        );
+      } else if (event === "DELETE") {
+        const oldLead = payload.old as Lead;
+        setLeads((current) => (current ? current.filter((l) => l.id !== oldLead.id) : current));
+      }
+      scheduleRefresh();
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      unsub();
+      if (refreshTimer.current) clearTimeout(refreshTimer.current);
     };
   }, []);
 
@@ -138,6 +121,18 @@ function DashboardPage() {
     return { total, quentes, hoje, convRate };
   }, [globalStats]);
 
+  const statusList = useMemo<{ key: LeadStatus; count: number }[]>(
+    () => [
+      { key: "novo", count: globalStats.novo },
+      { key: "contatado", count: globalStats.contatado },
+      { key: "qualificado", count: globalStats.qualificado },
+      { key: "vendido", count: globalStats.vendido },
+      { key: "perdido", count: globalStats.perdido },
+      { key: "descartado", count: globalStats.descartado },
+    ],
+    [globalStats]
+  );
+
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
@@ -146,16 +141,7 @@ function DashboardPage() {
     );
   }
 
-  const recentLeads = leads?.slice(0, 10) || [];
-
-  const statusList: { key: LeadStatus; count: number }[] = [
-    { key: "novo", count: globalStats.novo },
-    { key: "contatado", count: globalStats.contatado },
-    { key: "qualificado", count: globalStats.qualificado },
-    { key: "vendido", count: globalStats.vendido },
-    { key: "perdido", count: globalStats.perdido },
-    { key: "descartado", count: globalStats.descartado },
-  ];
+  const recentLeads = leads || [];
 
   return (
     <div className="space-y-6">
@@ -213,49 +199,7 @@ function DashboardPage() {
 
         <div className="grid gap-3">
           {recentLeads.map((l) => (
-            <Link
-              key={l.id}
-              to="/admin/leads/$id"
-              params={{ id: l.id }}
-              className="text-left bg-card border border-border rounded-2xl p-4 flex items-center justify-between hover:border-primary/40 transition-all active:scale-[0.99]"
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${
-                    TEMP_BADGE[l.temperatura].className.split(" ")[0]
-                  }`}
-                >
-                  {l.nome.charAt(0)}
-                </div>
-                <div>
-                  <div className="font-bold text-secondary">{l.nome}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(l.created_at), { addSuffix: true, locale: ptBR })}
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className={`hidden sm:inline-flex text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${STATUS_BADGE[l.status].className}`}>
-                  {STATUS_BADGE[l.status].label}
-                </span>
-                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${TEMP_BADGE[l.temperatura].className}`}>
-                  {l.temperatura.toUpperCase()}
-                </span>
-                <span
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    window.open(`https://wa.me/${l.whatsapp.replace(/\D/g, "")}`, "_blank", "noreferrer");
-                  }}
-                  className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors cursor-pointer"
-                  aria-label="Abrir WhatsApp"
-                >
-                  <Phone className="w-4 h-4" />
-                </span>
-              </div>
-            </Link>
+            <RecentLeadRow key={l.id} lead={l} />
           ))}
           {recentLeads.length === 0 && (
             <div className="text-center py-10 bg-muted/20 rounded-2xl border-2 border-dashed border-border">
@@ -264,9 +208,9 @@ function DashboardPage() {
           )}
         </div>
       </div>
-      
+
       <div className="pt-4">
-        <Button asChild className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-6 rounded-2xl shadow-lg">
+        <Button asChild className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-6 rounded-2xl shadow-lg">
           <Link to="/admin/leads">Gerenciar todos os leads</Link>
         </Button>
       </div>
@@ -274,7 +218,57 @@ function DashboardPage() {
   );
 }
 
-function StatCard({ title, value, icon, variant = "default" }: { title: string; value: string | number; icon: React.ReactNode; variant?: "default" | "hot" }) {
+const RecentLeadRow = memo(function RecentLeadRow({ lead: l }: { lead: Lead }) {
+  // memoiza string relativa para não recalcular a cada render do pai
+  const relative = useMemo(
+    () => formatDistanceToNow(new Date(l.created_at), { addSuffix: true, locale: ptBR }),
+    [l.created_at]
+  );
+  return (
+    <Link
+      to="/admin/leads/$id"
+      params={{ id: l.id }}
+      className="text-left bg-card border border-border rounded-2xl p-4 flex items-center justify-between hover:border-primary/40 transition-all active:scale-[0.99]"
+    >
+      <div className="flex items-center gap-3">
+        <div
+          className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${
+            TEMP_BADGE[l.temperatura].className.split(" ")[0]
+          }`}
+        >
+          {l.nome.charAt(0)}
+        </div>
+        <div>
+          <div className="font-bold text-secondary">{l.nome}</div>
+          <div className="text-xs text-muted-foreground">{relative}</div>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className={`hidden sm:inline-flex text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${STATUS_BADGE[l.status].className}`}>
+          {STATUS_BADGE[l.status].label}
+        </span>
+        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${TEMP_BADGE[l.temperatura].className}`}>
+          {l.temperatura.toUpperCase()}
+        </span>
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            window.open(`https://wa.me/${l.whatsapp.replace(/\D/g, "")}`, "_blank", "noreferrer");
+          }}
+          className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors cursor-pointer"
+          aria-label="Abrir WhatsApp"
+        >
+          <Phone className="w-4 h-4" />
+        </span>
+      </div>
+    </Link>
+  );
+});
+
+const StatCard = memo(function StatCard({ title, value, icon, variant = "default" }: { title: string; value: string | number; icon: React.ReactNode; variant?: "default" | "hot" }) {
   return (
     <Card className={`border-none shadow-sm ${variant === "hot" ? "bg-primary/5 text-primary" : "bg-card"}`}>
       <CardHeader className="p-4 pb-0 flex flex-row items-center justify-between space-y-0">
@@ -288,4 +282,4 @@ function StatCard({ title, value, icon, variant = "default" }: { title: string; 
       </CardContent>
     </Card>
   );
-}
+});
