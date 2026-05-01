@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Bell, CheckCheck, Flame, MoreHorizontal, Moon } from "lucide-react";
+import { Bell, CheckCheck, Flame, MoreHorizontal, Moon, Loader2, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -63,8 +63,9 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<NotifLead[]>([]);
   const [lastSeen, setLastSeen] = useState<number>(() => readLastSeen());
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [updateState, setUpdateState] = useState<Record<string, "loading" | "success" | "error">>({});
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const successTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   // Carrega últimos leads + realtime (canal compartilhado)
   useEffect(() => {
@@ -84,7 +85,7 @@ export function NotificationBell() {
         setItems((prev) => [newLead, ...prev].slice(0, MAX_ITEMS));
 
         const prefs = loadPrefs();
-        const { toast: shouldToast, sound: shouldSound } = shouldNotify(
+        const { toast: shouldToast, sound: shouldSound, soundUrl } = shouldNotify(
           prefs,
           newLead.temperatura
         );
@@ -97,14 +98,15 @@ export function NotificationBell() {
           });
         }
 
-        if (shouldSound) {
+        if (shouldSound && soundUrl) {
           try {
-            if (!audioRef.current) {
-              audioRef.current = new Audio("https://cdn.gpteng.co/ding.mp3");
-            }
-            audioRef.current.currentTime = 0;
-            audioRef.current.play().catch(() => {});
-          } catch {}
+            const a = new Audio(soundUrl);
+            a.volume = 0.7;
+            audioRef.current = a;
+            a.play().catch(() => {});
+          } catch {
+            /* ignore */
+          }
         }
       } else if (event === "UPDATE") {
         const updated = payload.new as NotifLead;
@@ -146,28 +148,49 @@ export function NotificationBell() {
     setLastSeen(newest);
   };
 
+  const flagState = (id: string, state: "loading" | "success" | "error" | null) => {
+    setUpdateState((prev) => {
+      const next = { ...prev };
+      if (state === null) delete next[id];
+      else next[id] = state;
+      return next;
+    });
+  };
+
   const updateStatus = async (id: string, status: LeadStatus) => {
-    setUpdatingId(id);
-    // Atualiza otimisticamente
+    if (successTimers.current[id]) {
+      clearTimeout(successTimers.current[id]);
+      delete successTimers.current[id];
+    }
+    flagState(id, "loading");
+    const previous = items.find((l) => l.id === id)?.status;
+    // Otimista
     setItems((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l)));
     const { error } = await supabase
       .from("leads")
       .update({ status })
       .eq("id", id);
-    setUpdatingId(null);
     if (error) {
+      flagState(id, "error");
+      // Reverte
+      if (previous) {
+        setItems((prev) => prev.map((l) => (l.id === id ? { ...l, status: previous } : l)));
+      }
       toast.error("Erro ao atualizar status");
-      // Recarrega para reverter
-      const { data } = await supabase
-        .from("leads")
-        .select("id, nome, cidade, estado, temperatura, status, created_at")
-        .order("created_at", { ascending: false })
-        .limit(MAX_ITEMS);
-      if (data) setItems(data as NotifLead[]);
+      successTimers.current[id] = setTimeout(() => flagState(id, null), 2500);
     } else {
+      flagState(id, "success");
       toast.success(`Status atualizado: ${STATUS_BADGE[status].label}`);
+      successTimers.current[id] = setTimeout(() => flagState(id, null), 1800);
     }
   };
+
+  // Limpa timers ao desmontar
+  useEffect(() => {
+    return () => {
+      Object.values(successTimers.current).forEach((t) => clearTimeout(t));
+    };
+  }, []);
 
   // recalcula só quando popover abre — evita ler localStorage a cada render
   const quietActive = useMemo(() => isInQuietHours(loadPrefs()), [open]);
@@ -250,7 +273,8 @@ export function NotificationBell() {
                   new Date(lead.created_at).getTime() > lastSeen;
                 const tempBadge = TEMP_BADGE[lead.temperatura];
                 const statusBadge = STATUS_BADGE[lead.status];
-                const updating = updatingId === lead.id;
+                const state = updateState[lead.id];
+                const updating = state === "loading";
                 return (
                   <li
                     key={lead.id}
@@ -322,19 +346,26 @@ export function NotificationBell() {
                       </div>
                     </Link>
 
-                    {/* Botão rápido de atualizar status */}
+                    {/* Botão rápido de atualizar status com feedback visual */}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button
                           aria-label="Atualizar status"
                           disabled={updating}
+                          aria-busy={updating}
                           className={cn(
-                            "absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-primary transition-colors",
-                            updating && "opacity-50"
+                            "absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
+                            state === "success" && "bg-emerald-500/15 text-emerald-600",
+                            state === "error" && "bg-red-500/15 text-red-600",
+                            state === "loading" && "bg-primary/10 text-primary",
+                            !state && "text-muted-foreground hover:bg-muted hover:text-primary"
                           )}
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <MoreHorizontal className="w-4 h-4" />
+                          {state === "loading" && <Loader2 className="w-4 h-4 animate-spin" />}
+                          {state === "success" && <Check className="w-4 h-4" />}
+                          {state === "error" && <X className="w-4 h-4" />}
+                          {!state && <MoreHorizontal className="w-4 h-4" />}
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent

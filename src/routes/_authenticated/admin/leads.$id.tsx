@@ -20,8 +20,8 @@ export const Route = createFileRoute("/_authenticated/admin/leads/$id")({
     if (error) throw error;
     return data as LeadDetail;
   },
-  staleTime: 60_000, // dados frescos por 1 min, evita refetch ao revisitar
-  gcTime: 5 * 60_000,
+  staleTime: 2 * 60_000, // dados frescos por 2min — evita refetch ao revisitar
+  gcTime: 10 * 60_000, // mantém em memória por 10min após sair da rota
   pendingMs: 0,
   pendingComponent: PendingDetail,
   errorComponent: ErrorDetail,

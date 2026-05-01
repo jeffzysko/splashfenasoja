@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, memo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,8 +17,11 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { subscribeLeads } from "@/lib/leadsRealtime";
 import { useDebounced } from "@/hooks/useDebounced";
+import { useVirtualizer } from "@tanstack/react-virtual";
 
-const PAGE_LIMIT = 500; // Limite de segurança (era ilimitado)
+const PAGE_SIZE = 50;
+const VIRTUALIZE_THRESHOLD = 80;
+const ROW_HEIGHT = 124; // altura aproximada do card + gap
 
 type Status = "novo" | "contatado" | "qualificado" | "vendido" | "perdido" | "descartado";
 
@@ -41,93 +44,164 @@ export const Route = createFileRoute("/_authenticated/admin/leads/")({
 function LeadsListPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [search, setSearch] = useState("");
   const [filterTemp, setFilterTemp] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"recent" | "score" | "name">("recent");
 
   const debouncedSearch = useDebounced(search, 250);
+  const parentRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    const fetchLeads = async () => {
-      const { data, error } = await supabase
+  // Reset paginação quando filtros server-side mudam
+  const fetchPage = useCallback(
+    async (offset: number, temp: string, status: string) => {
+      let q = supabase
         .from("leads")
         .select("id, nome, whatsapp, cidade, estado, temperatura, status, score, created_at")
         .order("created_at", { ascending: false })
-        .limit(PAGE_LIMIT);
+        .range(offset, offset + PAGE_SIZE - 1);
 
-      if (!error && data) {
-        setLeads(data as Lead[]);
+      if (temp !== "all") q = q.eq("temperatura", temp);
+      if (status !== "all") q = q.eq("status", status);
+
+      const { data, error } = await q;
+      if (error) {
+        toast.error("Erro ao carregar leads.");
+        return { items: [] as Lead[], end: true };
       }
+      const items = (data ?? []) as Lead[];
+      return { items, end: items.length < PAGE_SIZE };
+    },
+    []
+  );
+
+  // Recarrega do zero quando filtros server-side (temp/status) mudam
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setHasMore(true);
+    fetchPage(0, filterTemp, filterStatus).then(({ items, end }) => {
+      if (cancelled) return;
+      setLeads(items);
+      setHasMore(!end);
       setLoading(false);
+    });
+    return () => {
+      cancelled = true;
     };
+  }, [filterTemp, filterStatus, fetchPage]);
 
-    fetchLeads();
-
+  // Realtime: aplica em memória sem refetch
+  useEffect(() => {
     const unsub = subscribeLeads((event, payload) => {
       if (event === "INSERT") {
-        const newLead = payload.new as Lead;
-        setLeads((prev) => [newLead, ...prev].slice(0, PAGE_LIMIT));
+        const l = payload.new as Lead;
+        // só insere se passa nos filtros server-side ativos
+        if (filterTemp !== "all" && l.temperatura !== filterTemp) return;
+        if (filterStatus !== "all" && l.status !== filterStatus) return;
+        setLeads((prev) => (prev.some((x) => x.id === l.id) ? prev : [l, ...prev]));
       } else if (event === "UPDATE") {
-        const updated = payload.new as Lead;
-        setLeads((prev) => prev.map((l) => (l.id === updated.id ? { ...l, ...updated } : l)));
+        const l = payload.new as Lead;
+        setLeads((prev) =>
+          prev
+            .map((x) => (x.id === l.id ? { ...x, ...l } : x))
+            .filter((x) => {
+              if (filterTemp !== "all" && x.temperatura !== filterTemp) return false;
+              if (filterStatus !== "all" && x.status !== filterStatus) return false;
+              return true;
+            })
+        );
       } else if (event === "DELETE") {
-        const oldLead = payload.old as { id: string };
-        setLeads((prev) => prev.filter((l) => l.id !== oldLead.id));
+        const old = payload.old as { id: string };
+        setLeads((prev) => prev.filter((x) => x.id !== old.id));
       }
     });
-
     return () => {
       unsub();
     };
-  }, []);
+  }, [filterTemp, filterStatus]);
 
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    const { items, end } = await fetchPage(leads.length, filterTemp, filterStatus);
+    setLeads((prev) => {
+      // dedupe por id
+      const seen = new Set(prev.map((l) => l.id));
+      return [...prev, ...items.filter((l) => !seen.has(l.id))];
+    });
+    setHasMore(!end);
+    setLoadingMore(false);
+  }, [leads.length, filterTemp, filterStatus, fetchPage, hasMore, loadingMore]);
+
+  // Filtro de busca + sort: client-side sobre o que já foi carregado (responsivo)
   const filteredLeads = useMemo(() => {
     const q = debouncedSearch.trim().toLowerCase();
-    const filtered = leads.filter((l) => {
-      if (filterTemp !== "all" && l.temperatura !== filterTemp) return false;
-      if (filterStatus !== "all" && l.status !== filterStatus) return false;
-      if (!q) return true;
-      // normaliza uma vez por iteração, não 3
-      return (
-        l.nome.toLowerCase().includes(q) ||
-        l.whatsapp.includes(debouncedSearch) ||
-        l.cidade.toLowerCase().includes(q)
-      );
-    });
+    const filtered = q
+      ? leads.filter(
+          (l) =>
+            l.nome.toLowerCase().includes(q) ||
+            l.whatsapp.includes(debouncedSearch) ||
+            l.cidade.toLowerCase().includes(q)
+        )
+      : leads;
 
     if (sortBy === "recent") {
-      filtered.sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
-    } else if (sortBy === "score") {
-      filtered.sort((a, b) => b.score - a.score);
-    } else if (sortBy === "name") {
-      filtered.sort((a, b) => a.nome.localeCompare(b.nome));
+      return [...filtered].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
+    }
+    if (sortBy === "score") {
+      return [...filtered].sort((a, b) => b.score - a.score);
+    }
+    if (sortBy === "name") {
+      return [...filtered].sort((a, b) => a.nome.localeCompare(b.nome));
     }
     return filtered;
-  }, [leads, debouncedSearch, filterTemp, filterStatus, sortBy]);
+  }, [leads, debouncedSearch, sortBy]);
+
+  // Virtualização só ligada quando há muitas linhas (evita custo em listas pequenas)
+  const shouldVirtualize = filteredLeads.length >= VIRTUALIZE_THRESHOLD;
+
+  const rowVirtualizer = useVirtualizer({
+    count: filteredLeads.length,
+    getScrollElement: () => (shouldVirtualize ? parentRef.current : null),
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 6,
+  });
 
   const exportCSV = async () => {
-    const ids = filteredLeads.map((l) => l.id);
-    if (ids.length === 0) {
-      toast.error("Nenhum lead para exportar.");
-      return;
-    }
-
-    const { data, error } = await supabase
+    // Exporta TODOS os leads que batem nos filtros server-side, não só os carregados
+    let q = supabase
       .from("leads")
       .select(
         "id, created_at, nome, whatsapp, email, cidade, estado, tamanho_quintal, prazo_compra, orcamento, temperatura, status, score, notes"
       )
-      .in("id", ids);
+      .order("created_at", { ascending: false });
+    if (filterTemp !== "all") q = q.eq("temperatura", filterTemp);
+    if (filterStatus !== "all") q = q.eq("status", filterStatus);
+    const { data, error } = await q;
 
-    if (error || !data) {
-      toast.error("Erro ao exportar CSV.");
+    if (error || !data || data.length === 0) {
+      toast.error("Nenhum lead para exportar.");
       return;
     }
 
-    // Mantém a ordem do filteredLeads
-    const byId = new Map(data.map((l) => [l.id, l]));
-    const ordered = filteredLeads.map((l) => byId.get(l.id)).filter(Boolean) as typeof data;
+    // Aplica busca textual local também na exportação
+    const qStr = debouncedSearch.trim().toLowerCase();
+    const filtered = qStr
+      ? data.filter(
+          (l) =>
+            l.nome.toLowerCase().includes(qStr) ||
+            l.whatsapp.includes(debouncedSearch) ||
+            l.cidade.toLowerCase().includes(qStr)
+        )
+      : data;
+
+    if (filtered.length === 0) {
+      toast.error("Nenhum lead para exportar.");
+      return;
+    }
 
     const esc = (v: unknown) => {
       const s = v === null || v === undefined ? "" : String(v);
@@ -151,7 +225,7 @@ function LeadsListPage() {
       "Notas",
     ];
 
-    const rows = ordered.map((l) => {
+    const rows = filtered.map((l) => {
       const dataFmt = new Date(l.created_at).toLocaleString("pt-BR", {
         timeZone: "America/Sao_Paulo",
       });
@@ -185,7 +259,7 @@ function LeadsListPage() {
     a.download = `leads-fenasoja-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
-    toast.success(`${ordered.length} leads exportados!`);
+    toast.success(`${filtered.length} leads exportados!`);
   };
 
   if (loading) {
@@ -206,7 +280,7 @@ function LeadsListPage() {
           <div>
             <h2 className="text-xl font-extrabold text-secondary tracking-tight">Leads</h2>
             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
-              {filteredLeads.length} de {leads.length} encontrados
+              {filteredLeads.length} carregados {hasMore && "• mais disponíveis"}
             </p>
           </div>
         </div>
@@ -217,8 +291,8 @@ function LeadsListPage() {
       <div className="sticky top-[56px] z-30 bg-muted/30 -mx-4 px-4 py-3 space-y-3 backdrop-blur-md">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input 
-            placeholder="Buscar por nome, zap ou cidade..." 
+          <Input
+            placeholder="Buscar por nome, zap ou cidade..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 h-12 bg-card border-border rounded-xl focus-visible:border-primary focus-visible:ring-0"
@@ -242,16 +316,93 @@ function LeadsListPage() {
           <FilterChip label="Descartado" active={filterStatus === "descartado"} onClick={() => setFilterStatus("descartado")} />
         </div>
       </div>
-      <div className="grid gap-3 pb-20">
-        {filteredLeads.map((l) => (
-          <LeadRow key={l.id} lead={l} />
-        ))}
-        {filteredLeads.length === 0 && (
-          <div className="text-center py-20">
-            <p className="text-muted-foreground font-medium">Nenhum lead encontrado com esses filtros.</p>
+
+      {filteredLeads.length === 0 ? (
+        <div className="text-center py-20">
+          <p className="text-muted-foreground font-medium">Nenhum lead encontrado com esses filtros.</p>
+        </div>
+      ) : shouldVirtualize ? (
+        <div
+          ref={parentRef}
+          className="pb-20"
+          style={{ height: "calc(100vh - 280px)", overflow: "auto" }}
+        >
+          <div
+            style={{
+              height: rowVirtualizer.getTotalSize(),
+              position: "relative",
+              width: "100%",
+            }}
+          >
+            {rowVirtualizer.getVirtualItems().map((vi) => {
+              const lead = filteredLeads[vi.index];
+              return (
+                <div
+                  key={lead.id}
+                  data-index={vi.index}
+                  ref={rowVirtualizer.measureElement}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    transform: `translateY(${vi.start}px)`,
+                    paddingBottom: 12,
+                  }}
+                >
+                  <LeadRow lead={lead} />
+                </div>
+              );
+            })}
           </div>
+          <LoadMoreFooter hasMore={hasMore} loading={loadingMore} onClick={loadMore} />
+        </div>
+      ) : (
+        <div className="grid gap-3 pb-20">
+          {filteredLeads.map((l) => (
+            <LeadRow key={l.id} lead={l} />
+          ))}
+          <LoadMoreFooter hasMore={hasMore} loading={loadingMore} onClick={loadMore} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LoadMoreFooter({
+  hasMore,
+  loading,
+  onClick,
+}: {
+  hasMore: boolean;
+  loading: boolean;
+  onClick: () => void;
+}) {
+  if (!hasMore) {
+    return (
+      <p className="text-center text-[11px] text-muted-foreground/70 font-semibold py-4">
+        Fim da lista.
+      </p>
+    );
+  }
+  return (
+    <div className="flex justify-center py-4">
+      <Button
+        onClick={onClick}
+        disabled={loading}
+        variant="outline"
+        size="sm"
+        className="rounded-xl"
+      >
+        {loading ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Carregando...
+          </>
+        ) : (
+          "Carregar mais"
         )}
-      </div>
+      </Button>
     </div>
   );
 }
@@ -267,7 +418,8 @@ const LeadRow = memo(function LeadRow({ lead: l }: { lead: Lead }) {
     <Link
       to="/admin/leads/$id"
       params={{ id: l.id }}
-      className="text-left bg-card border border-border rounded-2xl p-4 flex flex-col gap-3 hover:border-primary/40 transition-all active:scale-[0.99]"
+      preload="intent"
+      className="text-left bg-card border border-border rounded-2xl p-4 flex flex-col gap-3 hover:border-primary/40 transition-all active:scale-[0.99] block"
     >
       <div className="flex items-start justify-between">
         <div>
@@ -315,8 +467,8 @@ function FilterChip({ label, active, onClick }: { label: string; active: boolean
       onClick={onClick}
       className={cn(
         "px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border-2 transition-all",
-        active 
-          ? "bg-primary border-primary text-primary-foreground shadow-md" 
+        active
+          ? "bg-primary border-primary text-primary-foreground shadow-md"
           : "bg-card border-border text-muted-foreground hover:border-primary/40"
       )}
     >
