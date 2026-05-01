@@ -68,6 +68,27 @@ function writeCache(key: string, entry: CacheEntry) {
   }
 }
 
+/**
+ * Invalida (remove) todas as entradas de cache de listas de leads,
+ * opcionalmente preservando a chave atualmente ativa (que já está sincronizada
+ * em memória via realtime). Usado quando um INSERT/DELETE chega e pode afetar
+ * combinações de filtros/sort/busca diferentes da que o usuário está vendo.
+ */
+function invalidateAllListCaches(exceptKey?: string) {
+  try {
+    const toRemove: string[] = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const k = sessionStorage.key(i);
+      if (k && k.startsWith(CACHE_PREFIX) && k !== exceptKey) {
+        toRemove.push(k);
+      }
+    }
+    toRemove.forEach((k) => sessionStorage.removeItem(k));
+  } catch {
+    // ignore
+  }
+}
+
 /** Escapa vírgulas e parênteses para uso em filtros .or() do PostgREST. */
 function escapeOrValue(s: string) {
   return s.replace(/[(),]/g, " ").trim();
