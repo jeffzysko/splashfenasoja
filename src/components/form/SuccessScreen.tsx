@@ -31,7 +31,7 @@ export const SuccessScreen = () => {
         Pronto, {firstName}! 🎉
       </h1>
       <p className="text-base text-muted-foreground mb-6 max-w-md animate-in fade-in slide-in-from-bottom-2 duration-500 delay-350">
-        Logo mais um consultor da Splash irá te chamar no WhatsApp.
+        Logo mais um especialista da Splash Santa Rosa ou Splash Santo Ângelo irá te chamar no WhatsApp.
       </p>
 
       <div className="w-full max-w-sm bg-card border-2 border-border rounded-2xl p-5 mb-6 text-left animate-in fade-in slide-in-from-bottom-3 duration-500 delay-450">
@@ -64,7 +64,7 @@ export const SuccessScreen = () => {
             className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white h-[60px] rounded-2xl text-lg font-bold shadow-lg gap-2"
           >
             <SiWhatsapp />
-            Chame um consultor agora!
+            Chamar especialista agora!
           </Button>
         </a>
 
