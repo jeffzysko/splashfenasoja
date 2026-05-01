@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
-import { LogOut, Volume2, VolumeX, LayoutDashboard, Users, Bell } from "lucide-react";
+import { LogOut, Volume2, VolumeX, LayoutDashboard, Users, Bell, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -184,7 +184,18 @@ function AuthenticatedLayout() {
             >
               {soundEnabled ? <Volume2 className="w-5 h-5 text-primary" /> : <VolumeX className="w-5 h-5" />}
             </button>
-            
+
+            {isMaster && (
+              <Link
+                to="/admin/admins"
+                className="p-2 text-muted-foreground hover:text-primary transition-colors"
+                aria-label="Administradores"
+                title="Administradores"
+              >
+                <Shield className="w-5 h-5" />
+              </Link>
+            )}
+
             <div className="h-6 w-[1px] bg-border/60 mx-1 hidden sm:block" />
             
             <Button
@@ -207,10 +218,14 @@ function AuthenticatedLayout() {
       <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border/50 h-16 px-6 flex items-center justify-around shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.1)]">
         <NavButton to="/admin" icon={<LayoutDashboard className="w-6 h-6" />} label="Dashboard" active={location.pathname === "/admin" || location.pathname === "/admin/"} />
         <NavButton to="/admin/leads" icon={<Users className="w-6 h-6" />} label="Leads" active={location.pathname.startsWith("/admin/leads")} />
-        <button className="flex flex-col items-center gap-1 text-muted-foreground opacity-40">
-          <Bell className="w-6 h-6" />
-          <span className="text-[9px] font-bold uppercase">Alertas</span>
-        </button>
+        {isMaster ? (
+          <NavButton to="/admin/admins" icon={<Shield className="w-6 h-6" />} label="Admins" active={location.pathname.startsWith("/admin/admins")} />
+        ) : (
+          <button className="flex flex-col items-center gap-1 text-muted-foreground opacity-40">
+            <Bell className="w-6 h-6" />
+            <span className="text-[9px] font-bold uppercase">Alertas</span>
+          </button>
+        )}
       </nav>
     </div>
   );
