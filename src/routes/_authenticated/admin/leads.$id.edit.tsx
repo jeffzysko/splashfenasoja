@@ -76,14 +76,14 @@ function LeadEditPage() {
     toast.success("Lead atualizado!");
     // Invalida o cache do router pra que a página de detalhe recarregue com os dados frescos
     await router.invalidate();
-    navigate({ to: "/admin/leads/$id", params: { id } });
+    navigate({ to: "/admin/leads/$id", params: { id }, from: "/" });
   };
 
   return (
     <div className="space-y-6 pb-20">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" asChild className="rounded-full">
-          <Link to="/admin/leads/$id" params={{ id }}>
+          <Link to="/admin/leads/$id" params={{ id }} from="/">
             <ArrowLeft className="w-5 h-5" />
           </Link>
         </Button>
