@@ -25,6 +25,7 @@ import {
   Clock,
   AlertCircle,
   Trash2,
+  Undo2,
 } from "lucide-react";
 import { TEMP_BADGE, LABELS, formatWhatsappBR, calcScore, TAMANHO_OPTIONS, PRAZO_OPTIONS, ORCAMENTO_OPTIONS, type Temperatura } from "@/lib/leads";
 import {
