@@ -17,24 +17,18 @@ export const Route = createFileRoute("/login")({
   beforeLoad: async ({ search }) => {
     const { data } = await supabase.auth.getSession();
     if (data.session) {
-      // If already logged in, redirect to admin unless explicitly going somewhere else
       const dest = search.redirect || "/admin";
-      
-      // If the destination is the login page itself, always go to admin to break loop
       if (dest === "/login" || dest.split("?")[0] === "/login") {
         throw redirect({ to: "/admin" });
       }
-      
       throw redirect({ to: dest });
     }
   },
   component: LoginPage,
-  
 });
 
 function LoginPage() {
   const search = Route.useSearch();
-  const navigate = Route.useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -42,7 +36,7 @@ function LoginPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
     });
@@ -59,9 +53,22 @@ function LoginPage() {
 
     setLoading(false);
     toast.success("Bem-vindo(a) de volta!");
-    
-    // Hard navigate to bypass router state issues and ensure /admin loads correctly
     window.location.replace(search.redirect || "/admin");
+  };
+
+  const resetPassword = async () => {
+    if (!email) {
+      toast.error("Digite seu e-mail primeiro.");
+      return;
+    }
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/admin`,
+    });
+    if (error) {
+      toast.error("Erro ao enviar reset: " + error.message);
+    } else {
+      toast.success("E-mail de recuperação enviado!");
+    }
   };
 
   return (
@@ -72,54 +79,57 @@ function LoginPage() {
       <div className="relative w-full max-w-sm">
         <div className="text-center mb-8">
           <Logo height={48} className="mx-auto mb-4" />
-          <span className="inline-flex items-center gap-1.5 bg-secondary text-secondary-foreground text-[11px] font-bold uppercase tracking-[0.12em] px-3 py-1 rounded-full">
+          <span className="inline-flex items-center gap-1.5 bg-secondary text-secondary-foreground text-[11px] font-bold uppercase tracking-[0.12em] px-3 py-1.5 rounded-full">
             <Lock className="w-3 h-3" />
-            Área da equipe
+            Time Splash
           </span>
         </div>
 
-        <div className="bg-card border border-border rounded-3xl p-7 shadow-[0_20px_60px_-20px_color-mix(in_oklab,var(--secondary)_25%,transparent)]">
-          <h1 className="text-2xl font-extrabold text-secondary mb-1 tracking-tight">Entrar</h1>
-          <p className="text-sm text-muted-foreground mb-6">Acesso restrito ao time comercial.</p>
+        <div className="bg-card border border-border rounded-[32px] p-8 shadow-[0_20px_60px_-20px_color-mix(in_oklab,var(--secondary)_25%,transparent)]">
+          <h1 className="text-2xl font-black text-secondary mb-1 tracking-tight">Área do Time Splash</h1>
+          <p className="text-sm text-muted-foreground mb-8">Acompanhe os leads da FENASOJA em tempo real.</p>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <Label className="text-secondary font-bold uppercase text-[11px] tracking-wider">E-mail</Label>
+              <Label className="text-secondary font-black uppercase text-[10px] tracking-widest ml-1">E-mail</Label>
               <Input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className="h-12 rounded-xl border-2 mt-1.5 focus-visible:border-primary focus-visible:ring-0"
+                className="h-14 rounded-2xl border-2 mt-1 focus-visible:border-primary focus-visible:ring-0"
                 placeholder="voce@splashpiscinas.com"
               />
             </div>
             <div>
-              <Label className="text-secondary font-bold uppercase text-[11px] tracking-wider">Senha</Label>
+              <Label className="text-secondary font-black uppercase text-[10px] tracking-widest ml-1">Senha</Label>
               <Input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
-                className="h-12 rounded-xl border-2 mt-1.5 focus-visible:border-primary focus-visible:ring-0"
+                className="h-14 rounded-2xl border-2 mt-1 focus-visible:border-primary focus-visible:ring-0"
                 placeholder="••••••••"
               />
             </div>
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-bold mt-2"
+              className="w-full h-14 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-black text-lg mt-2 shadow-lg active:scale-95 transition-all"
             >
-              {loading ? (<><Loader2 className="w-4 h-4 animate-spin mr-2" /> Entrando...</>) : "Entrar"}
+              {loading ? (<><Loader2 className="w-5 h-5 animate-spin mr-2" /> Entrando...</>) : "Entrar"}
             </Button>
           </form>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground mt-6">
-          Esqueceu a senha? Fala com o admin pra resetar.
-        </p>
+        <button 
+          onClick={resetPassword}
+          className="w-full text-center text-xs font-bold text-muted-foreground mt-8 hover:text-primary transition-colors"
+        >
+          Esqueci minha senha
+        </button>
       </div>
     </div>
   );
