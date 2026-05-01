@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { subscribeLeads } from "@/lib/leadsRealtime";
 import { useDebounced } from "@/hooks/useDebounced";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { QuickEditPopover } from "@/components/leads/QuickEditPopover";
 
 const PAGE_SIZE = 50;
 const VIRTUALIZE_THRESHOLD = 80;
