@@ -368,6 +368,7 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
             label="Tamanho da piscina"
             value={current.tamanho_quintal}
             saving={savingField === "tamanho_quintal"}
+            saved={savedField === "tamanho_quintal"}
             options={TAMANHO_OPTIONS.map((o) => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
             onChange={(v) => updateQualification("tamanho_quintal", v)}
           />
@@ -375,6 +376,7 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
             label="Quando quer instalar"
             value={current.prazo_compra}
             saving={savingField === "prazo_compra"}
+            saved={savedField === "prazo_compra"}
             options={PRAZO_OPTIONS.map((o) => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
             onChange={(v) => updateQualification("prazo_compra", v)}
           />
@@ -382,10 +384,27 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
             label="Valor de investimento"
             value={current.orcamento}
             saving={savingField === "orcamento"}
+            saved={savedField === "orcamento"}
             options={ORCAMENTO_OPTIONS.map((o) => ({ value: o.value, label: `${o.emoji} ${o.label}` }))}
             onChange={(v) => updateQualification("orcamento", v)}
           />
         </div>
+        {lastChange && (
+          <div className="flex items-center justify-between gap-3 px-4 py-3 bg-amber-500/5 border border-amber-500/20 rounded-2xl text-xs">
+            <span className="text-secondary font-semibold">
+              Último: <span className="text-muted-foreground font-normal">{FIELD_META[lastChange.field].label}</span>
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={undoLastChange}
+              disabled={!!savingField}
+              className="rounded-xl h-8 text-xs font-bold border-amber-500/40 text-amber-700 hover:bg-amber-500/10 hover:text-amber-800"
+            >
+              <Undo2 className="w-3.5 h-3.5 mr-1.5" /> Desfazer
+            </Button>
+          </div>
+        )}
       </section>
 
       <section className="space-y-3">
