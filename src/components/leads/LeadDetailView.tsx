@@ -1,8 +1,18 @@
-// removed Link import (edit feature removed)
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Loader2,
   Phone,
@@ -13,7 +23,7 @@ import {
   User,
   Clock,
   AlertCircle,
-  
+  Trash2,
 } from "lucide-react";
 import { TEMP_BADGE, LABELS, formatWhatsappBR, type Temperatura } from "@/lib/leads";
 import { cn } from "@/lib/utils";
@@ -81,13 +91,27 @@ export function useLeadDetail(id: string | null) {
 type Props = {
   lead: LeadDetail;
   onUpdate?: (lead: LeadDetail) => void;
+  onDeleted?: () => void;
 };
 
-export function LeadDetailView({ lead, onUpdate }: Props) {
+export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
   const [current, setCurrent] = useState<LeadDetail>(lead);
   const [notes, setNotes] = useState(lead.notes || "");
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { user } = useSupabaseAuth();
+
+  const deleteLead = async () => {
+    setDeleting(true);
+    const { error } = await supabase.from("leads").delete().eq("id", current.id);
+    setDeleting(false);
+    if (error) {
+      toast.error("Erro ao excluir lead.");
+      return;
+    }
+    toast.success("Lead excluído.");
+    onDeleted?.();
+  };
 
   useEffect(() => {
     setCurrent(lead);
@@ -327,6 +351,49 @@ export function LeadDetailView({ lead, onUpdate }: Props) {
             "Salvar Notas"
           )}
         </Button>
+      </section>
+
+      <section className="space-y-3">
+        <h3 className="text-xs font-black uppercase tracking-widest text-destructive flex items-center gap-2">
+          <AlertCircle className="w-4 h-4" /> Zona de Perigo
+        </h3>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="outline"
+              className="w-full border-2 border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground font-black py-6 rounded-2xl"
+              disabled={deleting}
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Excluindo...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" /> Excluir Lead
+                </>
+              )}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className="rounded-2xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir este lead?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação é permanente. O lead <strong>{current.nome}</strong> e todas as
+                suas notas serão removidos definitivamente.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={deleteLead}
+                className="bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-xl"
+              >
+                Excluir definitivamente
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </section>
 
       <footer className="pt-6 border-t border-border/50 text-center space-y-2">
