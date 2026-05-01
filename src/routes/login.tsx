@@ -32,9 +32,11 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setError(null);
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
@@ -43,11 +45,14 @@ function LoginPage() {
 
     if (error) {
       setLoading(false);
-      toast.error(
-        error.message.includes("Invalid login")
+      const msg =
+        error.message === "Invalid login credentials" || error.message.includes("Invalid login")
           ? "E-mail ou senha incorretos."
-          : "Não foi possível entrar. Tenta de novo?",
-      );
+          : error.message === "Email not confirmed"
+            ? "Confirme seu e-mail antes de entrar."
+            : error.message || "Não foi possível entrar. Tenta de novo?";
+      setError(msg);
+      toast.error(msg);
       return;
     }
 
