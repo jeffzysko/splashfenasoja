@@ -76,7 +76,7 @@ function LeadEditPage() {
     toast.success("Lead atualizado!");
     // Invalida o cache do router pra que a página de detalhe recarregue com os dados frescos
     await router.invalidate();
-    navigate({ to: "/admin/leads/$id", params: { id }, from: "/" });
+    router.navigate({ to: "/admin/leads/$id", params: { id } });
   };
 
   return (
