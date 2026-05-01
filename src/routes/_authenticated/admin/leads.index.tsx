@@ -68,6 +68,27 @@ function writeCache(key: string, entry: CacheEntry) {
   }
 }
 
+/**
+ * Invalida (remove) todas as entradas de cache de listas de leads,
+ * opcionalmente preservando a chave atualmente ativa (que já está sincronizada
+ * em memória via realtime). Usado quando um INSERT/DELETE chega e pode afetar
+ * combinações de filtros/sort/busca diferentes da que o usuário está vendo.
+ */
+function invalidateAllListCaches(exceptKey?: string) {
+  try {
+    const toRemove: string[] = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const k = sessionStorage.key(i);
+      if (k && k.startsWith(CACHE_PREFIX) && k !== exceptKey) {
+        toRemove.push(k);
+      }
+    }
+    toRemove.forEach((k) => sessionStorage.removeItem(k));
+  } catch {
+    // ignore
+  }
+}
+
 /** Escapa vírgulas e parênteses para uso em filtros .or() do PostgREST. */
 function escapeOrValue(s: string) {
   return s.replace(/[(),]/g, " ").trim();
@@ -257,9 +278,13 @@ function LeadsListPage() {
 
   // Realtime: aplica em memória sem refetch
   useEffect(() => {
+    const activeKey = cacheKey(filterTemp, filterStatus, debouncedSearch, sortBy);
     const unsub = subscribeLeads((event, payload) => {
       if (event === "INSERT") {
         const l = payload.new as Lead;
+        // Invalida outras combinações de cache: o novo lead pode pertencer a
+        // filtros diferentes do atual e ficaria desatualizado ao voltar.
+        invalidateAllListCaches(activeKey);
         if (filterTemp !== "all" && l.temperatura !== filterTemp) return;
         if (filterStatus !== "all" && l.status !== filterStatus) return;
         setLeads((prev) => {
@@ -270,6 +295,9 @@ function LeadsListPage() {
         setTotalCount((c) => (c === null ? c : c + 1));
       } else if (event === "UPDATE") {
         const l = payload.new as Lead;
+        // Mudanças em temperatura/status/score/nome alteram a pertinência e a
+        // ordem em outras combinações de filtros/sort. Invalida os demais caches.
+        invalidateAllListCaches(activeKey);
         setLeads((prev) =>
           prev
             .map((x) => (x.id === l.id ? { ...x, ...l } : x))
@@ -282,6 +310,7 @@ function LeadsListPage() {
       } else if (event === "DELETE") {
         const old = payload.old as { id: string };
         deletedIdsRef.current.add(old.id);
+        invalidateAllListCaches(activeKey);
         setLeads((prev) => {
           const next = prev.filter((x) => x.id !== old.id);
           if (next.length !== prev.length) {
@@ -294,7 +323,7 @@ function LeadsListPage() {
     return () => {
       unsub();
     };
-  }, [filterTemp, filterStatus]);
+  }, [filterTemp, filterStatus, debouncedSearch, sortBy]);
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore || !cursor) return;
