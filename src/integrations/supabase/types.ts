@@ -180,6 +180,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      leads_dashboard_stats: { Args: never; Returns: Json }
     }
     Enums: {
       app_role: "master" | "admin" | "user"
