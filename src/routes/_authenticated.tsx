@@ -128,7 +128,28 @@ function AuthenticatedLayout() {
   const { user } = useSupabaseAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem("notifSound") === "on");
+  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [isMaster, setIsMaster] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setSoundEnabled(localStorage.getItem("notifSound") === "on");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setIsMaster(false);
+      return;
+    }
+    supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .then(({ data }) => {
+        setIsMaster(!!data?.some((r) => r.role === "master"));
+      });
+  }, [user?.id]);
 
   const toggleSound = () => {
     const newVal = !soundEnabled;

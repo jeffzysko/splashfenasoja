@@ -70,12 +70,12 @@ function LoginPage() {
       return;
     }
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/admin`,
+      redirectTo: `${window.location.origin}/reset-password`,
     });
     if (error) {
-      toast.error("Erro ao enviar reset: " + error.message);
+      toast.error("Erro ao enviar e-mail de recuperação: " + error.message);
     } else {
-      toast.success("E-mail de recuperação enviado!");
+      toast.success("Enviamos um link de recuperação para seu e-mail!");
     }
   };
 
