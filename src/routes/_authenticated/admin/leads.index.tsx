@@ -10,7 +10,7 @@ import {
   Loader2,
   Phone,
 } from "lucide-react";
-import { TEMP_BADGE, type Temperatura } from "@/lib/leads";
+import { TEMP_BADGE, LABELS, formatWhatsappBR, type Temperatura } from "@/lib/leads";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
