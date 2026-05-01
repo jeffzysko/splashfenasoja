@@ -1,17 +1,26 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, useRef } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  LeadDetailView,
+  LeadDetailLoading,
+  LeadDetailError,
+  useLeadDetail,
+} from "@/components/leads/LeadDetailView";
+import {
   Search,
   Download,
-  Filter,
   ArrowLeft,
   Loader2,
   Phone,
-  LayoutGrid,
-  List,
 } from "lucide-react";
 import { TEMP_BADGE, LABELS, type Temperatura } from "@/lib/leads";
 import { cn } from "@/lib/utils";
