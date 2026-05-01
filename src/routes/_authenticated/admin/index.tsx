@@ -188,7 +188,7 @@ function DashboardPage() {
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
             <Clock className="w-4 h-4" />
-            Últimos Chegados
+            Leads Recentes
           </h3>
           <Button variant="ghost" size="sm" asChild className="text-accent text-xs font-bold">
             <Link to="/admin/leads">
