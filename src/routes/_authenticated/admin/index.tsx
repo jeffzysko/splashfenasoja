@@ -11,8 +11,8 @@ import {
   ArrowRight,
   Loader2,
   Clock,
-  Phone,
 } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { TEMP_BADGE, STATUS_BADGE, type Temperatura, type LeadStatus } from "@/lib/leads";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -266,10 +266,10 @@ const RecentLeadRow = memo(function RecentLeadRow({ lead: l }: { lead: Lead }) {
             e.stopPropagation();
             window.open(`https://wa.me/${l.whatsapp.replace(/\D/g, "")}`, "_blank", "noreferrer");
           }}
-          className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors cursor-pointer"
+          className="w-11 h-11 sm:w-9 sm:h-9 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 hover:bg-green-500/20 active:bg-green-500/25 transition-colors cursor-pointer shrink-0"
           aria-label="Abrir WhatsApp"
         >
-          <Phone className="w-4 h-4" />
+          <WhatsAppIcon className="w-5 h-5 sm:w-4 sm:h-4" />
         </span>
       </div>
     </Link>

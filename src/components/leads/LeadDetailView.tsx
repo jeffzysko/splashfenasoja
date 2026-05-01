@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Loader2,
-  Phone,
   MessageSquare,
   Copy,
   Mail,
@@ -27,6 +26,7 @@ import {
   Trash2,
   Undo2,
 } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { TEMP_BADGE, LABELS, formatWhatsappBR, calcScore, TAMANHO_OPTIONS, PRAZO_OPTIONS, ORCAMENTO_OPTIONS, type Temperatura } from "@/lib/leads";
 import {
   Select,
@@ -360,7 +360,7 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
           onClick={openWhatsApp}
           className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-black h-14 sm:h-16 rounded-2xl shadow-xl flex gap-3 text-base sm:text-lg"
         >
-          <Phone className="w-5 h-5 sm:w-6 sm:h-6 fill-current" /> Abrir WhatsApp
+          <WhatsAppIcon className="w-5 h-5 sm:w-6 sm:h-6" /> Abrir WhatsApp
         </Button>
       </div>
 
