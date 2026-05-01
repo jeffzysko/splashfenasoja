@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { subscribeLeads } from "@/lib/leadsRealtime";
 import {
   LeadDetailView,
   LeadDetailLoading,
