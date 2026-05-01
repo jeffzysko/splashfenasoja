@@ -279,14 +279,30 @@ function LeadsListPage() {
   // Realtime: aplica em memória sem refetch
   useEffect(() => {
     const activeKey = cacheKey(filterTemp, filterStatus, debouncedSearch, sortBy);
+
+    // Verifica se um lead bate nos filtros + busca atualmente ativos.
+    // Espelha a mesma lógica usada no fetch server-side (temp, status, ilike em nome/cidade/whatsapp).
+    const matchesActive = (l: Partial<Lead> | null | undefined): boolean => {
+      if (!l) return false;
+      if (filterTemp !== "all" && l.temperatura !== filterTemp) return false;
+      if (filterStatus !== "all" && l.status !== filterStatus) return false;
+      const term = debouncedSearch.trim().toLowerCase();
+      if (!term) return true;
+      const digits = term.replace(/\D/g, "");
+      const nome = (l.nome ?? "").toLowerCase();
+      const cidade = (l.cidade ?? "").toLowerCase();
+      const wpp = (l.whatsapp ?? "").replace(/\D/g, "");
+      if (nome.includes(term)) return true;
+      if (cidade.includes(term)) return true;
+      if (digits && wpp.includes(digits)) return true;
+      return false;
+    };
+
     const unsub = subscribeLeads((event, payload) => {
       if (event === "INSERT") {
         const l = payload.new as Lead;
-        // Invalida outras combinações de cache: o novo lead pode pertencer a
-        // filtros diferentes do atual e ficaria desatualizado ao voltar.
         invalidateAllListCaches(activeKey);
-        if (filterTemp !== "all" && l.temperatura !== filterTemp) return;
-        if (filterStatus !== "all" && l.status !== filterStatus) return;
+        if (!matchesActive(l)) return;
         setLeads((prev) => {
           if (prev.some((x) => x.id === l.id)) return prev;
           insertedSinceLoadRef.current += 1;
@@ -295,18 +311,32 @@ function LeadsListPage() {
         setTotalCount((c) => (c === null ? c : c + 1));
       } else if (event === "UPDATE") {
         const l = payload.new as Lead;
-        // Mudanças em temperatura/status/score/nome alteram a pertinência e a
-        // ordem em outras combinações de filtros/sort. Invalida os demais caches.
         invalidateAllListCaches(activeKey);
-        setLeads((prev) =>
-          prev
-            .map((x) => (x.id === l.id ? { ...x, ...l } : x))
-            .filter((x) => {
-              if (filterTemp !== "all" && x.temperatura !== filterTemp) return false;
-              if (filterStatus !== "all" && x.status !== filterStatus) return false;
-              return true;
-            })
-        );
+        setLeads((prev) => {
+          const existing = prev.find((x) => x.id === l.id);
+          const wasIn = !!existing;
+          const merged = existing ? { ...existing, ...l } : (l as Lead);
+          const isIn = matchesActive(merged);
+
+          // Ajusta totalCount conforme transição entra/sai do conjunto filtrado.
+          if (wasIn && !isIn) {
+            setTotalCount((c) => (c === null ? c : Math.max(0, c - 1)));
+          } else if (!wasIn && isIn) {
+            setTotalCount((c) => (c === null ? c : c + 1));
+          }
+
+          if (wasIn && isIn) {
+            return prev.map((x) => (x.id === l.id ? merged : x));
+          }
+          if (wasIn && !isIn) {
+            return prev.filter((x) => x.id !== l.id);
+          }
+          if (!wasIn && isIn) {
+            insertedSinceLoadRef.current += 1;
+            return [merged, ...prev];
+          }
+          return prev;
+        });
       } else if (event === "DELETE") {
         const old = payload.old as { id: string };
         deletedIdsRef.current.add(old.id);
