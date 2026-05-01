@@ -38,13 +38,17 @@ function LoginPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
+    console.log("[login] tentativa:", email);
+
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
     });
+    console.log("[login] resultado:", { data, error });
+
+    setLoading(false);
 
     if (error) {
-      setLoading(false);
       const msg =
         error.message === "Invalid login credentials" || error.message.includes("Invalid login")
           ? "E-mail ou senha incorretos."
@@ -56,7 +60,6 @@ function LoginPage() {
       return;
     }
 
-    setLoading(false);
     toast.success("Bem-vindo(a) de volta!");
     window.location.replace(search.redirect || "/admin");
   };
