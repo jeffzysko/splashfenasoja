@@ -168,19 +168,17 @@ function AuthenticatedLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/20 pb-20 sm:pb-0">
-      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border/50">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Link to="/admin">
-              <Logo height={42} />
-            </Link>
-            <span className="bg-secondary text-secondary-foreground text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tighter">
+    <div className="min-h-dvh bg-muted/20 pb-nav-safe sm:pb-0">
+      <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-md border-b border-border/50 pt-safe">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between gap-2">
+          <Link to="/admin" className="flex items-center gap-1.5 min-w-0 shrink">
+            <Logo height={36} />
+            <span className="bg-secondary text-secondary-foreground text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0">
               Admin
             </span>
-          </div>
-          
-          <div className="flex items-center gap-1 sm:gap-3">
+          </Link>
+
+          <div className="flex items-center gap-0.5 sm:gap-2 shrink-0">
             <NotificationBell />
             <NotificationSettings />
             <Link
@@ -194,7 +192,7 @@ function AuthenticatedLayout() {
             {isMaster && (
               <Link
                 to="/admin/admins"
-                className="p-2 text-muted-foreground hover:text-primary transition-colors"
+                className="p-2 text-muted-foreground hover:text-primary transition-colors hidden sm:inline-flex"
                 aria-label="Administradores"
                 title="Administradores"
               >
@@ -202,13 +200,14 @@ function AuthenticatedLayout() {
               </Link>
             )}
 
-            <div className="h-6 w-[1px] bg-border/60 mx-1 hidden sm:block" />
-            
+            <div className="h-6 w-[1px] bg-border/60 mx-0.5 hidden sm:block" />
+
             <Button
               variant="ghost"
               size="icon"
               onClick={logout}
-              className="text-muted-foreground hover:text-destructive transition-colors rounded-full"
+              className="text-muted-foreground hover:text-destructive transition-colors rounded-full h-10 w-10"
+              aria-label="Sair"
             >
               <LogOut className="w-5 h-5" />
             </Button>
@@ -216,12 +215,14 @@ function AuthenticatedLayout() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-6">
+      <main className="max-w-4xl mx-auto px-4 py-5 sm:py-6">
         <Outlet />
       </main>
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border/50 h-16 px-6 flex items-center justify-around shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.1)]">
+      <nav
+        className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border/50 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-stretch justify-around shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.1)]"
+        aria-label="Navegação principal"
+      >
         <NavButton to="/admin" icon={<LayoutDashboard className="w-6 h-6" />} label="Dashboard" active={location.pathname === "/admin" || location.pathname === "/admin/"} />
         <NavButton to="/admin/leads" icon={<Users className="w-6 h-6" />} label="Leads" active={location.pathname.startsWith("/admin/leads")} />
         {isMaster ? (
@@ -234,13 +235,17 @@ function AuthenticatedLayout() {
 
 function NavButton({ to, icon, label, active }: { to: string; icon: React.ReactNode; label: string; active: boolean }) {
   return (
-    <Link to={to} className={cn(
-      "flex flex-col items-center gap-1 transition-all",
-      active ? "text-primary scale-110" : "text-muted-foreground"
-    )}>
-      {icon}
+    <Link
+      to={to}
+      className={cn(
+        "flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-xl transition-all min-h-[52px]",
+        active ? "text-primary" : "text-muted-foreground active:bg-muted/60"
+      )}
+      aria-current={active ? "page" : undefined}
+    >
+      <span className={cn("transition-transform", active && "scale-110")}>{icon}</span>
       <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>
-      {active && <div className="w-1 h-1 rounded-full bg-primary mt-0.5 animate-in zoom-in" />}
+      {active && <div className="w-1 h-1 rounded-full bg-primary -mt-0.5" />}
     </Link>
   );
 }
