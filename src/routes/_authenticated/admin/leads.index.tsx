@@ -108,14 +108,30 @@ function LeadsListPage() {
   const parentRef = useRef<HTMLDivElement | null>(null);
   const reqIdRef = useRef(0);
   const firstLoadRef = useRef(true);
+  // Compensa cursor após INSERT/DELETE em tempo real para evitar gaps/duplicações
+  const insertedSinceLoadRef = useRef(0);
+  const deletedIdsRef = useRef<Set<string>>(new Set());
 
-  // Aplica todos os filtros server-side (temp, status, busca textual) + cursor.
+  function buildCursorFromLast(items: Lead[], sort: SortBy): Cursor {
+    const last = items[items.length - 1];
+    if (!last) return null;
+    if (sort === "score") {
+      return { kind: "score", score: last.score, created_at: last.created_at, id: last.id };
+    }
+    if (sort === "name") {
+      return { kind: "name", nome: last.nome, id: last.id };
+    }
+    return { kind: "recent", created_at: last.created_at, id: last.id };
+  }
+
+  // Aplica todos os filtros server-side (temp, status, busca textual) + cursor + sort.
   const fetchPage = useCallback(
     async (
       cur: Cursor,
       temp: string,
       status: string,
       searchText: string,
+      sort: SortBy,
       withCount: boolean
     ) => {
       let q = supabase
@@ -124,9 +140,20 @@ function LeadsListPage() {
           "id, nome, whatsapp, cidade, estado, temperatura, status, score, created_at",
           withCount ? { count: "exact" } : undefined
         )
-        .order("created_at", { ascending: false })
-        .order("id", { ascending: false })
         .limit(PAGE_SIZE);
+
+      // Sort + tie-breaker por id para keyset estável
+      if (sort === "score") {
+        q = q.order("score", { ascending: false })
+             .order("created_at", { ascending: false })
+             .order("id", { ascending: false });
+      } else if (sort === "name") {
+        q = q.order("nome", { ascending: true })
+             .order("id", { ascending: true });
+      } else {
+        q = q.order("created_at", { ascending: false })
+             .order("id", { ascending: false });
+      }
 
       if (temp !== "all") q = q.eq("temperatura", temp);
       if (status !== "all") q = q.eq("status", status);
@@ -145,11 +172,23 @@ function LeadsListPage() {
         }
       }
 
-      // Paginação por cursor: keyset (created_at, id) DESC
+      // Paginação por cursor (keyset) coerente com o sort
       if (cur) {
-        q = q.or(
-          `created_at.lt.${cur.created_at},and(created_at.eq.${cur.created_at},id.lt.${cur.id})`
-        );
+        if (cur.kind === "recent") {
+          q = q.or(
+            `created_at.lt.${cur.created_at},and(created_at.eq.${cur.created_at},id.lt.${cur.id})`
+          );
+        } else if (cur.kind === "score") {
+          q = q.or(
+            `score.lt.${cur.score},and(score.eq.${cur.score},created_at.lt.${cur.created_at}),and(score.eq.${cur.score},created_at.eq.${cur.created_at},id.lt.${cur.id})`
+          );
+        } else {
+          // name asc
+          const safeName = cur.nome.replace(/[(),]/g, " ");
+          q = q.or(
+            `nome.gt.${safeName},and(nome.eq.${safeName},id.gt.${cur.id})`
+          );
+        }
       }
 
       const { data, error, count } = await q;
@@ -167,27 +206,54 @@ function LeadsListPage() {
     []
   );
 
-  // Recarrega do zero quando filtros ou busca mudam
+  // Recarrega do zero quando filtros, sort ou busca mudam
   useEffect(() => {
     const reqId = ++reqIdRef.current;
-    if (firstLoadRef.current) setLoading(true);
-    else setRefreshing(true);
-    setHasMore(true);
+    const key = cacheKey(filterTemp, filterStatus, debouncedSearch, sortBy);
+    const cached = readCache(key);
 
-    fetchPage(null, filterTemp, filterStatus, debouncedSearch, true).then(
+    // Sempre zera contadores de drift na recarga
+    insertedSinceLoadRef.current = 0;
+    deletedIdsRef.current = new Set();
+
+    if (cached) {
+      // Hidrata imediatamente da cache (sem flicker)
+      setLeads(cached.leads);
+      setCursor(cached.cursor);
+      setHasMore(cached.hasMore);
+      setTotalCount(cached.totalCount);
+      setLoading(false);
+      setRefreshing(true);
+      firstLoadRef.current = false;
+    } else {
+      if (firstLoadRef.current) setLoading(true);
+      else setRefreshing(true);
+      setHasMore(true);
+    }
+
+    fetchPage(null, filterTemp, filterStatus, debouncedSearch, sortBy, true).then(
       ({ items, end, count }) => {
         if (reqId !== reqIdRef.current) return;
         setLeads(items);
         setHasMore(!end);
         setTotalCount(count);
-        const last = items[items.length - 1];
-        setCursor(last ? { created_at: last.created_at, id: last.id } : null);
+        const nextCursor = buildCursorFromLast(items, sortBy);
+        setCursor(nextCursor);
         setLoading(false);
         setRefreshing(false);
         firstLoadRef.current = false;
+        insertedSinceLoadRef.current = 0;
+        deletedIdsRef.current = new Set();
+        writeCache(key, {
+          ts: Date.now(),
+          leads: items,
+          cursor: nextCursor,
+          hasMore: !end,
+          totalCount: count,
+        });
       }
     );
-  }, [filterTemp, filterStatus, debouncedSearch, fetchPage]);
+  }, [filterTemp, filterStatus, debouncedSearch, sortBy, fetchPage]);
 
   // Realtime: aplica em memória sem refetch
   useEffect(() => {
@@ -196,7 +262,11 @@ function LeadsListPage() {
         const l = payload.new as Lead;
         if (filterTemp !== "all" && l.temperatura !== filterTemp) return;
         if (filterStatus !== "all" && l.status !== filterStatus) return;
-        setLeads((prev) => (prev.some((x) => x.id === l.id) ? prev : [l, ...prev]));
+        setLeads((prev) => {
+          if (prev.some((x) => x.id === l.id)) return prev;
+          insertedSinceLoadRef.current += 1;
+          return [l, ...prev];
+        });
         setTotalCount((c) => (c === null ? c : c + 1));
       } else if (event === "UPDATE") {
         const l = payload.new as Lead;
@@ -211,6 +281,7 @@ function LeadsListPage() {
         );
       } else if (event === "DELETE") {
         const old = payload.old as { id: string };
+        deletedIdsRef.current.add(old.id);
         setLeads((prev) => {
           const next = prev.filter((x) => x.id !== old.id);
           if (next.length !== prev.length) {
@@ -233,18 +304,35 @@ function LeadsListPage() {
       filterTemp,
       filterStatus,
       debouncedSearch,
+      sortBy,
       false
     );
+    // Filtra IDs já presentes (dedupe) e que foram deletados em tempo real (evita ressuscitar)
+    const deleted = deletedIdsRef.current;
     setLeads((prev) => {
       const seen = new Set(prev.map((l) => l.id));
-      return [...prev, ...items.filter((l) => !seen.has(l.id))];
+      const merged = [
+        ...prev,
+        ...items.filter((l) => !seen.has(l.id) && !deleted.has(l.id)),
+      ];
+      // Atualiza cache com a página acumulada
+      const key = cacheKey(filterTemp, filterStatus, debouncedSearch, sortBy);
+      const nextCursor = buildCursorFromLast(items.length ? items : prev, sortBy);
+      writeCache(key, {
+        ts: Date.now(),
+        leads: merged,
+        cursor: nextCursor,
+        hasMore: !end && items.length > 0,
+        totalCount,
+      });
+      return merged;
     });
-    setHasMore(!end);
-    const last = items[items.length - 1];
-    if (last) setCursor({ created_at: last.created_at, id: last.id });
+    setHasMore(!end && items.length > 0);
+    const nextCursor = buildCursorFromLast(items, sortBy);
+    if (nextCursor) setCursor(nextCursor);
     else setHasMore(false);
     setLoadingMore(false);
-  }, [cursor, filterTemp, filterStatus, debouncedSearch, fetchPage, hasMore, loadingMore]);
+  }, [cursor, filterTemp, filterStatus, debouncedSearch, sortBy, fetchPage, hasMore, loadingMore, totalCount]);
 
   // Sort client-side sobre o que já foi carregado (busca já é server-side).
   const filteredLeads = useMemo(() => {
