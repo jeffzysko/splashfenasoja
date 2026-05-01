@@ -29,7 +29,7 @@ export const Route = createFileRoute("/login")({
     }
   },
   component: LoginPage,
-  head: () => ({ meta: [{ title: "Acesso da equipe — Splash Lead" }] }),
+  
 });
 
 function LoginPage() {

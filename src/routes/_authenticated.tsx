@@ -10,7 +10,7 @@ export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async ({ location }) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      const currentPath = location.pathname + location.search;
+      const currentPath = location.pathname + location.searchStr;
       const redirectPath = currentPath.includes("/login") ? undefined : currentPath;
 
       throw redirect({ 

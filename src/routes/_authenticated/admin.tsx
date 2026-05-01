@@ -70,7 +70,7 @@ const STATUS_OPTIONS: { value: Status; label: string }[] = [
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
-  head: () => ({ meta: [{ title: "Leads — Splash Admin" }] }),
+  
 });
 
 function AdminPage() {
@@ -280,7 +280,7 @@ function AdminPage() {
             </TableHeader>
             <TableBody>
               {filtered.map((l) => {
-                const badge = TEMP_BADGE[l.temperatura];
+                const badge = TEMP_BADGE[l.temperatura] || TEMP_BADGE.frio;
                 return (
                   <TableRow key={l.id}>
                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
@@ -338,7 +338,7 @@ function AdminPage() {
         {/* Mobile cards */}
         <div className="md:hidden divide-y divide-border">
           {filtered.map((l) => {
-            const badge = TEMP_BADGE[l.temperatura];
+            const badge = TEMP_BADGE[l.temperatura] || TEMP_BADGE.frio;
             return (
               <div key={l.id} className="p-4 space-y-2">
                 <div className="flex items-start justify-between gap-2">
