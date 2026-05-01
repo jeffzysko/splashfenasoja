@@ -4,25 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  LeadDetailView,
-  LeadDetailLoading,
-  LeadDetailError,
-  useLeadDetail,
-} from "@/components/leads/LeadDetailView";
-import {
   Search,
   Download,
   ArrowLeft,
   Loader2,
   Phone,
 } from "lucide-react";
-import { TEMP_BADGE, LABELS, type Temperatura } from "@/lib/leads";
+import { TEMP_BADGE, type Temperatura } from "@/lib/leads";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
