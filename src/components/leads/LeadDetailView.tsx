@@ -15,7 +15,7 @@ import {
   AlertCircle,
   
 } from "lucide-react";
-import { TEMP_BADGE, LABELS, type Temperatura } from "@/lib/leads";
+import { TEMP_BADGE, LABELS, formatWhatsappBR, type Temperatura } from "@/lib/leads";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -224,31 +224,31 @@ export function LeadDetailView({ lead, onUpdate }: Props) {
           <User className="w-4 h-4" /> Contato
         </h3>
         <div className="bg-card border border-border rounded-2xl divide-y divide-border">
-          <div className="p-4 flex items-center justify-between">
-            <div>
+          <div className="p-4 flex items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
               <p className="text-[10px] font-black uppercase text-muted-foreground tracking-tighter">
                 WhatsApp
               </p>
-              <p className="font-bold text-secondary">{current.whatsapp}</p>
+              <p className="font-bold text-secondary">{formatWhatsappBR(current.whatsapp)}</p>
             </div>
             <Button
               size="icon"
               variant="ghost"
-              className="rounded-xl h-10 w-10"
-              onClick={() => copyToClipboard(current.whatsapp)}
+              className="rounded-xl h-10 w-10 shrink-0"
+              onClick={() => copyToClipboard(formatWhatsappBR(current.whatsapp))}
             >
               <Copy className="w-4 h-4" />
             </Button>
           </div>
           {current.email && (
-            <div className="p-4 flex items-center justify-between">
-              <div>
+            <div className="p-4 flex items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
                 <p className="text-[10px] font-black uppercase text-muted-foreground tracking-tighter">
                   E-mail
                 </p>
-                <p className="font-bold text-secondary truncate max-w-[200px]">{current.email}</p>
+                <p className="font-bold text-secondary break-all">{current.email}</p>
               </div>
-              <div className="flex gap-1">
+              <div className="flex gap-1 shrink-0">
                 <Button
                   size="icon"
                   variant="ghost"
