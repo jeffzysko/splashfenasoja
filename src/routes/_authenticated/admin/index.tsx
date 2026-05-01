@@ -13,7 +13,7 @@ import {
   Clock,
   Phone,
 } from "lucide-react";
-import { TEMP_BADGE, type Temperatura } from "@/lib/leads";
+import { TEMP_BADGE, STATUS_BADGE, type Temperatura, type LeadStatus } from "@/lib/leads";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -36,7 +36,17 @@ export const Route = createFileRoute("/_authenticated/admin/")({
 function DashboardPage() {
   const [leads, setLeads] = useState<Lead[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [globalStats, setGlobalStats] = useState({ total: 0, quentes: 0, hoje: 0, vendidos: 0 });
+  const [globalStats, setGlobalStats] = useState({
+    total: 0,
+    quentes: 0,
+    hoje: 0,
+    novo: 0,
+    contatado: 0,
+    qualificado: 0,
+    vendido: 0,
+    perdido: 0,
+    descartado: 0,
+  });
 
   // Recalcula contagens globais via count exato (não limitado aos 100 últimos)
   const refreshGlobalStats = async () => {
@@ -44,18 +54,31 @@ function DashboardPage() {
     startOfToday.setHours(0, 0, 0, 0);
     const todayIso = startOfToday.toISOString();
 
-    const [totalR, quentesR, hojeR, vendidosR] = await Promise.all([
+    const countByStatus = (s: LeadStatus) =>
+      supabase.from("leads").select("id", { count: "exact", head: true }).eq("status", s);
+
+    const [totalR, quentesR, hojeR, novoR, contatadoR, qualificadoR, vendidoR, perdidoR, descartadoR] = await Promise.all([
       supabase.from("leads").select("id", { count: "exact", head: true }),
       supabase.from("leads").select("id", { count: "exact", head: true }).eq("temperatura", "quente"),
       supabase.from("leads").select("id", { count: "exact", head: true }).gte("created_at", todayIso),
-      supabase.from("leads").select("id", { count: "exact", head: true }).eq("status", "vendido"),
+      countByStatus("novo"),
+      countByStatus("contatado"),
+      countByStatus("qualificado"),
+      countByStatus("vendido"),
+      countByStatus("perdido"),
+      countByStatus("descartado"),
     ]);
 
     setGlobalStats({
       total: totalR.count || 0,
       quentes: quentesR.count || 0,
       hoje: hojeR.count || 0,
-      vendidos: vendidosR.count || 0,
+      novo: novoR.count || 0,
+      contatado: contatadoR.count || 0,
+      qualificado: qualificadoR.count || 0,
+      vendido: vendidoR.count || 0,
+      perdido: perdidoR.count || 0,
+      descartado: descartadoR.count || 0,
     });
   };
 
@@ -110,8 +133,8 @@ function DashboardPage() {
   }, []);
 
   const stats = useMemo(() => {
-    const { total, quentes, hoje, vendidos } = globalStats;
-    const convRate = total > 0 ? Math.round((vendidos / total) * 100) : 0;
+    const { total, quentes, hoje, vendido } = globalStats;
+    const convRate = total > 0 ? Math.round((vendido / total) * 100) : 0;
     return { total, quentes, hoje, convRate };
   }, [globalStats]);
 
@@ -124,6 +147,15 @@ function DashboardPage() {
   }
 
   const recentLeads = leads?.slice(0, 10) || [];
+
+  const statusList: { key: LeadStatus; count: number }[] = [
+    { key: "novo", count: globalStats.novo },
+    { key: "contatado", count: globalStats.contatado },
+    { key: "qualificado", count: globalStats.qualificado },
+    { key: "vendido", count: globalStats.vendido },
+    { key: "perdido", count: globalStats.perdido },
+    { key: "descartado", count: globalStats.descartado },
+  ];
 
   return (
     <div className="space-y-6">
@@ -139,6 +171,31 @@ function DashboardPage() {
         <StatCard title="Quentes" value={stats.quentes} icon={<Flame className="w-4 h-4" />} variant="hot" />
         <StatCard title="Hoje" value={stats.hoje} icon={<Calendar className="w-4 h-4" />} />
         <StatCard title="Conversão" value={`${stats.convRate}%`} icon={<TrendingUp className="w-4 h-4" />} />
+      </div>
+
+      <div className="space-y-3">
+        <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+          Por status
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {statusList.map(({ key, count }) => {
+            const badge = STATUS_BADGE[key];
+            return (
+              <div
+                key={key}
+                className={`rounded-2xl border p-3 flex items-center justify-between ${badge.className}`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`w-2.5 h-2.5 rounded-full ${badge.dot}`} />
+                  <span className="text-xs font-extrabold uppercase tracking-wider">
+                    {badge.label}
+                  </span>
+                </div>
+                <span className="text-lg font-black tabular-nums">{count}</span>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -177,7 +234,10 @@ function DashboardPage() {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className={`hidden sm:inline-flex text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${STATUS_BADGE[l.status].className}`}>
+                  {STATUS_BADGE[l.status].label}
+                </span>
                 <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${TEMP_BADGE[l.temperatura].className}`}>
                   {l.temperatura.toUpperCase()}
                 </span>

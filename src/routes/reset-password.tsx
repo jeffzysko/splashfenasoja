@@ -73,6 +73,8 @@ function ResetPasswordPage() {
 
     setDone(true);
     toast.success("Senha atualizada com sucesso!");
+    // Invalida a sessão de recuperação imediatamente — link é de uso único.
+    await supabase.auth.signOut();
     setTimeout(() => {
       navigate({ to: "/login" });
     }, 1800);
@@ -119,7 +121,10 @@ function ResetPasswordPage() {
           ) : (
             <>
               <h1 className="text-2xl font-black text-secondary mb-1 tracking-tight">Crie uma nova senha</h1>
-              <p className="text-sm text-muted-foreground mb-8">Use pelo menos 8 caracteres.</p>
+              <p className="text-sm text-muted-foreground mb-2">Use pelo menos 8 caracteres.</p>
+              <p className="text-[11px] text-muted-foreground/80 mb-6 flex items-center gap-1.5">
+                <Lock className="w-3 h-3" /> Link de uso único, expira em 1 hora.
+              </p>
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
