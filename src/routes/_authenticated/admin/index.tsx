@@ -36,13 +36,6 @@ export const Route = createFileRoute("/_authenticated/admin/")({
 function DashboardPage() {
   const [leads, setLeads] = useState<Lead[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [openLeadId, setOpenLeadId] = useState<string | null>(null);
-  const {
-    lead: openLead,
-    setLead: setOpenLead,
-    loading: openLoading,
-    error: openError,
-  } = useLeadDetail(openLeadId);
 
   useEffect(() => {
     const fetchLeads = async () => {
