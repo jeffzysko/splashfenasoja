@@ -91,4 +91,4 @@ export const TEMP_BADGE: Record<Temperatura, { label: string; className: string 
 };
 
 // WhatsApp da Splash (placeholder configurável). Troque pelo número real.
-export const SPLASH_WHATSAPP = "5555999999999";
+export const SPLASH_WHATSAPP = "555531980098";

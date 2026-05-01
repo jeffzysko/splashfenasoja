@@ -31,7 +31,7 @@ export const SuccessScreen = () => {
         Pronto, {firstName}! 🎉
       </h1>
       <p className="text-base text-muted-foreground mb-6 max-w-md animate-in fade-in slide-in-from-bottom-2 duration-500 delay-350">
-        Já mandamos o catálogo pro seu WhatsApp.
+        Logo mais um consultor da Splash irá te chamar no WhatsApp.
       </p>
 
       <div className="w-full max-w-sm bg-card border-2 border-border rounded-2xl p-5 mb-6 text-left animate-in fade-in slide-in-from-bottom-3 duration-500 delay-450">
