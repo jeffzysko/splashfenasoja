@@ -120,24 +120,31 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [savingField, setSavingField] = useState<QField | null>(null);
-  const [savedField, setSavedField] = useState<QField | null>(null);
+  // Último valor salvo por ESTA sessão para cada campo. O badge "Salvo"
+  // aparece sse current[field] === lastSaved[field]. Quando o lead é
+  // atualizado externamente (outra aba/usuário) via realtime, current[field]
+  // muda e o badge some automaticamente sem precisar recarregar.
+  const [lastSaved, setLastSaved] = useState<Record<QField, string | null>>({
+    tamanho_quintal: null,
+    prazo_compra: null,
+    orcamento: null,
+  });
   const [lastChange, setLastChange] = useState<{ field: QField; previousValue: string } | null>(null);
-  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { user } = useSupabaseAuth();
 
-  useEffect(() => {
-    return () => {
-      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
-    };
-  }, []);
+  const savedField: Record<QField, boolean> = {
+    tamanho_quintal:
+      lastSaved.tamanho_quintal !== null &&
+      lastSaved.tamanho_quintal === current.tamanho_quintal,
+    prazo_compra:
+      lastSaved.prazo_compra !== null &&
+      lastSaved.prazo_compra === current.prazo_compra,
+    orcamento:
+      lastSaved.orcamento !== null && lastSaved.orcamento === current.orcamento,
+  };
 
-  const flashSaved = (field: QField) => {
-    setSavedField(field);
-    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
-    savedTimerRef.current = setTimeout(
-      () => setSavedField((cur) => (cur === field ? null : cur)),
-      2500
-    );
+  const recordSaved = (field: QField, value: string) => {
+    setLastSaved((prev) => ({ ...prev, [field]: value }));
   };
 
   const updateQualification = async (
