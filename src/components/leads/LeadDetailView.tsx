@@ -102,37 +102,61 @@ type Props = {
   onDeleted?: () => void;
 };
 
+type QField = "tamanho_quintal" | "prazo_compra" | "orcamento";
+
+const FIELD_META: Record<
+  QField,
+  { label: string; options: ReadonlyArray<{ value: string; label: string }> }
+> = {
+  tamanho_quintal: { label: "Tamanho da piscina", options: TAMANHO_OPTIONS },
+  prazo_compra: { label: "Quando quer instalar", options: PRAZO_OPTIONS },
+  orcamento: { label: "Valor de investimento", options: ORCAMENTO_OPTIONS },
+};
+
 export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
   const [current, setCurrent] = useState<LeadDetail>(lead);
   const [notes, setNotes] = useState(lead.notes || "");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [savingField, setSavingField] = useState<null | "tamanho_quintal" | "prazo_compra" | "orcamento">(null);
+  const [savingField, setSavingField] = useState<QField | null>(null);
+  const [savedField, setSavedField] = useState<QField | null>(null);
+  const [lastChange, setLastChange] = useState<{ field: QField; previousValue: string } | null>(null);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { user } = useSupabaseAuth();
 
-  const TAMANHO_VALUES = TAMANHO_OPTIONS.map((o) => o.value as string);
-  const PRAZO_VALUES = PRAZO_OPTIONS.map((o) => o.value as string);
-  const ORCAMENTO_VALUES = ORCAMENTO_OPTIONS.map((o) => o.value as string);
+  useEffect(() => {
+    return () => {
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    };
+  }, []);
+
+  const flashSaved = (field: QField) => {
+    setSavedField(field);
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    savedTimerRef.current = setTimeout(
+      () => setSavedField((cur) => (cur === field ? null : cur)),
+      2500
+    );
+  };
 
   const updateQualification = async (
-    field: "tamanho_quintal" | "prazo_compra" | "orcamento",
-    value: string
+    field: QField,
+    value: string,
+    opts?: { silent?: boolean; skipUndo?: boolean }
   ) => {
-    // Validação: o valor precisa pertencer ao enum correspondente.
-    const allowed =
-      field === "tamanho_quintal"
-        ? TAMANHO_VALUES
-        : field === "prazo_compra"
-          ? PRAZO_VALUES
-          : ORCAMENTO_VALUES;
-    if (!allowed.includes(value)) {
-      toast.error("Valor inválido para este campo.");
+    const meta = FIELD_META[field];
+    const allowedValues = meta.options.map((o) => o.value);
+    if (!allowedValues.includes(value)) {
+      const allowedLabels = meta.options.map((o) => o.label).join(", ");
+      toast.error(`"${meta.label}" inválido`, {
+        description: `Valor "${value}" não é aceito. Opções válidas: ${allowedLabels}.`,
+      });
       return;
     }
 
     const prev = current;
+    const previousValue = current[field];
     const draft = { ...current, [field]: value };
-    // Recalcula score/temperatura porque os 3 campos influenciam.
     const { score, temperatura } = calcScore({
       tamanho_quintal: draft.tamanho_quintal,
       prazo_compra: draft.prazo_compra,
@@ -152,20 +176,35 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
           ? { prazo_compra: value, score, temperatura }
           : { orcamento: value, score, temperatura };
 
-    const { error } = await supabase
-      .from("leads")
-      .update(patch)
-      .eq("id", current.id);
+    const { error } = await supabase.from("leads").update(patch).eq("id", current.id);
 
     setSavingField(null);
 
     if (error) {
       setCurrent(prev);
       onUpdate?.(prev);
-      toast.error("Erro ao salvar alteração.");
+      toast.error(`Erro ao salvar "${meta.label}"`, {
+        description: error.message || "Tente novamente em instantes.",
+      });
       return;
     }
-    toast.success("Atualizado!");
+
+    if (opts?.skipUndo) setLastChange(null);
+    else setLastChange({ field, previousValue });
+
+    flashSaved(field);
+
+    if (!opts?.silent) {
+      const newLabel = meta.options.find((o) => o.value === value)?.label ?? value;
+      toast.success(`${meta.label} atualizado para "${newLabel}".`);
+    }
+  };
+
+  const undoLastChange = async () => {
+    if (!lastChange || savingField) return;
+    const { field, previousValue } = lastChange;
+    await updateQualification(field, previousValue, { silent: true, skipUndo: true });
+    toast.success("Alteração desfeita.");
   };
 
   const deleteLead = async () => {
