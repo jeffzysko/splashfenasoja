@@ -245,8 +245,44 @@ function LeadsListPage() {
           </div>
         )}
       </div>
+
+      <Dialog open={!!openLeadId} onOpenChange={(o) => !o && setOpenLeadId(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Lead</DialogTitle>
+          </DialogHeader>
+          {openLoading && <LeadDetailLoading />}
+          {!openLoading && openError && (
+            <LeadDetailError message={openError} onRetry={() => setOpenLeadId(openLeadId)} />
+          )}
+          {!openLoading && !openError && openLead && (
+            <LeadDetailView
+              lead={openLead}
+              onUpdate={(updated) => {
+                setOpenLead(updated);
+                setLeads((prev) =>
+                  prev.map((l) =>
+                    l.id === updated.id
+                      ? {
+                          ...l,
+                          nome: updated.nome,
+                          whatsapp: updated.whatsapp,
+                          cidade: updated.cidade,
+                          estado: updated.estado,
+                          temperatura: updated.temperatura,
+                          status: updated.status,
+                          score: updated.score,
+                        }
+                      : l
+                  )
+                );
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
-  )
+  );
 }
 
 function FilterChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
