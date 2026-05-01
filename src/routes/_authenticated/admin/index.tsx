@@ -132,10 +132,10 @@ function DashboardPage() {
 
         <div className="grid gap-3">
           {recentLeads.map((l) => (
-            <button
+            <Link
               key={l.id}
-              type="button"
-              onClick={() => setOpenLeadId(l.id)}
+              to="/admin/leads/$id"
+              params={{ id: l.id }}
               className="text-left bg-card border border-border rounded-2xl p-4 flex items-center justify-between hover:border-primary/40 transition-all active:scale-[0.99]"
             >
               <div className="flex items-center gap-3">
@@ -168,7 +168,7 @@ function DashboardPage() {
                   <Phone className="w-4 h-4" />
                 </a>
               </div>
-            </button>
+            </Link>
           ))}
           {recentLeads.length === 0 && (
             <div className="text-center py-10 bg-muted/20 rounded-2xl border-2 border-dashed border-border">
@@ -183,42 +183,6 @@ function DashboardPage() {
           <Link to="/admin/leads">Gerenciar todos os leads</Link>
         </Button>
       </div>
-
-      <Dialog open={!!openLeadId} onOpenChange={(o) => !o && setOpenLeadId(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Detalhes do Lead</DialogTitle>
-          </DialogHeader>
-          {openLoading && <LeadDetailLoading />}
-          {!openLoading && openError && (
-            <LeadDetailError message={openError} onRetry={() => setOpenLeadId(openLeadId)} />
-          )}
-          {!openLoading && !openError && openLead && (
-            <LeadDetailView
-              lead={openLead}
-              onUpdate={(updated) => {
-                setOpenLead(updated);
-                setLeads((prev) =>
-                  prev
-                    ? prev.map((l) =>
-                        l.id === updated.id
-                          ? {
-                              ...l,
-                              nome: updated.nome,
-                              whatsapp: updated.whatsapp,
-                              temperatura: updated.temperatura,
-                              status: updated.status,
-                              score: updated.score,
-                            }
-                          : l
-                      )
-                    : prev
-                );
-              }}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
