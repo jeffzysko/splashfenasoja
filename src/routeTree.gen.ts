@@ -17,6 +17,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as AuthenticatedAdminAdminsRouteImport } from './routes/_authenticated/admin/admins'
 import { Route as AuthenticatedAdminLeadsIndexRouteImport } from './routes/_authenticated/admin/leads.index'
+import { Route as AuthenticatedAdminSettingsNotificationsRouteImport } from './routes/_authenticated/admin/settings.notifications'
 import { Route as AuthenticatedAdminLeadsIdRouteImport } from './routes/_authenticated/admin/leads.$id'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -60,6 +61,12 @@ const AuthenticatedAdminLeadsIndexRoute =
     path: '/leads/',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminSettingsNotificationsRoute =
+  AuthenticatedAdminSettingsNotificationsRouteImport.update({
+    id: '/settings/notifications',
+    path: '/settings/notifications',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminLeadsIdRoute =
   AuthenticatedAdminLeadsIdRouteImport.update({
     id: '/leads/$id',
@@ -75,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/admin/admins': typeof AuthenticatedAdminAdminsRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/admin/leads/$id': typeof AuthenticatedAdminLeadsIdRoute
+  '/admin/settings/notifications': typeof AuthenticatedAdminSettingsNotificationsRoute
   '/admin/leads/': typeof AuthenticatedAdminLeadsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -84,6 +92,7 @@ export interface FileRoutesByTo {
   '/admin/admins': typeof AuthenticatedAdminAdminsRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/admin/leads/$id': typeof AuthenticatedAdminLeadsIdRoute
+  '/admin/settings/notifications': typeof AuthenticatedAdminSettingsNotificationsRoute
   '/admin/leads': typeof AuthenticatedAdminLeadsIndexRoute
 }
 export interface FileRoutesById {
@@ -96,6 +105,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/admins': typeof AuthenticatedAdminAdminsRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/admin/leads/$id': typeof AuthenticatedAdminLeadsIdRoute
+  '/_authenticated/admin/settings/notifications': typeof AuthenticatedAdminSettingsNotificationsRoute
   '/_authenticated/admin/leads/': typeof AuthenticatedAdminLeadsIndexRoute
 }
 export interface FileRouteTypes {
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/admin/admins'
     | '/admin/'
     | '/admin/leads/$id'
+    | '/admin/settings/notifications'
     | '/admin/leads/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -117,6 +128,7 @@ export interface FileRouteTypes {
     | '/admin/admins'
     | '/admin'
     | '/admin/leads/$id'
+    | '/admin/settings/notifications'
     | '/admin/leads'
   id:
     | '__root__'
@@ -128,6 +140,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/admins'
     | '/_authenticated/admin/'
     | '/_authenticated/admin/leads/$id'
+    | '/_authenticated/admin/settings/notifications'
     | '/_authenticated/admin/leads/'
   fileRoutesById: FileRoutesById
 }
@@ -196,6 +209,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminLeadsIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/settings/notifications': {
+      id: '/_authenticated/admin/settings/notifications'
+      path: '/settings/notifications'
+      fullPath: '/admin/settings/notifications'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsNotificationsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/leads/$id': {
       id: '/_authenticated/admin/leads/$id'
       path: '/leads/$id'
@@ -210,6 +230,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAdminsRoute: typeof AuthenticatedAdminAdminsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminLeadsIdRoute: typeof AuthenticatedAdminLeadsIdRoute
+  AuthenticatedAdminSettingsNotificationsRoute: typeof AuthenticatedAdminSettingsNotificationsRoute
   AuthenticatedAdminLeadsIndexRoute: typeof AuthenticatedAdminLeadsIndexRoute
 }
 
@@ -217,6 +238,8 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAdminsRoute: AuthenticatedAdminAdminsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAdminLeadsIdRoute: AuthenticatedAdminLeadsIdRoute,
+  AuthenticatedAdminSettingsNotificationsRoute:
+    AuthenticatedAdminSettingsNotificationsRoute,
   AuthenticatedAdminLeadsIndexRoute: AuthenticatedAdminLeadsIndexRoute,
 }
 
@@ -244,3 +267,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
