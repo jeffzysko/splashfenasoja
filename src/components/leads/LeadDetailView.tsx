@@ -145,9 +145,16 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
     setCurrent(next);
     onUpdate?.(next);
 
+    const patch =
+      field === "tamanho_quintal"
+        ? { tamanho_quintal: value, score, temperatura }
+        : field === "prazo_compra"
+          ? { prazo_compra: value, score, temperatura }
+          : { orcamento: value, score, temperatura };
+
     const { error } = await supabase
       .from("leads")
-      .update({ [field]: value, score, temperatura })
+      .update(patch)
       .eq("id", current.id);
 
     setSavingField(null);
