@@ -200,7 +200,7 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
     if (opts?.skipUndo) setLastChange(null);
     else setLastChange({ field, previousValue });
 
-    flashSaved(field);
+    recordSaved(field, value);
 
     if (!opts?.silent) {
       const newLabel = meta.options.find((o) => o.value === value)?.label ?? value;
