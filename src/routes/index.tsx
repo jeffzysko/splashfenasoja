@@ -1,15 +1,33 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 import { WelcomeScreen } from "@/components/form/WelcomeScreen";
-import { ContactScreen } from "@/components/form/ContactScreen";
-import { CityScreen } from "@/components/form/CityScreen";
-import { SizeScreen } from "@/components/form/SizeScreen";
-import { TimelineScreen } from "@/components/form/TimelineScreen";
-import { BudgetScreen } from "@/components/form/BudgetScreen";
-import { SubmittingScreen } from "@/components/form/SubmittingScreen";
-import { SuccessScreen } from "@/components/form/SuccessScreen";
 import { useFormStore } from "@/store/useFormStore";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { Logo } from "@/components/Logo";
+
+// Apenas a Welcome é carregada eager (primeira tela visível).
+// As demais são carregadas sob demanda — só baixam quando o usuário avança.
+const ContactScreen = lazy(() =>
+  import("@/components/form/ContactScreen").then((m) => ({ default: m.ContactScreen }))
+);
+const CityScreen = lazy(() =>
+  import("@/components/form/CityScreen").then((m) => ({ default: m.CityScreen }))
+);
+const SizeScreen = lazy(() =>
+  import("@/components/form/SizeScreen").then((m) => ({ default: m.SizeScreen }))
+);
+const TimelineScreen = lazy(() =>
+  import("@/components/form/TimelineScreen").then((m) => ({ default: m.TimelineScreen }))
+);
+const BudgetScreen = lazy(() =>
+  import("@/components/form/BudgetScreen").then((m) => ({ default: m.BudgetScreen }))
+);
+const SubmittingScreen = lazy(() =>
+  import("@/components/form/SubmittingScreen").then((m) => ({ default: m.SubmittingScreen }))
+);
+const SuccessScreen = lazy(() =>
+  import("@/components/form/SuccessScreen").then((m) => ({ default: m.SuccessScreen }))
+);
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -27,6 +45,14 @@ export const Route = createFileRoute("/")({
 
 const TOTAL_STEPS = 6;
 
+function ScreenFallback() {
+  return (
+    <div className="flex-1 flex items-center justify-center min-h-[60vh]">
+      <Loader2 className="w-6 h-6 text-primary animate-spin" />
+    </div>
+  );
+}
+
 function Index() {
   const { step, setStep } = useFormStore();
 
@@ -35,17 +61,28 @@ function Index() {
   const showBack = step > 0 && step < 6;
   const showProgress = step > 0 && step <= 6;
 
+  // Pré-busca a próxima tela quando o usuário entra na anterior.
+  // Quando o clique de "Próximo" acontece, o chunk já está pronto.
   const renderStep = () => {
     switch (step) {
-      case 0: return <WelcomeScreen key="welcome" />;
-      case 1: return <ContactScreen key="contact" />;
-      case 2: return <CityScreen key="city" />;
-      case 3: return <SizeScreen key="size" />;
-      case 4: return <TimelineScreen key="timeline" />;
-      case 5: return <BudgetScreen key="budget" />;
-      case 6: return <SubmittingScreen key="submitting" />;
-      case 7: return <SuccessScreen key="success" />;
-      default: return <WelcomeScreen key="welcome" />;
+      case 0:
+        return <WelcomeScreen key="welcome" />;
+      case 1:
+        return <ContactScreen key="contact" />;
+      case 2:
+        return <CityScreen key="city" />;
+      case 3:
+        return <SizeScreen key="size" />;
+      case 4:
+        return <TimelineScreen key="timeline" />;
+      case 5:
+        return <BudgetScreen key="budget" />;
+      case 6:
+        return <SubmittingScreen key="submitting" />;
+      case 7:
+        return <SuccessScreen key="success" />;
+      default:
+        return <WelcomeScreen key="welcome" />;
     }
   };
 
@@ -94,7 +131,7 @@ function Index() {
       </header>
 
       <main className="flex-1 flex flex-col w-full relative">
-        {renderStep()}
+        <Suspense fallback={<ScreenFallback />}>{renderStep()}</Suspense>
       </main>
     </div>
   );
