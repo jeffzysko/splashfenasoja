@@ -222,7 +222,7 @@ function LeadsListPage() {
   });
 
   const exportCSV = async () => {
-    // Exporta TODOS os leads que batem nos filtros server-side, não só os carregados
+    // Exporta TODOS os leads que batem nos filtros server-side (incluindo busca)
     let q = supabase
       .from("leads")
       .select(
@@ -231,6 +231,18 @@ function LeadsListPage() {
       .order("created_at", { ascending: false });
     if (filterTemp !== "all") q = q.eq("temperatura", filterTemp);
     if (filterStatus !== "all") q = q.eq("status", filterStatus);
+
+    const term = debouncedSearch.trim();
+    if (term) {
+      const safe = escapeOrValue(term);
+      if (safe) {
+        const digits = term.replace(/\D/g, "");
+        const ors = [`nome.ilike.*${safe}*`, `cidade.ilike.*${safe}*`];
+        if (digits) ors.push(`whatsapp.ilike.*${digits}*`);
+        q = q.or(ors.join(","));
+      }
+    }
+
     const { data, error } = await q;
 
     if (error || !data || data.length === 0) {
@@ -238,21 +250,7 @@ function LeadsListPage() {
       return;
     }
 
-    // Aplica busca textual local também na exportação
-    const qStr = debouncedSearch.trim().toLowerCase();
-    const filtered = qStr
-      ? data.filter(
-          (l) =>
-            l.nome.toLowerCase().includes(qStr) ||
-            l.whatsapp.includes(debouncedSearch) ||
-            l.cidade.toLowerCase().includes(qStr)
-        )
-      : data;
-
-    if (filtered.length === 0) {
-      toast.error("Nenhum lead para exportar.");
-      return;
-    }
+    const filtered = data;
 
     const esc = (v: unknown) => {
       const s = v === null || v === undefined ? "" : String(v);
