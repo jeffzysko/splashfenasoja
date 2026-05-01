@@ -162,7 +162,7 @@ function LeadsListPage() {
       let q = supabase
         .from("leads")
         .select(
-          "id, nome, whatsapp, cidade, estado, temperatura, status, score, created_at",
+          "id, nome, whatsapp, email, cidade, estado, temperatura, status, score, created_at, tamanho_quintal, prazo_compra, orcamento",
           withCount ? { count: "exact" } : undefined
         )
         .limit(PAGE_SIZE);
