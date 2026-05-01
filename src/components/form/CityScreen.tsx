@@ -161,7 +161,7 @@ export const CityScreen = () => {
         Onde fica o futuro paraíso?
       </h2>
       <p className="text-muted-foreground mb-7">
-        Digita as primeiras letras da sua cidade — a gente preenche o estado.
+        Digite as primeiras letras da sua cidade que vamos encontrar ela!
       </p>
 
       <Label className="text-secondary font-bold uppercase text-[11px] tracking-wider">
