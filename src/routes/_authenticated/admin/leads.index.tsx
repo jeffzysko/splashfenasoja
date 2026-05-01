@@ -33,7 +33,7 @@ type Lead = {
   created_at: string;
 };
 
-export const Route = createFileRoute("/_authenticated/admin/leads")({
+export const Route = createFileRoute("/_authenticated/admin/leads/")({
   component: LeadsListPage,
 });
 
@@ -154,7 +154,6 @@ function LeadsListPage() {
           <Download className="w-4 h-4 mr-2" /> Exportar
         </Button>
       </div>
-
       <div className="sticky top-[56px] z-30 bg-muted/30 -mx-4 px-4 py-3 space-y-3 backdrop-blur-md">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -180,7 +179,6 @@ function LeadsListPage() {
           <FilterChip label="Qualificado" active={filterStatus === "qualificado"} onClick={() => setFilterStatus("qualificado")} />
         </div>
       </div>
-
       <div className="grid gap-3 pb-20">
         {filteredLeads.map((l) => (
           <Link
@@ -231,7 +229,7 @@ function LeadsListPage() {
         )}
       </div>
     </div>
-  );
+  )
 }
 
 function FilterChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
