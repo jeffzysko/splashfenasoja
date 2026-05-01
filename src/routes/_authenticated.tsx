@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
-import { LogOut, LayoutDashboard, Users, Shield, BellCog } from "lucide-react";
+import { LogOut, LayoutDashboard, Users, Shield, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -189,7 +189,7 @@ function AuthenticatedLayout() {
               aria-label="Configurações de notificação (página completa)"
               title="Gerenciar notificações"
             >
-              <BellCog className="w-5 h-5" />
+              <SlidersHorizontal className="w-5 h-5" />
             </Link>
             {isMaster && (
               <Link
