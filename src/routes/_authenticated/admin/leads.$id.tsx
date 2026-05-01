@@ -178,7 +178,7 @@ function LeadDetailPage() {
         {hasNav && (
           <div className="ml-auto flex items-center gap-1 shrink-0">
             <span
-              className="hidden xs:inline text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground tabular-nums px-1"
+              className="hidden sm:inline text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground tabular-nums px-1"
               aria-live="polite"
             >
               {nav.index + 1} / {nav.total}
