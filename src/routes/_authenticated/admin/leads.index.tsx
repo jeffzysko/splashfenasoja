@@ -700,29 +700,9 @@ const LeadRow = memo(function LeadRow({ lead: l }: { lead: Lead }) {
     navigate({ to: "/admin/leads/$id", params: { id: l.id } });
   };
 
-  // Atualização otimista local: o realtime já traz UPDATE, mas mostramos preview
-  // imediato após salvar do popover para zero latência percebida.
-  const [optimistic, setOptimistic] = useState<{
-    tamanho_quintal: string;
-    prazo_compra: string;
-    orcamento: string;
-  } | null>(null);
-
-  // Limpa o optimistic assim que o lead do servidor (via realtime) já reflete os mesmos valores.
-  useEffect(() => {
-    if (!optimistic) return;
-    if (
-      l.tamanho_quintal === optimistic.tamanho_quintal &&
-      l.prazo_compra === optimistic.prazo_compra &&
-      l.orcamento === optimistic.orcamento
-    ) {
-      setOptimistic(null);
-    }
-  }, [l.tamanho_quintal, l.prazo_compra, l.orcamento, optimistic]);
-
-  const tamanho = optimistic?.tamanho_quintal ?? l.tamanho_quintal;
-  const orcamento = optimistic?.orcamento ?? l.orcamento;
-  const prazo = optimistic?.prazo_compra ?? l.prazo_compra;
+  const tamanho = l.tamanho_quintal;
+  const orcamento = l.orcamento;
+  const prazo = l.prazo_compra;
 
   return (
     <div
