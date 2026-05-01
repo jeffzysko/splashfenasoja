@@ -17,7 +17,7 @@ export const Logo: React.FC<LogoProps> = ({
   return (
     <div className={cn("relative inline-block overflow-hidden", className)} style={{ height }}>
       <img 
-        src="/logo-splash.svg" 
+        src="/logo_splash.svg" 
         alt="Splash Piscinas"
         className="h-full w-auto block object-contain"
         loading="eager"
