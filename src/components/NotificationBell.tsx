@@ -1,15 +1,29 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Bell, CheckCheck, Flame } from "lucide-react";
+import { Bell, CheckCheck, Flame, MoreHorizontal, Moon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { TEMP_BADGE, type Temperatura } from "@/lib/leads";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  TEMP_BADGE,
+  STATUS_BADGE,
+  type Temperatura,
+  type LeadStatus,
+} from "@/lib/leads";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { loadPrefs, shouldNotify, isInQuietHours } from "@/lib/notifPrefs";
 
 const LAST_SEEN_KEY = "notif_last_seen_v1";
 const MAX_ITEMS = 20;
@@ -20,8 +34,18 @@ type NotifLead = {
   cidade: string;
   estado: string;
   temperatura: Temperatura;
+  status: LeadStatus;
   created_at: string;
 };
+
+const STATUS_OPTIONS: LeadStatus[] = [
+  "novo",
+  "contatado",
+  "qualificado",
+  "vendido",
+  "perdido",
+  "descartado",
+];
 
 function readLastSeen(): number {
   if (typeof window === "undefined") return 0;
@@ -38,21 +62,21 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<NotifLead[]>([]);
   const [lastSeen, setLastSeen] = useState<number>(() => readLastSeen());
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Carrega últimos leads
+  // Carrega últimos leads + realtime
   useEffect(() => {
     const fetchLeads = async () => {
       const { data } = await supabase
         .from("leads")
-        .select("id, nome, cidade, estado, temperatura, created_at")
+        .select("id, nome, cidade, estado, temperatura, status, created_at")
         .order("created_at", { ascending: false })
         .limit(MAX_ITEMS);
       if (data) setItems(data as NotifLead[]);
     };
     fetchLeads();
 
-    // Realtime: novo lead chegando
     const channel = supabase
       .channel("notif-bell-leads")
       .on(
@@ -62,29 +86,39 @@ export function NotificationBell() {
           const newLead = payload.new as NotifLead;
           setItems((prev) => [newLead, ...prev].slice(0, MAX_ITEMS));
 
-          // Toast
-          const isHot = newLead.temperatura === "quente";
-          toast(
-            isHot ? "🔥 Lead QUENTE chegou!" : "🔔 Novo lead",
-            {
-              description: `${newLead.nome} • ${newLead.cidade}/${newLead.estado}`,
-              duration: isHot ? 8000 : 4000,
-            }
+          const prefs = loadPrefs();
+          const { toast: shouldToast, sound: shouldSound } = shouldNotify(
+            prefs,
+            newLead.temperatura
           );
 
-          // Som (se ativado)
-          try {
-            if (
-              typeof window !== "undefined" &&
-              localStorage.getItem("notifSound") === "on"
-            ) {
+          if (shouldToast) {
+            const isHot = newLead.temperatura === "quente";
+            toast(isHot ? "🔥 Lead QUENTE chegou!" : "🔔 Novo lead", {
+              description: `${newLead.nome} • ${newLead.cidade}/${newLead.estado}`,
+              duration: isHot ? 8000 : 4000,
+            });
+          }
+
+          if (shouldSound) {
+            try {
               if (!audioRef.current) {
                 audioRef.current = new Audio("https://cdn.gpteng.co/ding.mp3");
               }
               audioRef.current.currentTime = 0;
               audioRef.current.play().catch(() => {});
-            }
-          } catch {}
+            } catch {}
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "leads" },
+        (payload) => {
+          const updated = payload.new as NotifLead;
+          setItems((prev) =>
+            prev.map((l) => (l.id === updated.id ? { ...l, ...updated } : l))
+          );
         }
       )
       .subscribe();
@@ -103,7 +137,6 @@ export function NotificationBell() {
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
     if (next && items.length > 0) {
-      // Marca o mais recente como visto ao abrir (após pequeno delay para o usuário ver o highlight)
       const newest = new Date(items[0].created_at).getTime();
       setTimeout(() => {
         writeLastSeen(newest);
@@ -119,6 +152,31 @@ export function NotificationBell() {
     setLastSeen(newest);
   };
 
+  const updateStatus = async (id: string, status: LeadStatus) => {
+    setUpdatingId(id);
+    // Atualiza otimisticamente
+    setItems((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l)));
+    const { error } = await supabase
+      .from("leads")
+      .update({ status })
+      .eq("id", id);
+    setUpdatingId(null);
+    if (error) {
+      toast.error("Erro ao atualizar status");
+      // Recarrega para reverter
+      const { data } = await supabase
+        .from("leads")
+        .select("id, nome, cidade, estado, temperatura, status, created_at")
+        .order("created_at", { ascending: false })
+        .limit(MAX_ITEMS);
+      if (data) setItems(data as NotifLead[]);
+    } else {
+      toast.success(`Status atualizado: ${STATUS_BADGE[status].label}`);
+    }
+  };
+
+  const quietActive = isInQuietHours(loadPrefs());
+
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
@@ -129,7 +187,8 @@ export function NotificationBell() {
           <Bell
             className={cn(
               "w-5 h-5 transition-transform",
-              unreadCount > 0 && "text-primary animate-[wiggle_1.2s_ease-in-out_infinite]"
+              unreadCount > 0 &&
+                "text-primary animate-[wiggle_1.2s_ease-in-out_infinite]"
             )}
           />
           {unreadCount > 0 && (
@@ -143,12 +202,21 @@ export function NotificationBell() {
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-[360px] max-w-[calc(100vw-2rem)] p-0 rounded-2xl border-border shadow-xl"
+        className="w-[380px] max-w-[calc(100vw-2rem)] p-0 rounded-2xl border-border shadow-xl"
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div>
-            <h3 className="text-sm font-black text-secondary tracking-tight">
+            <h3 className="text-sm font-black text-secondary tracking-tight flex items-center gap-1.5">
               Notificações
+              {quietActive && (
+                <span
+                  title="Modo não perturbe ativo"
+                  className="inline-flex items-center gap-0.5 text-[9px] font-bold bg-secondary/10 text-secondary px-1.5 py-0.5 rounded-full"
+                >
+                  <Moon className="w-2.5 h-2.5" />
+                  Silencioso
+                </span>
+              )}
             </h3>
             <p className="text-[11px] text-muted-foreground font-medium">
               {unreadCount > 0
@@ -183,20 +251,26 @@ export function NotificationBell() {
           ) : (
             <ul className="py-1">
               {items.map((lead) => {
-                const isUnread = new Date(lead.created_at).getTime() > lastSeen;
+                const isUnread =
+                  new Date(lead.created_at).getTime() > lastSeen;
                 const tempBadge = TEMP_BADGE[lead.temperatura];
+                const statusBadge = STATUS_BADGE[lead.status];
+                const updating = updatingId === lead.id;
                 return (
-                  <li key={lead.id}>
+                  <li
+                    key={lead.id}
+                    className={cn(
+                      "relative border-l-2 hover:bg-muted/50 transition-colors",
+                      isUnread
+                        ? "border-l-primary bg-primary/[0.03]"
+                        : "border-l-transparent"
+                    )}
+                  >
                     <Link
                       to="/admin/leads/$id"
                       params={{ id: lead.id }}
                       onClick={() => setOpen(false)}
-                      className={cn(
-                        "flex items-start gap-3 px-4 py-3 hover:bg-muted/50 transition-colors border-l-2",
-                        isUnread
-                          ? "border-l-primary bg-primary/[0.03]"
-                          : "border-l-transparent"
-                      )}
+                      className="flex items-start gap-3 px-4 py-3 pr-12"
                     >
                       <div
                         className={cn(
@@ -223,22 +297,89 @@ export function NotificationBell() {
                         <p className="text-xs text-muted-foreground truncate">
                           {lead.cidade}/{lead.estado}
                         </p>
-                        <p className="text-[11px] text-muted-foreground/70 mt-0.5">
-                          {formatDistanceToNow(new Date(lead.created_at), {
-                            addSuffix: true,
-                            locale: ptBR,
-                          })}
-                        </p>
+                        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                          <span
+                            className={cn(
+                              "inline-flex items-center gap-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full border uppercase tracking-wider",
+                              statusBadge.className
+                            )}
+                          >
+                            <span
+                              className={cn("w-1 h-1 rounded-full", statusBadge.dot)}
+                            />
+                            {statusBadge.label}
+                          </span>
+                          <span
+                            className={cn(
+                              "text-[9px] font-extrabold px-1.5 py-0.5 rounded-full border uppercase tracking-wider",
+                              tempBadge.className
+                            )}
+                          >
+                            {lead.temperatura}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground/70 ml-auto">
+                            {formatDistanceToNow(new Date(lead.created_at), {
+                              addSuffix: true,
+                              locale: ptBR,
+                            })}
+                          </span>
+                        </div>
                       </div>
-                      <span
-                        className={cn(
-                          "text-[9px] font-extrabold px-1.5 py-0.5 rounded-full border uppercase tracking-wider shrink-0",
-                          tempBadge.className
-                        )}
-                      >
-                        {lead.temperatura}
-                      </span>
                     </Link>
+
+                    {/* Botão rápido de atualizar status */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          aria-label="Atualizar status"
+                          disabled={updating}
+                          className={cn(
+                            "absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-primary transition-colors",
+                            updating && "opacity-50"
+                          )}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreHorizontal className="w-4 h-4" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="end"
+                        className="w-48"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                          Atualizar status
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {STATUS_OPTIONS.map((s) => {
+                          const sb = STATUS_BADGE[s];
+                          const current = s === lead.status;
+                          return (
+                            <DropdownMenuItem
+                              key={s}
+                              disabled={current}
+                              onSelect={() => updateStatus(lead.id, s)}
+                              className="gap-2 cursor-pointer"
+                            >
+                              <span
+                                className={cn("w-2 h-2 rounded-full", sb.dot)}
+                              />
+                              <span
+                                className={cn(
+                                  "text-xs font-bold",
+                                  current && "text-primary"
+                                )}
+                              >
+                                {sb.label}
+                              </span>
+                              {current && (
+                                <CheckCheck className="w-3 h-3 ml-auto text-primary" />
+                              )}
+                            </DropdownMenuItem>
+                          );
+                        })}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </li>
                 );
               })}

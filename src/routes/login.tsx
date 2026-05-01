@@ -200,7 +200,7 @@ function LoginPage() {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-14 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-black text-lg mt-2 shadow-lg shadow-orange-500/30 active:scale-95 transition-all"
+                  className="w-full h-14 bg-primary hover:bg-[var(--splash-pink-hover)] text-primary-foreground rounded-2xl font-black text-lg mt-2 shadow-lg shadow-primary/30 active:scale-95 transition-all"
                 >
                   {loading ? (
                     <>
@@ -242,7 +242,7 @@ function LoginPage() {
               </p>
               <Button
                 onClick={backToLogin}
-                className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-black"
+                className="w-full h-12 bg-primary hover:bg-[var(--splash-pink-hover)] text-primary-foreground rounded-2xl font-black"
               >
                 Voltar ao login
               </Button>
@@ -275,7 +275,7 @@ function LoginPage() {
                 <Button
                   type="submit"
                   disabled={forgotLoading}
-                  className="w-full h-14 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-black text-lg shadow-lg shadow-orange-500/30 active:scale-95 transition-all"
+                  className="w-full h-14 bg-primary hover:bg-[var(--splash-pink-hover)] text-primary-foreground rounded-2xl font-black text-lg shadow-lg shadow-primary/30 active:scale-95 transition-all"
                 >
                   {forgotLoading ? (
                     <>

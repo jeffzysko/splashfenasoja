@@ -3,11 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
-import { LogOut, Volume2, VolumeX, LayoutDashboard, Users, Shield } from "lucide-react";
+import { LogOut, LayoutDashboard, Users, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { NotificationBell } from "@/components/NotificationBell";
+import { NotificationSettings } from "@/components/NotificationSettings";
 
 // Cache de auth para evitar refazer getSession + user_roles em toda navegação.
 // Persiste em sessionStorage (sobrevive F5) e usa stale-while-revalidate.
@@ -129,14 +130,7 @@ function AuthenticatedLayout() {
   const { user } = useSupabaseAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [soundEnabled, setSoundEnabled] = useState(false);
   const [isMaster, setIsMaster] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setSoundEnabled(localStorage.getItem("notifSound") === "on");
-    }
-  }, []);
 
   useEffect(() => {
     if (!user?.id) {
@@ -151,13 +145,6 @@ function AuthenticatedLayout() {
         setIsMaster(!!data?.some((r) => r.role === "master"));
       });
   }, [user?.id]);
-
-  const toggleSound = () => {
-    const newVal = !soundEnabled;
-    setSoundEnabled(newVal);
-    localStorage.setItem("notifSound", newVal ? "on" : "off");
-    toast.info(newVal ? "Som de notificação ativado 🔔" : "Som desativado");
-  };
 
   const logout = async () => {
     await supabase.auth.signOut();
@@ -180,15 +167,7 @@ function AuthenticatedLayout() {
           
           <div className="flex items-center gap-1 sm:gap-3">
             <NotificationBell />
-
-            <button
-              onClick={toggleSound}
-              className="p-2 text-muted-foreground hover:text-primary transition-colors"
-              aria-label={soundEnabled ? "Desativar som" : "Ativar som"}
-              title={soundEnabled ? "Som ativado" : "Som desativado"}
-            >
-              {soundEnabled ? <Volume2 className="w-5 h-5 text-primary" /> : <VolumeX className="w-5 h-5" />}
-            </button>
+            <NotificationSettings />
 
             {isMaster && (
               <Link
