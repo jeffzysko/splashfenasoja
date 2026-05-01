@@ -720,9 +720,19 @@ function FilterChip({ label, active, onClick }: { label: string; active: boolean
 
 function LeadListSkeleton() {
   return (
-    <div className="grid gap-3 pb-20">
+    <div
+      className="grid gap-3 pb-20"
+      role="status"
+      aria-live="polite"
+      aria-label="Carregando lista de leads"
+    >
+      <span className="sr-only">Carregando lista de leads...</span>
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="bg-card border border-border rounded-2xl p-4 flex flex-col gap-3">
+        <div
+          key={i}
+          aria-hidden="true"
+          className="bg-card border border-border rounded-2xl p-4 flex flex-col gap-3"
+        >
           <div className="flex items-start justify-between">
             <div className="space-y-2 flex-1">
               <Skeleton className="h-5 w-2/3" />
