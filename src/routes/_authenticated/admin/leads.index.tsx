@@ -32,6 +32,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { subscribeLeads } from "@/lib/leadsRealtime";
+import { setVisibleLeadIds } from "@/lib/leadsNavigation";
 import { useDebounced } from "@/hooks/useDebounced";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
@@ -415,6 +416,11 @@ function LeadsListPage() {
   // Ordenação já é server-side; mantemos a referência direta.
   const filteredLeads = leads;
 
+  // Persiste IDs visíveis para navegação Próximo/Anterior na página de detalhe.
+  useEffect(() => {
+    setVisibleLeadIds(filteredLeads.map((l) => l.id));
+  }, [filteredLeads]);
+
 
   // Virtualização só ligada quando há muitas linhas (evita custo em listas pequenas)
   const shouldVirtualize = filteredLeads.length >= VIRTUALIZE_THRESHOLD;
@@ -664,6 +670,15 @@ function LoadMoreFooter({
   onClick: () => void;
 }) {
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  // Trava local para impedir múltiplos disparos enquanto a request anterior
+  // não terminou (a prop `loading` pode levar um tick para refletir o estado).
+  const inFlightRef = useRef(false);
+
+  useEffect(() => {
+    if (loading) return;
+    // Quando o loading volta a false, libera a trava para a próxima rodada.
+    inFlightRef.current = false;
+  }, [loading]);
 
   // Auto-prefetch quando o sentinel entra na viewport (margem de 240px),
   // reduzindo o "salto" perceptível ao carregar mais itens no mobile.
@@ -674,10 +689,13 @@ function LoadMoreFooter({
     const io = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          if (entry.isIntersecting) {
-            onClick();
-            break;
-          }
+          if (!entry.isIntersecting) continue;
+          if (inFlightRef.current) return;
+          inFlightRef.current = true;
+          // Desconecta imediatamente para não reentrar antes do `loading` virar true.
+          io.disconnect();
+          onClick();
+          break;
         }
       },
       { rootMargin: "240px 0px" }
@@ -686,6 +704,7 @@ function LoadMoreFooter({
     return () => io.disconnect();
   }, [hasMore, loading, onClick]);
 
+  // Se não há mais leads, não renderiza nem o botão nem o sentinel.
   if (!hasMore) {
     return (
       <p className="text-center text-[11px] text-muted-foreground/70 font-semibold py-4">
@@ -693,11 +712,16 @@ function LoadMoreFooter({
       </p>
     );
   }
+
   return (
     <div className="flex flex-col items-center py-4 gap-2" role="status" aria-live="polite">
       <div ref={sentinelRef} aria-hidden="true" className="h-1 w-1" />
       <Button
-        onClick={onClick}
+        onClick={() => {
+          if (inFlightRef.current || loading) return;
+          inFlightRef.current = true;
+          onClick();
+        }}
         disabled={loading}
         variant="outline"
         size="sm"
@@ -735,31 +759,99 @@ const LeadRow = memo(function LeadRow({ lead: l }: { lead: Lead }) {
   const orcamento = l.orcamento;
   const prazo = l.prazo_compra;
 
+  // Navegação por teclado entre cards: ArrowUp/ArrowDown move o foco,
+  // Home/End vão para o primeiro/último card. Enter/Space abre o detalhe.
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      goToDetail();
+      return;
+    }
+    if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Home" || e.key === "End") {
+      const cards = Array.from(
+        document.querySelectorAll<HTMLDivElement>("[data-lead-card]")
+      );
+      if (cards.length === 0) return;
+      const idx = cards.indexOf(e.currentTarget);
+      let nextIdx = idx;
+      if (e.key === "ArrowDown") nextIdx = Math.min(cards.length - 1, idx + 1);
+      else if (e.key === "ArrowUp") nextIdx = Math.max(0, idx - 1);
+      else if (e.key === "Home") nextIdx = 0;
+      else nextIdx = cards.length - 1;
+      if (nextIdx !== idx) {
+        e.preventDefault();
+        cards[nextIdx]?.focus();
+        cards[nextIdx]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
+    }
+  };
+
   return (
     <div
       role="link"
       tabIndex={0}
+      data-lead-card
+      data-lead-id={l.id}
       onClick={goToDetail}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          goToDetail();
-        }
-      }}
-      className="text-left bg-card border border-border rounded-2xl p-4 flex flex-col gap-3 hover:border-primary/40 transition-all active:scale-[0.99] cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40"
+      onKeyDown={onKeyDown}
+      aria-label={`${l.nome}, ${statusBadge.label}, temperatura ${l.temperatura}, ${l.cidade}/${l.estado}`}
+      className="group text-left bg-card border border-border rounded-2xl p-3.5 sm:p-4 flex flex-col gap-2.5 hover:border-primary/40 transition-all active:scale-[0.99] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary/60"
     >
-      <div className="flex items-start justify-between">
-        <div className="min-w-0">
-          <div className="font-bold text-secondary text-lg leading-tight">{l.nome}</div>
-          <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+      {/* Linha 1 — Nome (prioridade máxima) + ação WhatsApp grande no mobile */}
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="font-extrabold text-secondary text-base sm:text-lg leading-tight truncate min-w-0">
+              {l.nome}
+            </h3>
+            <span
+              className={cn(
+                "text-[10px] font-extrabold px-2 py-0.5 rounded-full border uppercase tracking-wider shrink-0",
+                tempBadge.className
+              )}
+            >
+              {l.temperatura}
+            </span>
+          </div>
+          <div className="text-xs text-muted-foreground mt-0.5 truncate">
             {l.cidade}/{l.estado} • {relative}
           </div>
         </div>
-        <span className={cn("text-[10px] font-extrabold px-2 py-0.5 rounded-full border uppercase tracking-wider shrink-0", tempBadge.className)}>
-          {l.temperatura}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            window.open(
+              `https://wa.me/${l.whatsapp.replace(/\D/g, "")}`,
+              "_blank",
+              "noreferrer"
+            );
+          }}
+          className="w-12 h-12 sm:w-11 sm:h-11 rounded-full bg-green-500/10 active:bg-green-500/25 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors shrink-0"
+          aria-label={`Abrir WhatsApp de ${l.nome}`}
+        >
+          <WhatsAppIcon className="w-6 h-6 sm:w-5 sm:h-5" />
+        </button>
+      </div>
+
+      {/* Linha 2 — Status + score (prioridade alta) */}
+      <div className="flex items-center justify-between gap-2">
+        <span
+          className={cn(
+            "inline-flex items-center gap-1.5 text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider border",
+            statusBadge.className
+          )}
+        >
+          <span className={cn("w-1.5 h-1.5 rounded-full", statusBadge.dot)} />
+          {statusBadge.label}
+        </span>
+        <span className="text-[10px] font-bold text-muted-foreground tabular-nums">
+          Score {l.score}
         </span>
       </div>
 
+      {/* Linha 3 — Detalhes secundários (atributos do quintal) */}
       <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-bold text-muted-foreground">
         <span className="bg-muted/60 px-2 py-0.5 rounded-md">
           📏 {LABELS.tamanho_quintal[tamanho as keyof typeof LABELS.tamanho_quintal] || tamanho}
@@ -770,32 +862,6 @@ const LeadRow = memo(function LeadRow({ lead: l }: { lead: Lead }) {
         <span className="bg-muted/60 px-2 py-0.5 rounded-md">
           ⏱ {LABELS.prazo_compra[prazo as keyof typeof LABELS.prazo_compra] || prazo}
         </span>
-      </div>
-
-      <div className="flex items-center justify-between mt-1">
-        <div className="flex gap-2 items-center">
-          <span className={cn("inline-flex items-center gap-1.5 text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider border", statusBadge.className)}>
-            <span className={cn("w-1.5 h-1.5 rounded-full", statusBadge.dot)} />
-            {statusBadge.label}
-          </span>
-          <span className="text-[10px] font-bold text-muted-foreground">
-            Score: {l.score}
-          </span>
-        </div>
-        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              window.open(`https://wa.me/${l.whatsapp.replace(/\D/g, "")}`, "_blank", "noreferrer");
-            }}
-            className="w-11 h-11 rounded-full bg-green-500/10 active:bg-green-500/25 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors cursor-pointer"
-            aria-label={`Abrir WhatsApp de ${l.nome}`}
-          >
-            <WhatsAppIcon className="w-5 h-5" />
-          </button>
-        </div>
       </div>
     </div>
   );
