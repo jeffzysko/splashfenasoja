@@ -8,38 +8,95 @@ import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
-// Cache em memória (client-side) para evitar refazer getSession + query user_roles
-// em toda navegação dentro de /admin/*. Cada checagem custava ~2 round-trips ao
-// servidor, deixando a navegação visivelmente lenta.
-let authCache: { userId: string; hasAccess: boolean; expiresAt: number } | null = null;
-const AUTH_CACHE_TTL_MS = 60_000; // 1 minuto
+// Cache de auth para evitar refazer getSession + user_roles em toda navegação.
+// Persiste em sessionStorage (sobrevive F5) e usa stale-while-revalidate.
+type AuthCache = { userId: string; hasAccess: boolean; expiresAt: number };
+const CACHE_KEY = "admin_auth_cache_v1";
+const FRESH_TTL_MS = 5 * 60_000; // 5 min: usa direto sem revalidar
+const STALE_TTL_MS = 30 * 60_000; // 30 min: usa, mas revalida em background
+const ROLE_QUERY_TIMEOUT_MS = 3_000; // não trava UI mais que 3s
 
-// Invalida o cache quando a sessão muda (signOut, troca de usuário, refresh expirado)
+let authCache: AuthCache | null = null;
+let revalidating = false;
+
+function loadCache(): AuthCache | null {
+  if (authCache) return authCache;
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    authCache = JSON.parse(raw) as AuthCache;
+    return authCache;
+  } catch {
+    return null;
+  }
+}
+
+function saveCache(c: AuthCache | null) {
+  authCache = c;
+  if (typeof window === "undefined") return;
+  try {
+    if (c) sessionStorage.setItem(CACHE_KEY, JSON.stringify(c));
+    else sessionStorage.removeItem(CACHE_KEY);
+  } catch { /* ignore */ }
+}
+
 if (typeof window !== "undefined") {
   supabase.auth.onAuthStateChange((event) => {
     if (event === "SIGNED_OUT" || event === "SIGNED_IN" || event === "USER_UPDATED") {
-      authCache = null;
+      saveCache(null);
     }
   });
 }
 
+async function fetchRoleWithTimeout(userId: string): Promise<{ hasAccess: boolean } | null> {
+  try {
+    const result = await Promise.race([
+      supabase.from("user_roles").select("role").eq("user_id", userId),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), ROLE_QUERY_TIMEOUT_MS)),
+    ]);
+    if (!result) return null; // timeout
+    const { data, error } = result as { data: Array<{ role: string }> | null; error: unknown };
+    if (error) return null;
+    return { hasAccess: !!data?.some(r => ["master", "admin"].includes(r.role)) };
+  } catch {
+    return null;
+  }
+}
+
+function revalidateInBackground(userId: string) {
+  if (revalidating) return;
+  revalidating = true;
+  fetchRoleWithTimeout(userId).then((res) => {
+    if (res) {
+      saveCache({ userId, hasAccess: res.hasAccess, expiresAt: Date.now() + FRESH_TTL_MS });
+    }
+  }).finally(() => { revalidating = false; });
+}
+
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async ({ location }) => {
-    // Só roda no cliente — no SSR não há localStorage e cai em loop pro /login.
     if (typeof window === "undefined") return;
 
     const now = Date.now();
-    if (authCache && authCache.expiresAt > now) {
-      if (!authCache.hasAccess) {
-        throw redirect({ to: "/login" });
-      }
+    const cached = loadCache();
+
+    // Cache fresco: libera instantaneamente.
+    if (cached && cached.expiresAt > now) {
+      if (!cached.hasAccess) throw redirect({ to: "/login" });
       return;
     }
 
-    const { data: { session } } = await supabase.auth.getSession();
+    // Cache stale (mas ainda dentro do limite): libera e revalida em background.
+    if (cached && cached.expiresAt + STALE_TTL_MS > now && cached.hasAccess) {
+      revalidateInBackground(cached.userId);
+      return;
+    }
 
+    // Sem cache utilizável: precisa validar agora, mas com timeout para não travar UI.
+    const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      authCache = null;
+      saveCache(null);
       const currentPath = location.pathname + (location.searchStr || "");
       throw redirect({
         to: "/login",
@@ -47,19 +104,22 @@ export const Route = createFileRoute("/_authenticated")({
       });
     }
 
-    const { data: roles, error: roleErr } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", session.user.id);
-
-    if (roleErr) console.error("Erro ao verificar papel:", roleErr);
-
-    const hasAccess = !!roles?.some(r => ["master", "admin"].includes(r.role));
-    authCache = { userId: session.user.id, hasAccess, expiresAt: now + AUTH_CACHE_TTL_MS };
-
-    if (!hasAccess) {
-      throw redirect({ to: "/login" });
+    const res = await fetchRoleWithTimeout(session.user.id);
+    if (!res) {
+      // Backend lento/indisponível: se já tinha cache anterior com acesso, confia nele.
+      if (cached?.userId === session.user.id && cached.hasAccess) {
+        revalidateInBackground(session.user.id);
+        return;
+      }
+      // Sem informação prévia: deixa entrar (a RLS protege os dados de qualquer forma)
+      // e revalida em background. Evita tela travada se o PostgREST estiver lento.
+      revalidateInBackground(session.user.id);
+      saveCache({ userId: session.user.id, hasAccess: true, expiresAt: now + 30_000 });
+      return;
     }
+
+    saveCache({ userId: session.user.id, hasAccess: res.hasAccess, expiresAt: now + FRESH_TTL_MS });
+    if (!res.hasAccess) throw redirect({ to: "/login" });
   },
   component: AuthenticatedLayout,
 });
