@@ -194,7 +194,7 @@ export function LeadDetailView({ lead, onUpdate, showEditLink = true }: Props) {
             variant="outline"
             className="w-full font-black py-7 rounded-2xl text-lg border-2"
           >
-            <Link to="/admin/leads/$id/edit" params={{ id: current.id }} from="/">
+            <Link to="/admin/leads/$id/edit" params={{ id: current.id }}>
               <Pencil className="w-5 h-5 mr-2" /> Editar
             </Link>
           </Button>
