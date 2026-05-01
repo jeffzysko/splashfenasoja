@@ -663,6 +663,29 @@ function LoadMoreFooter({
   loading: boolean;
   onClick: () => void;
 }) {
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  // Auto-prefetch quando o sentinel entra na viewport (margem de 240px),
+  // reduzindo o "salto" perceptível ao carregar mais itens no mobile.
+  useEffect(() => {
+    if (!hasMore || loading) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            onClick();
+            break;
+          }
+        }
+      },
+      { rootMargin: "240px 0px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasMore, loading, onClick]);
+
   if (!hasMore) {
     return (
       <p className="text-center text-[11px] text-muted-foreground/70 font-semibold py-4">
@@ -671,20 +694,21 @@ function LoadMoreFooter({
     );
   }
   return (
-    <div className="flex justify-center py-4" role="status" aria-live="polite">
+    <div className="flex flex-col items-center py-4 gap-2" role="status" aria-live="polite">
+      <div ref={sentinelRef} aria-hidden="true" className="h-1 w-1" />
       <Button
         onClick={onClick}
         disabled={loading}
         variant="outline"
         size="sm"
-        className="rounded-xl"
+        className="rounded-xl h-11 px-4"
         aria-label={loading ? "Carregando mais leads" : "Carregar mais leads"}
         aria-busy={loading}
       >
         {loading ? (
           <>
             <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
-            Carregando mais leads...
+            Carregando...
           </>
         ) : (
           "Carregar mais"
