@@ -806,14 +806,217 @@ const LeadRow = memo(function LeadRow({ lead: l }: { lead: Lead }) {
   );
 });
 
+const TEMP_FILTERS: { value: string; label: string }[] = [
+  { value: "all", label: "Todas" },
+  { value: "quente", label: "Quente 🔥" },
+  { value: "morno", label: "Morno 🌤️" },
+  { value: "frio", label: "Frio ❄️" },
+];
+
+const STATUS_FILTERS: { value: string; label: string }[] = [
+  { value: "all", label: "Todos" },
+  { value: "novo", label: "Novo" },
+  { value: "contatado", label: "Contatado" },
+  { value: "qualificado", label: "Qualificado" },
+  { value: "vendido", label: "Vendido 🏆" },
+  { value: "perdido", label: "Perdido 💔" },
+  { value: "descartado", label: "Descartado" },
+];
+
+const SORT_LABEL: Record<SortBy, string> = {
+  recent: "Mais recentes",
+  score: "Maior score",
+  name: "Nome (A-Z)",
+};
+
+function FiltersBar({
+  search,
+  onSearchChange,
+  refreshing,
+  filterTemp,
+  setFilterTemp,
+  filterStatus,
+  setFilterStatus,
+  sortBy,
+  setSortBy,
+  onClearAll,
+}: {
+  search: string;
+  onSearchChange: (v: string) => void;
+  refreshing: boolean;
+  filterTemp: string;
+  setFilterTemp: (v: string) => void;
+  filterStatus: string;
+  setFilterStatus: (v: string) => void;
+  sortBy: SortBy;
+  setSortBy: (v: SortBy) => void;
+  onClearAll: () => void;
+}) {
+  const activeCount =
+    (filterTemp !== "all" ? 1 : 0) + (filterStatus !== "all" ? 1 : 0);
+  const tempLabel = TEMP_FILTERS.find((t) => t.value === filterTemp)?.label ?? "Todas";
+  const statusLabel = STATUS_FILTERS.find((s) => s.value === filterStatus)?.label ?? "Todos";
+
+  return (
+    <div className="sticky top-[56px] z-30 bg-muted/30 -mx-4 px-4 py-2.5 space-y-2 backdrop-blur-md">
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1 min-w-0">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar nome, zap ou cidade..."
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="pl-9 pr-16 h-11 bg-card border-border rounded-xl focus-visible:border-primary focus-visible:ring-0"
+          />
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            {refreshing && (
+              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+            )}
+            {search && (
+              <button
+                type="button"
+                onClick={() => onSearchChange("")}
+                className="w-7 h-7 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground"
+                aria-label="Limpar busca"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-11 rounded-xl gap-1.5 font-bold relative shrink-0"
+              aria-label="Abrir filtros"
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              <span className="hidden sm:inline">Filtros</span>
+              {activeCount > 0 && (
+                <span className="ml-0.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-extrabold">
+                  {activeCount}
+                </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-72 rounded-2xl p-4 space-y-4">
+            <div className="space-y-1.5">
+              <Label>Temperatura</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {TEMP_FILTERS.map((t) => (
+                  <FilterChip
+                    key={t.value}
+                    label={t.label}
+                    active={filterTemp === t.value}
+                    onClick={() => setFilterTemp(t.value)}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Status</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {STATUS_FILTERS.map((s) => (
+                  <FilterChip
+                    key={s.value}
+                    label={s.label}
+                    active={filterStatus === s.value}
+                    onClick={() => setFilterStatus(s.value)}
+                  />
+                ))}
+              </div>
+            </div>
+            {activeCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClearAll}
+                className="w-full rounded-xl text-muted-foreground hover:text-secondary"
+              >
+                <X className="w-3.5 h-3.5 mr-1" /> Limpar filtros
+              </Button>
+            )}
+          </PopoverContent>
+        </Popover>
+
+        <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortBy)}>
+          <SelectTrigger
+            className="h-11 w-auto rounded-xl bg-card font-bold gap-1.5 px-3 shrink-0"
+            aria-label="Ordenar leads"
+          >
+            <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+            <span className="hidden md:inline">{SORT_LABEL[sortBy]}</span>
+          </SelectTrigger>
+          <SelectContent align="end">
+            <SelectItem value="recent">Mais recentes</SelectItem>
+            <SelectItem value="score">Maior score</SelectItem>
+            <SelectItem value="name">Nome (A-Z)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {(filterTemp !== "all" || filterStatus !== "all") && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {filterTemp !== "all" && (
+            <ActiveFilterPill
+              label={tempLabel}
+              onRemove={() => setFilterTemp("all")}
+            />
+          )}
+          {filterStatus !== "all" && (
+            <ActiveFilterPill
+              label={statusLabel}
+              onRemove={() => setFilterStatus("all")}
+            />
+          )}
+          <button
+            type="button"
+            onClick={onClearAll}
+            className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground hover:text-secondary px-1"
+          >
+            Limpar
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Label({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="block text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">
+      {children}
+    </span>
+  );
+}
+
+function ActiveFilterPill({ label, onRemove }: { label: string; onRemove: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1 bg-primary/10 text-primary text-[11px] font-bold px-2 py-0.5 rounded-full border border-primary/20">
+      {label}
+      <button
+        type="button"
+        onClick={onRemove}
+        className="hover:bg-primary/20 rounded-full w-3.5 h-3.5 flex items-center justify-center"
+        aria-label={`Remover filtro ${label}`}
+      >
+        <X className="w-2.5 h-2.5" />
+      </button>
+    </span>
+  );
+}
+
 function FilterChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
       className={cn(
-        "px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border-2 transition-all",
+        "px-3 py-1 rounded-full text-[11px] font-bold whitespace-nowrap border-2 transition-all",
         active
-          ? "bg-primary border-primary text-primary-foreground shadow-md"
+          ? "bg-primary border-primary text-primary-foreground shadow-sm"
           : "bg-card border-border text-muted-foreground hover:border-primary/40"
       )}
     >
@@ -821,6 +1024,7 @@ function FilterChip({ label, active, onClick }: { label: string; active: boolean
     </button>
   );
 }
+
 
 function LeadListSkeleton() {
   return (
