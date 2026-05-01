@@ -130,14 +130,7 @@ function AuthenticatedLayout() {
   const { user } = useSupabaseAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [soundEnabled, setSoundEnabled] = useState(false);
   const [isMaster, setIsMaster] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setSoundEnabled(localStorage.getItem("notifSound") === "on");
-    }
-  }, []);
 
   useEffect(() => {
     if (!user?.id) {
