@@ -713,28 +713,64 @@ function LoadMoreFooter({
 }
 
 const LeadRow = memo(function LeadRow({ lead: l }: { lead: Lead }) {
+  const navigate = useNavigate();
   const relative = useMemo(
     () => formatDistanceToNow(new Date(l.created_at), { addSuffix: true, locale: ptBR }),
     [l.created_at]
   );
   const tempBadge = TEMP_BADGE[l.temperatura];
   const statusBadge = STATUS_BADGE[l.status as LeadStatus];
+
+  const goToDetail = () => {
+    navigate({ to: "/admin/leads/$id", params: { id: l.id } });
+  };
+
+  // Atualização otimista local: o realtime já traz UPDATE, mas mostramos preview
+  // imediato após salvar do popover para zero latência percebida.
+  const [optimistic, setOptimistic] = useState<{
+    tamanho_quintal: string;
+    prazo_compra: string;
+    orcamento: string;
+  } | null>(null);
+
+  const tamanho = optimistic?.tamanho_quintal ?? l.tamanho_quintal;
+  const orcamento = optimistic?.orcamento ?? l.orcamento;
+  const prazo = optimistic?.prazo_compra ?? l.prazo_compra;
+
   return (
-    <Link
-      to="/admin/leads/$id"
-      params={{ id: l.id }}
-      preload="intent"
-      className="text-left bg-card border border-border rounded-2xl p-4 flex flex-col gap-3 hover:border-primary/40 transition-all active:scale-[0.99] block"
+    <div
+      role="link"
+      tabIndex={0}
+      onClick={goToDetail}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          goToDetail();
+        }
+      }}
+      className="text-left bg-card border border-border rounded-2xl p-4 flex flex-col gap-3 hover:border-primary/40 transition-all active:scale-[0.99] cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40"
     >
       <div className="flex items-start justify-between">
-        <div>
+        <div className="min-w-0">
           <div className="font-bold text-secondary text-lg leading-tight">{l.nome}</div>
           <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
             {l.cidade}/{l.estado} • {relative}
           </div>
         </div>
-        <span className={cn("text-[10px] font-extrabold px-2 py-0.5 rounded-full border uppercase tracking-wider", tempBadge.className)}>
+        <span className={cn("text-[10px] font-extrabold px-2 py-0.5 rounded-full border uppercase tracking-wider shrink-0", tempBadge.className)}>
           {l.temperatura}
+        </span>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-bold text-muted-foreground">
+        <span className="bg-muted/60 px-2 py-0.5 rounded-md">
+          📏 {LABELS.tamanho_quintal[tamanho as keyof typeof LABELS.tamanho_quintal] || tamanho}
+        </span>
+        <span className="bg-muted/60 px-2 py-0.5 rounded-md">
+          💰 {LABELS.orcamento[orcamento as keyof typeof LABELS.orcamento] || orcamento}
+        </span>
+        <span className="bg-muted/60 px-2 py-0.5 rounded-md">
+          ⏱ {LABELS.prazo_compra[prazo as keyof typeof LABELS.prazo_compra] || prazo}
         </span>
       </div>
 
@@ -748,21 +784,38 @@ const LeadRow = memo(function LeadRow({ lead: l }: { lead: Lead }) {
             Score: {l.score}
           </span>
         </div>
-        <span
-          role="button"
-          tabIndex={0}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            window.open(`https://wa.me/${l.whatsapp.replace(/\D/g, "")}`, "_blank", "noreferrer");
-          }}
-          className="w-9 h-9 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors cursor-pointer"
-          aria-label="Abrir WhatsApp"
-        >
-          <Phone className="w-4 h-4" />
-        </span>
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <QuickEditPopover
+            leadId={l.id}
+            email={l.email}
+            initial={{
+              tamanho_quintal: tamanho,
+              prazo_compra: prazo,
+              orcamento: orcamento,
+            }}
+            onSaved={(next) => {
+              setOptimistic({
+                tamanho_quintal: next.tamanho_quintal,
+                prazo_compra: next.prazo_compra,
+                orcamento: next.orcamento,
+              });
+            }}
+          />
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              window.open(`https://wa.me/${l.whatsapp.replace(/\D/g, "")}`, "_blank", "noreferrer");
+            }}
+            className="w-9 h-9 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors cursor-pointer"
+            aria-label="Abrir WhatsApp"
+          >
+            <Phone className="w-4 h-4" />
+          </button>
+        </div>
       </div>
-    </Link>
+    </div>
   );
 });
 
