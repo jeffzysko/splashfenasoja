@@ -1,54 +1,22 @@
-const CACHE_NAME = 'splash-leads-v3';
-const ASSETS_TO_CACHE = [
-  '/',
-  '/logo_splash.svg',
-  '/src/styles.css'
-];
+// Service Worker desativado — ele estava interferindo com a hidratação
+// SSR do TanStack Start ao servir HTML em cache sem os scripts atualizados.
+// Este SW se auto-desinstala em qualquer navegador que o tenha registrado.
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
-  );
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
-  self.clients.claim();
-});
-
-self.addEventListener('fetch', (event) => {
-  // Ignora requests de chrome-extension e outras origens não seguras
-  if (!event.request.url.startsWith(self.location.origin)) return;
-
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      if (response) return response;
-      
-      return fetch(event.request).then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-          return networkResponse;
-        }
-
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
-
-        return networkResponse;
-      });
-    })
+    (async () => {
+      // Limpa todos os caches antigos
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames.map((name) => caches.delete(name)));
+      // Auto-desregistra
+      await self.registration.unregister();
+      // Recarrega clientes para sair do controle do SW
+      const clients = await self.clients.matchAll({ type: 'window' });
+      clients.forEach((client) => client.navigate(client.url));
+    })()
   );
 });

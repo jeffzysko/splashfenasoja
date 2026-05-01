@@ -1,40 +1,12 @@
-import { StrictMode, useEffect } from "react";
-import { createRoot } from "react-dom/client";
-import { RouterProvider, createRouter } from "@tanstack/react-router";
-import { routeTree } from "./routeTree.gen";
-import "./styles.css";
+// Este arquivo não é usado pelo TanStack Start em modo SSR.
+// O ponto de entrada SSR é gerenciado por src/router.tsx + src/routes/__root.tsx.
+// Mantido vazio para evitar interferência com hidratação.
 
-const router = createRouter({
-  routeTree,
-  defaultPreload: "intent",
-});
-
-declare module "@tanstack/react-router" {
-  interface Register {
-    router: typeof router;
-  }
-}
-
-const App = () => {
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(err => {
-          console.error('SW registration failed: ', err);
-        });
-      });
-    }
-  }, []);
-
-  return (
-    <StrictMode>
-      <RouterProvider router={router} />
-    </StrictMode>
-  );
-};
-
-const rootElement = document.getElementById("root")!;
-if (!rootElement.innerHTML) {
-  const root = createRoot(rootElement);
-  root.render(<App />);
+// Desregistra qualquer Service Worker antigo (caso exista no navegador do usuário)
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    registrations.forEach((registration) => {
+      registration.unregister();
+    });
+  });
 }
