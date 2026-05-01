@@ -518,7 +518,34 @@ function LeadsListPage() {
           <FilterChip label="Perdido 💔" active={filterStatus === "perdido"} onClick={() => setFilterStatus("perdido")} />
           <FilterChip label="Descartado" active={filterStatus === "descartado"} onClick={() => setFilterStatus("descartado")} />
         </div>
+
+        <div
+          className="flex gap-2 items-center overflow-x-auto pb-1 no-scrollbar border-t border-border/40 pt-2"
+          role="radiogroup"
+          aria-label="Ordenar leads"
+        >
+          <span className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground pr-1">
+            Ordenar:
+          </span>
+          <FilterChip label="Mais recentes" active={sortBy === "recent"} onClick={() => setSortBy("recent")} />
+          <FilterChip label="Maior score" active={sortBy === "score"} onClick={() => setSortBy("score")} />
+          <FilterChip label="Nome (A-Z)" active={sortBy === "name"} onClick={() => setSortBy("name")} />
+        </div>
       </div>
+
+      {/* Live region para leitores de tela */}
+      <p className="sr-only" aria-live="polite" aria-atomic="true">
+        {showInitialSkeleton
+          ? "Carregando leads..."
+          : refreshing
+          ? "Atualizando lista de leads..."
+          : loadingMore
+          ? "Carregando mais leads..."
+          : totalCount !== null
+          ? `${filteredLeads.length} de ${totalCount} leads exibidos.`
+          : `${filteredLeads.length} leads exibidos.`}
+      </p>
+
 
       {showInitialSkeleton ? (
         <LeadListSkeleton />
