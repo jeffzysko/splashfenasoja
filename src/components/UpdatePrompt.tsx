@@ -1,19 +1,28 @@
 import { useEffect, useState, useCallback } from "react";
 import { APP_VERSION } from "@/lib/appVersion";
-import { RefreshCw, X } from "lucide-react";
+import { RefreshCw, Sparkles, X, Zap } from "lucide-react";
 
 /**
  * Faz polling em /version.json e mostra um banner quando a versão
  * publicada difere da que está rodando no cliente.
  *
  * - Polling a cada 60s + ao voltar para a aba (visibilitychange).
- * - "Atualizar" recarrega a página com cache-bust e tenta limpar caches.
- * - "Adiar" esconde até a próxima checagem encontrar nova versão.
+ * - "Atualizar agora" força reload imediato com cache-bust agressivo.
+ * - "Mais tarde" esconde até a próxima checagem encontrar nova versão.
  */
+
+type Phase = "idle" | "clearing" | "reloading";
+
+const PHASE_MESSAGES: Record<Phase, string> = {
+  idle: "Atualize para receber as últimas melhorias.",
+  clearing: "Limpando cache local…",
+  reloading: "Recarregando o app…",
+};
+
 export function UpdatePrompt() {
   const [latest, setLatest] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
+  const [phase, setPhase] = useState<Phase>("idle");
 
   const check = useCallback(async () => {
     try {
@@ -43,12 +52,16 @@ export function UpdatePrompt() {
     };
   }, [check]);
 
-  const reload = async () => {
-    setRefreshing(true);
+  const reload = async (immediate: boolean) => {
+    setPhase("clearing");
     try {
-      if ("caches" in window) {
+      if (!immediate && "caches" in window) {
         const keys = await caches.keys();
         await Promise.all(keys.map((k) => caches.delete(k)));
+      } else if (immediate && "caches" in window) {
+        // Mesmo no modo "agora", limpamos caches em paralelo (não-bloqueante)
+        // para não atrasar o reload.
+        caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
       }
       if ("serviceWorker" in navigator) {
         const regs = await navigator.serviceWorker.getRegistrations();
@@ -57,46 +70,97 @@ export function UpdatePrompt() {
     } catch {
       // segue para reload mesmo se a limpeza falhar
     }
+    setPhase("reloading");
     const url = new URL(window.location.href);
     url.searchParams.set("v", latest ?? String(Date.now()));
-    window.location.replace(url.toString());
+    // pequeno delay para o usuário ver o estado "Recarregando…"
+    window.setTimeout(() => {
+      window.location.replace(url.toString());
+    }, immediate ? 0 : 200);
   };
 
   const show = latest && latest !== dismissed;
   if (!show) return null;
 
+  const busy = phase !== "idle";
+  const message = PHASE_MESSAGES[phase];
+
   return (
     <div
       role="status"
       aria-live="polite"
+      aria-busy={busy}
       className="fixed left-1/2 -translate-x-1/2 z-[100] w-[calc(100%-1.5rem)] max-w-md px-3 pointer-events-none"
       style={{ bottom: "calc(env(safe-area-inset-bottom) + 76px)" }}
     >
-      <div className="pointer-events-auto bg-secondary text-secondary-foreground rounded-2xl shadow-[0_20px_60px_-20px_color-mix(in_oklab,var(--secondary)_50%,transparent)] border border-white/10 px-4 py-3 flex items-center gap-3">
-        <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-          <RefreshCw className={`w-4 h-4 text-primary ${refreshing ? "animate-spin" : ""}`} />
+      <div className="pointer-events-auto bg-secondary text-secondary-foreground rounded-2xl shadow-[0_20px_60px_-20px_color-mix(in_oklab,var(--secondary)_50%,transparent)] border border-white/10 overflow-hidden">
+        {/* Linha 1: ícone + texto + fechar */}
+        <div className="flex items-start gap-3 px-4 pt-3.5 pb-2">
+          <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+            {busy ? (
+              <RefreshCw className="w-4 h-4 text-primary animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4 text-primary" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold leading-tight">
+              {busy ? "Atualizando…" : "Nova versão disponível"}
+            </p>
+            <p className="text-[11px] opacity-80 leading-snug mt-0.5">
+              {message}
+            </p>
+          </div>
+          {!busy && (
+            <button
+              onClick={() => setDismissed(latest)}
+              aria-label="Adiar atualização"
+              className="w-7 h-7 -mt-0.5 -mr-1 rounded-full flex items-center justify-center opacity-70 hover:opacity-100 active:scale-95 transition shrink-0"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold leading-tight">Nova versão disponível</p>
-          <p className="text-[11px] opacity-80 leading-tight mt-0.5">
-            Atualize para receber as últimas melhorias.
-          </p>
-        </div>
-        <button
-          onClick={reload}
-          disabled={refreshing}
-          className="bg-primary text-primary-foreground rounded-xl px-3 h-9 text-xs font-black uppercase tracking-wide active:scale-95 transition-transform disabled:opacity-60"
-        >
-          Atualizar
-        </button>
-        <button
-          onClick={() => setDismissed(latest)}
-          aria-label="Adiar atualização"
-          className="w-8 h-8 rounded-full flex items-center justify-center opacity-70 hover:opacity-100 active:scale-95 transition"
-        >
-          <X className="w-4 h-4" />
-        </button>
+
+        {/* Linha 2: barra de progresso indeterminada quando ocupado */}
+        {busy && (
+          <div className="h-1 bg-white/10 overflow-hidden">
+            <div className="h-full w-1/3 bg-primary animate-[slide_1.2s_ease-in-out_infinite]" />
+          </div>
+        )}
+
+        {/* Linha 3: ações */}
+        {!busy && (
+          <div className="flex items-stretch gap-2 px-3 pb-3">
+            <button
+              onClick={() => setDismissed(latest)}
+              className="flex-1 h-10 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10 active:scale-[0.98] transition"
+            >
+              Mais tarde
+            </button>
+            <button
+              onClick={() => reload(false)}
+              className="flex-1 h-10 rounded-xl text-xs font-black uppercase tracking-wide bg-white/15 hover:bg-white/20 active:scale-[0.98] transition"
+            >
+              Atualizar
+            </button>
+            <button
+              onClick={() => reload(true)}
+              className="flex-[1.2] h-10 rounded-xl text-xs font-black uppercase tracking-wide bg-primary text-primary-foreground active:scale-[0.98] transition flex items-center justify-center gap-1.5"
+            >
+              <Zap className="w-3.5 h-3.5" />
+              Atualizar agora
+            </button>
+          </div>
+        )}
       </div>
+
+      <style>{`
+        @keyframes slide {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(400%); }
+        }
+      `}</style>
     </div>
   );
 }
