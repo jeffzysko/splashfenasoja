@@ -169,7 +169,8 @@ export function NotificationBell() {
     }
   };
 
-  const quietActive = isInQuietHours(loadPrefs());
+  // recalcula só quando popover abre — evita ler localStorage a cada render
+  const quietActive = useMemo(() => isInQuietHours(loadPrefs()), [open]);
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
