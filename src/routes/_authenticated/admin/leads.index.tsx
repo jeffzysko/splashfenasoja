@@ -752,22 +752,6 @@ const LeadRow = memo(function LeadRow({ lead: l }: { lead: Lead }) {
           </span>
         </div>
         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-          <QuickEditPopover
-            leadId={l.id}
-            email={l.email}
-            initial={{
-              tamanho_quintal: tamanho,
-              prazo_compra: prazo,
-              orcamento: orcamento,
-            }}
-            onSaved={(next) => {
-              setOptimistic({
-                tamanho_quintal: next.tamanho_quintal,
-                prazo_compra: next.prazo_compra,
-                orcamento: next.orcamento,
-              });
-            }}
-          />
           <button
             type="button"
             onClick={(e) => {
