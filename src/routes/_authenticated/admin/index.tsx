@@ -110,8 +110,8 @@ function DashboardPage() {
   }, []);
 
   const stats = useMemo(() => {
-    const { total, quentes, hoje, qualificados } = globalStats;
-    const convRate = total > 0 ? Math.round((qualificados / total) * 100) : 0;
+    const { total, quentes, hoje, vendidos } = globalStats;
+    const convRate = total > 0 ? Math.round((vendidos / total) * 100) : 0;
     return { total, quentes, hoje, convRate };
   }, [globalStats]);
 
