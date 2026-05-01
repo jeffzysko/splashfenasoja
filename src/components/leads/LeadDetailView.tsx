@@ -353,6 +353,49 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
         </Button>
       </section>
 
+      <section className="space-y-3">
+        <h3 className="text-xs font-black uppercase tracking-widest text-destructive flex items-center gap-2">
+          <AlertCircle className="w-4 h-4" /> Zona de Perigo
+        </h3>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="outline"
+              className="w-full border-2 border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground font-black py-6 rounded-2xl"
+              disabled={deleting}
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Excluindo...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" /> Excluir Lead
+                </>
+              )}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className="rounded-2xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir este lead?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação é permanente. O lead <strong>{current.nome}</strong> e todas as
+                suas notas serão removidos definitivamente.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={deleteLead}
+                className="bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-xl"
+              >
+                Excluir definitivamente
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </section>
+
       <footer className="pt-6 border-t border-border/50 text-center space-y-2">
         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center justify-center gap-2">
           <Clock className="w-3 h-3" /> Capturado em{" "}
