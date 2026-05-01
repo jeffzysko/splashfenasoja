@@ -34,7 +34,7 @@ import { toast } from "sonner";
 import { subscribeLeads } from "@/lib/leadsRealtime";
 import { useDebounced } from "@/hooks/useDebounced";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { QuickEditPopover } from "@/components/leads/QuickEditPopover";
+
 
 const PAGE_SIZE = 50;
 const VIRTUALIZE_THRESHOLD = 80;
@@ -700,29 +700,9 @@ const LeadRow = memo(function LeadRow({ lead: l }: { lead: Lead }) {
     navigate({ to: "/admin/leads/$id", params: { id: l.id } });
   };
 
-  // Atualização otimista local: o realtime já traz UPDATE, mas mostramos preview
-  // imediato após salvar do popover para zero latência percebida.
-  const [optimistic, setOptimistic] = useState<{
-    tamanho_quintal: string;
-    prazo_compra: string;
-    orcamento: string;
-  } | null>(null);
-
-  // Limpa o optimistic assim que o lead do servidor (via realtime) já reflete os mesmos valores.
-  useEffect(() => {
-    if (!optimistic) return;
-    if (
-      l.tamanho_quintal === optimistic.tamanho_quintal &&
-      l.prazo_compra === optimistic.prazo_compra &&
-      l.orcamento === optimistic.orcamento
-    ) {
-      setOptimistic(null);
-    }
-  }, [l.tamanho_quintal, l.prazo_compra, l.orcamento, optimistic]);
-
-  const tamanho = optimistic?.tamanho_quintal ?? l.tamanho_quintal;
-  const orcamento = optimistic?.orcamento ?? l.orcamento;
-  const prazo = optimistic?.prazo_compra ?? l.prazo_compra;
+  const tamanho = l.tamanho_quintal;
+  const orcamento = l.orcamento;
+  const prazo = l.prazo_compra;
 
   return (
     <div
@@ -772,22 +752,6 @@ const LeadRow = memo(function LeadRow({ lead: l }: { lead: Lead }) {
           </span>
         </div>
         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-          <QuickEditPopover
-            leadId={l.id}
-            email={l.email}
-            initial={{
-              tamanho_quintal: tamanho,
-              prazo_compra: prazo,
-              orcamento: orcamento,
-            }}
-            onSaved={(next) => {
-              setOptimistic({
-                tamanho_quintal: next.tamanho_quintal,
-                prazo_compra: next.prazo_compra,
-                orcamento: next.orcamento,
-              });
-            }}
-          />
           <button
             type="button"
             onClick={(e) => {
