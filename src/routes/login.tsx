@@ -5,8 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/Logo";
-import { Loader2, Lock } from "lucide-react";
+import {
+  Loader2,
+  Lock,
+  Mail,
+  Eye,
+  EyeOff,
+  ArrowLeft,
+  CheckCircle2,
+  Sparkles,
+} from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 type LoginSearch = { redirect?: string };
 
@@ -27,30 +37,38 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
+type Mode = "login" | "forgot";
+
 function LoginPage() {
   const search = Route.useSearch();
+  const [mode, setMode] = useState<Mode>("login");
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: FormEvent) => {
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
+
+  const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    console.log("[login] tentativa:", email);
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
     });
-    console.log("[login] resultado:", { data, error });
 
     setLoading(false);
 
     if (error) {
       const msg =
-        error.message === "Invalid login credentials" || error.message.includes("Invalid login")
+        error.message === "Invalid login credentials" ||
+        error.message.includes("Invalid login")
           ? "E-mail ou senha incorretos."
           : error.message === "Email not confirmed"
             ? "Confirme seu e-mail antes de entrar."
@@ -64,88 +82,254 @@ function LoginPage() {
     window.location.replace(search.redirect || "/admin");
   };
 
-  const resetPassword = async () => {
-    if (!email) {
-      toast.error("Digite seu e-mail primeiro.");
+  const handleForgot = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) {
+      toast.error("Digite seu e-mail.");
       return;
     }
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
+    setForgotLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      forgotEmail.trim(),
+      { redirectTo: `${window.location.origin}/reset-password` }
+    );
+    setForgotLoading(false);
+
     if (error) {
-      toast.error("Erro ao enviar e-mail de recuperação: " + error.message);
-    } else {
-      toast.success("Enviamos um link de recuperação para seu e-mail!");
+      toast.error("Erro ao enviar: " + error.message);
+      return;
     }
+    setForgotSent(true);
+    toast.success("Link enviado! Confira seu e-mail.");
+  };
+
+  const goToForgot = () => {
+    setForgotEmail(email);
+    setForgotSent(false);
+    setMode("forgot");
+    setError(null);
+  };
+
+  const backToLogin = () => {
+    setMode("login");
+    setError(null);
   };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[var(--splash-blue-soft)] via-background to-background px-4 relative overflow-hidden">
-      <div aria-hidden className="absolute top-[-120px] right-[-80px] w-[320px] h-[320px] rounded-full bg-accent/15 blur-3xl pointer-events-none" />
-      <div aria-hidden className="absolute bottom-[-100px] left-[-100px] w-[260px] h-[260px] rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+      {/* Decorative blobs */}
+      <div
+        aria-hidden
+        className="absolute top-[-140px] right-[-100px] w-[380px] h-[380px] rounded-full bg-accent/15 blur-3xl pointer-events-none"
+      />
+      <div
+        aria-hidden
+        className="absolute bottom-[-120px] left-[-120px] w-[320px] h-[320px] rounded-full bg-primary/10 blur-3xl pointer-events-none"
+      />
+      <div
+        aria-hidden
+        className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[200px] h-[200px] rounded-full bg-secondary/5 blur-3xl pointer-events-none"
+      />
 
       <div className="relative w-full max-w-sm">
         <div className="text-center mb-8">
           <Logo height={72} className="mx-auto mb-4" />
           <span className="inline-flex items-center gap-1.5 bg-secondary text-secondary-foreground text-[11px] font-bold uppercase tracking-[0.12em] px-3 py-1.5 rounded-full">
-            <Lock className="w-3 h-3" />
+            <Sparkles className="w-3 h-3" />
             Time Splash
           </span>
         </div>
 
-        <div className="bg-card border border-border rounded-[32px] p-8 shadow-[0_20px_60px_-20px_color-mix(in_oklab,var(--secondary)_25%,transparent)]">
-          <h1 className="text-2xl font-black text-secondary mb-1 tracking-tight">Área do Time Splash</h1>
-          <p className="text-sm text-muted-foreground mb-8">Acompanhe os leads da FENASOJA em tempo real.</p>
+        <div className="bg-card/95 backdrop-blur-xl border border-border rounded-[32px] p-8 shadow-[0_30px_80px_-30px_color-mix(in_oklab,var(--secondary)_30%,transparent)]">
+          {mode === "login" ? (
+            <>
+              <h1 className="text-2xl font-black text-secondary mb-1 tracking-tight">
+                Entrar
+              </h1>
+              <p className="text-sm text-muted-foreground mb-7">
+                Acompanhe os leads em tempo real.
+              </p>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <Label className="text-secondary font-black uppercase text-[10px] tracking-widest ml-1">E-mail</Label>
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-                className="h-14 rounded-2xl border-2 mt-1 focus-visible:border-primary focus-visible:ring-0"
-                placeholder="voce@splashpiscinas.com"
-              />
-            </div>
-            <div>
-              <Label className="text-secondary font-black uppercase text-[10px] tracking-widest ml-1">Senha</Label>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-                className="h-14 rounded-2xl border-2 mt-1 focus-visible:border-primary focus-visible:ring-0"
-                placeholder="••••••••"
-              />
-            </div>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full h-14 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-black text-lg mt-2 shadow-lg active:scale-95 transition-all"
-            >
-              {loading ? (<><Loader2 className="w-5 h-5 animate-spin mr-2" /> Entrando...</>) : "Entrar"}
-            </Button>
-            {error && (
-              <div
-                role="alert"
-                className="rounded-2xl border-2 border-destructive/40 bg-destructive/10 text-destructive text-sm font-semibold px-4 py-3"
-              >
-                {error}
+              <form onSubmit={handleLogin} className="space-y-5">
+                <FieldEmail
+                  value={email}
+                  onChange={setEmail}
+                  autoFocus
+                  placeholder="voce@splashpiscinas.com"
+                />
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <Label className="text-secondary font-black uppercase text-[10px] tracking-widest ml-1">
+                      Senha
+                    </Label>
+                    <button
+                      type="button"
+                      onClick={goToForgot}
+                      className="text-[11px] font-bold text-primary hover:underline mr-1"
+                    >
+                      Esqueci minha senha
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      autoComplete="current-password"
+                      className="h-14 pl-11 pr-12 rounded-2xl border-2 focus-visible:border-primary focus-visible:ring-0"
+                      placeholder="••••••••"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-muted-foreground hover:text-secondary hover:bg-muted transition-colors"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full h-14 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-black text-lg mt-2 shadow-lg shadow-orange-500/30 active:scale-95 transition-all"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                      Entrando...
+                    </>
+                  ) : (
+                    "Entrar"
+                  )}
+                </Button>
+
+                {error && (
+                  <div
+                    role="alert"
+                    className="rounded-2xl border-2 border-destructive/40 bg-destructive/10 text-destructive text-sm font-semibold px-4 py-3"
+                  >
+                    {error}
+                  </div>
+                )}
+              </form>
+            </>
+          ) : forgotSent ? (
+            <div className="text-center py-2">
+              <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
+                <CheckCircle2 className="w-8 h-8 text-emerald-500" />
               </div>
-            )}
-          </form>
+              <h1 className="text-xl font-black text-secondary mb-2 tracking-tight">
+                Link enviado!
+              </h1>
+              <p className="text-sm text-muted-foreground mb-1">
+                Enviamos um link para
+              </p>
+              <p className="text-sm font-bold text-secondary mb-6 break-all">
+                {forgotEmail}
+              </p>
+              <p className="text-xs text-muted-foreground/80 mb-6 leading-relaxed">
+                Confira sua caixa de entrada (e o spam, por garantia). O link
+                expira em <strong>1 hora</strong> e só pode ser usado uma vez.
+              </p>
+              <Button
+                onClick={backToLogin}
+                className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-black"
+              >
+                Voltar ao login
+              </Button>
+            </div>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={backToLogin}
+                className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-primary mb-4 transition-colors"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Voltar
+              </button>
+
+              <h1 className="text-2xl font-black text-secondary mb-1 tracking-tight">
+                Esqueci minha senha
+              </h1>
+              <p className="text-sm text-muted-foreground mb-7">
+                Vamos enviar um link de recuperação para o seu e-mail.
+              </p>
+
+              <form onSubmit={handleForgot} className="space-y-5">
+                <FieldEmail
+                  value={forgotEmail}
+                  onChange={setForgotEmail}
+                  autoFocus
+                  placeholder="voce@splashpiscinas.com"
+                />
+
+                <Button
+                  type="submit"
+                  disabled={forgotLoading}
+                  className="w-full h-14 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-black text-lg shadow-lg shadow-orange-500/30 active:scale-95 transition-all"
+                >
+                  {forgotLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                      Enviando...
+                    </>
+                  ) : (
+                    "Enviar link"
+                  )}
+                </Button>
+              </form>
+            </>
+          )}
         </div>
 
-        <button 
-          onClick={resetPassword}
-          className="w-full text-center text-xs font-bold text-muted-foreground mt-8 hover:text-primary transition-colors"
-        >
-          Esqueci minha senha
-        </button>
+        <p className="text-center text-[11px] font-bold text-muted-foreground/70 mt-6 flex items-center justify-center gap-1.5">
+          <Lock className="w-3 h-3" />
+          Acesso restrito ao Time Splash
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function FieldEmail({
+  value,
+  onChange,
+  autoFocus,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  autoFocus?: boolean;
+  placeholder?: string;
+}) {
+  return (
+    <div>
+      <Label className="text-secondary font-black uppercase text-[10px] tracking-widest ml-1">
+        E-mail
+      </Label>
+      <div className="relative mt-1">
+        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+        <Input
+          type="email"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          required
+          autoComplete="email"
+          autoFocus={autoFocus}
+          className={cn(
+            "h-14 pl-11 rounded-2xl border-2 focus-visible:border-primary focus-visible:ring-0"
+          )}
+          placeholder={placeholder}
+        />
       </div>
     </div>
   );
