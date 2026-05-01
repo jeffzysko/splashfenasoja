@@ -10,7 +10,21 @@ import {
   Loader2,
   Phone,
   X,
+  SlidersHorizontal,
+  ArrowUpDown,
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { TEMP_BADGE, STATUS_BADGE, LABELS, formatWhatsappBR, type Temperatura, type LeadStatus } from "@/lib/leads";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
