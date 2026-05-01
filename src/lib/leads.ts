@@ -70,6 +70,20 @@ export function normalizeWhatsapp(masked: string): string {
   return "55" + digits;
 }
 
+/** Formata WhatsApp BR para exibição: (DDD) 00000-0000. Aceita com ou sem 55. */
+export function formatWhatsappBR(value: string): string {
+  if (!value) return "";
+  let digits = value.replace(/\D/g, "");
+  if (digits.startsWith("55") && digits.length > 11) digits = digits.slice(2);
+  if (digits.length === 11) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  }
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+  return value;
+}
+
 export const TEMP_BADGE: Record<Temperatura, { label: string; className: string }> = {
   quente: { label: "🔥 Quente", className: "bg-primary/15 text-primary border-primary/30" },
   morno: { label: "☀️ Morno", className: "bg-amber-500/15 text-amber-700 border-amber-500/30" },
