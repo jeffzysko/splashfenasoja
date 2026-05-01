@@ -1,5 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
+import logoUrl from "@/assets/logo.svg";
 
 interface LogoProps {
   className?: string;
@@ -15,13 +16,17 @@ export const Logo: React.FC<LogoProps> = ({
   height = 56,
 }) => {
   return (
-    <div className={cn("relative inline-block overflow-hidden", className)} style={{ height }}>
+    <div className={cn("relative inline-block overflow-hidden flex items-center justify-center", className)} style={{ height }}>
       <img 
-        src="/logo-splash.svg" 
+        src={logoUrl} 
         alt="Splash Piscinas"
         className="h-full w-auto block object-contain"
         loading="eager"
         fetchPriority="high"
+        onError={(e) => {
+          console.error("Logo failed to load, falling back to text");
+          e.currentTarget.style.display = 'none';
+        }}
       />
     </div>
   );
