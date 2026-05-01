@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   Loader2,
   Phone,
+  X,
 } from "lucide-react";
 import { TEMP_BADGE, STATUS_BADGE, LABELS, formatWhatsappBR, type Temperatura, type LeadStatus } from "@/lib/leads";
 import { cn } from "@/lib/utils";
