@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
-import { LogOut, LayoutDashboard, Users, Shield } from "lucide-react";
+import { LogOut, LayoutDashboard, Users, Shield, BellCog } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -183,7 +183,14 @@ function AuthenticatedLayout() {
           <div className="flex items-center gap-1 sm:gap-3">
             <NotificationBell />
             <NotificationSettings />
-
+            <Link
+              to="/admin/settings/notifications"
+              className="p-2 text-muted-foreground hover:text-primary transition-colors hidden sm:inline-flex"
+              aria-label="Configurações de notificação (página completa)"
+              title="Gerenciar notificações"
+            >
+              <BellCog className="w-5 h-5" />
+            </Link>
             {isMaster && (
               <Link
                 to="/admin/admins"
