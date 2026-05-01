@@ -85,7 +85,7 @@ export function NotificationBell() {
         setItems((prev) => [newLead, ...prev].slice(0, MAX_ITEMS));
 
         const prefs = loadPrefs();
-        const { toast: shouldToast, sound: shouldSound } = shouldNotify(
+        const { toast: shouldToast, sound: shouldSound, soundUrl } = shouldNotify(
           prefs,
           newLead.temperatura
         );
@@ -98,10 +98,9 @@ export function NotificationBell() {
           });
         }
 
-        const url = (shouldNotify(prefs, newLead.temperatura) as { soundUrl: string | null }).soundUrl;
-        if (shouldSound && url) {
+        if (shouldSound && soundUrl) {
           try {
-            const a = new Audio(url);
+            const a = new Audio(soundUrl);
             a.volume = 0.7;
             audioRef.current = a;
             a.play().catch(() => {});
