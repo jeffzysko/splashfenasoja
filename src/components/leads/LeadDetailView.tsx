@@ -107,7 +107,59 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
   const [notes, setNotes] = useState(lead.notes || "");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [savingField, setSavingField] = useState<null | "tamanho_quintal" | "prazo_compra" | "orcamento">(null);
   const { user } = useSupabaseAuth();
+
+  const TAMANHO_VALUES = TAMANHO_OPTIONS.map((o) => o.value as string);
+  const PRAZO_VALUES = PRAZO_OPTIONS.map((o) => o.value as string);
+  const ORCAMENTO_VALUES = ORCAMENTO_OPTIONS.map((o) => o.value as string);
+
+  const updateQualification = async (
+    field: "tamanho_quintal" | "prazo_compra" | "orcamento",
+    value: string
+  ) => {
+    // Validação: o valor precisa pertencer ao enum correspondente.
+    const allowed =
+      field === "tamanho_quintal"
+        ? TAMANHO_VALUES
+        : field === "prazo_compra"
+          ? PRAZO_VALUES
+          : ORCAMENTO_VALUES;
+    if (!allowed.includes(value)) {
+      toast.error("Valor inválido para este campo.");
+      return;
+    }
+
+    const prev = current;
+    const draft = { ...current, [field]: value };
+    // Recalcula score/temperatura porque os 3 campos influenciam.
+    const { score, temperatura } = calcScore({
+      tamanho_quintal: draft.tamanho_quintal,
+      prazo_compra: draft.prazo_compra,
+      orcamento: draft.orcamento,
+      email: draft.email,
+    });
+    const next = { ...draft, score, temperatura };
+
+    setSavingField(field);
+    setCurrent(next);
+    onUpdate?.(next);
+
+    const { error } = await supabase
+      .from("leads")
+      .update({ [field]: value, score, temperatura })
+      .eq("id", current.id);
+
+    setSavingField(null);
+
+    if (error) {
+      setCurrent(prev);
+      onUpdate?.(prev);
+      toast.error("Erro ao salvar alteração.");
+      return;
+    }
+    toast.success("Atualizado!");
+  };
 
   const deleteLead = async () => {
     setDeleting(true);
