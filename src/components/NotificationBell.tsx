@@ -274,7 +274,8 @@ export function NotificationBell() {
                   new Date(lead.created_at).getTime() > lastSeen;
                 const tempBadge = TEMP_BADGE[lead.temperatura];
                 const statusBadge = STATUS_BADGE[lead.status];
-                const updating = updatingId === lead.id;
+                const state = updateState[lead.id];
+                const updating = state === "loading";
                 return (
                   <li
                     key={lead.id}
@@ -346,19 +347,26 @@ export function NotificationBell() {
                       </div>
                     </Link>
 
-                    {/* Botão rápido de atualizar status */}
+                    {/* Botão rápido de atualizar status com feedback visual */}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button
                           aria-label="Atualizar status"
                           disabled={updating}
+                          aria-busy={updating}
                           className={cn(
-                            "absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-primary transition-colors",
-                            updating && "opacity-50"
+                            "absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
+                            state === "success" && "bg-emerald-500/15 text-emerald-600",
+                            state === "error" && "bg-red-500/15 text-red-600",
+                            state === "loading" && "bg-primary/10 text-primary",
+                            !state && "text-muted-foreground hover:bg-muted hover:text-primary"
                           )}
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <MoreHorizontal className="w-4 h-4" />
+                          {state === "loading" && <Loader2 className="w-4 h-4 animate-spin" />}
+                          {state === "success" && <Check className="w-4 h-4" />}
+                          {state === "error" && <X className="w-4 h-4" />}
+                          {!state && <MoreHorizontal className="w-4 h-4" />}
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent
