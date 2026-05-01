@@ -78,7 +78,7 @@ function LoginPage() {
 
       <div className="relative w-full max-w-sm">
         <div className="text-center mb-8">
-          <Logo height={48} className="mx-auto mb-4" />
+          <Logo height={72} className="mx-auto mb-4" />
           <span className="inline-flex items-center gap-1.5 bg-secondary text-secondary-foreground text-[11px] font-bold uppercase tracking-[0.12em] px-3 py-1.5 rounded-full">
             <Lock className="w-3 h-3" />
             Time Splash

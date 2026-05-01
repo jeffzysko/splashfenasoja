@@ -15,11 +15,11 @@ export const Logo: React.FC<LogoProps> = ({
   height = 56,
 }) => {
   return (
-    <div className={cn("relative inline-block", className)} style={{ height }}>
+    <div className={cn("relative inline-block overflow-hidden", className)} style={{ height }}>
       <img 
         src="/logo-splash.svg" 
         alt="Splash Piscinas"
-        className="h-full w-auto block"
+        className="h-full w-auto block object-contain"
         loading="eager"
         fetchPriority="high"
       />

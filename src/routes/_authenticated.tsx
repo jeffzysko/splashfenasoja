@@ -65,7 +65,7 @@ function AuthenticatedLayout() {
         <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Link to="/admin">
-              <Logo height={28} />
+              <Logo height={42} />
             </Link>
             <span className="bg-secondary text-secondary-foreground text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tighter">
               Admin
