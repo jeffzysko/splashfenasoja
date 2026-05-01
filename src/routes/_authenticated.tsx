@@ -10,13 +10,17 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async ({ location }) => {
+    // Só roda a checagem no cliente — no SSR não há localStorage,
+    // então getSession() sempre retorna null e cai em loop pro /login.
+    if (typeof window === "undefined") return;
+
     const { data: { session } } = await supabase.auth.getSession();
-    
+
     if (!session) {
       const currentPath = location.pathname + (location.searchStr || "");
-      throw redirect({ 
-        to: "/login", 
-        search: { redirect: currentPath.includes("/login") ? undefined : currentPath } 
+      throw redirect({
+        to: "/login",
+        search: { redirect: currentPath.includes("/login") ? undefined : currentPath }
       });
     }
 
@@ -32,7 +36,6 @@ export const Route = createFileRoute("/_authenticated")({
     if (!hasAccess) {
       throw redirect({ to: "/login" });
     }
-
   },
   component: AuthenticatedLayout,
 });
