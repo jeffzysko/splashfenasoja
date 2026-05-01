@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { TEMP_BADGE, STATUS_BADGE, LABELS, formatWhatsappBR, type Temperatura, type LeadStatus } from "@/lib/leads";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -22,6 +23,13 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 const PAGE_SIZE = 50;
 const VIRTUALIZE_THRESHOLD = 80;
 const ROW_HEIGHT = 124; // altura aproximada do card + gap
+
+type Cursor = { created_at: string; id: string } | null;
+
+/** Escapa vírgulas e parênteses para uso em filtros .or() do PostgREST. */
+function escapeOrValue(s: string) {
+  return s.replace(/[(),]/g, " ").trim();
+}
 
 type Status = "novo" | "contatado" | "qualificado" | "vendido" | "perdido" | "descartado";
 
