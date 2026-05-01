@@ -14,7 +14,7 @@ export const WelcomeScreen = () => {
       </div>
 
       <span className="inline-flex items-center gap-1.5 bg-secondary text-secondary-foreground text-[11px] font-bold uppercase tracking-[0.12em] px-3 py-1.5 rounded-full mb-8 opacity-0 animate-in fade-in slide-in-from-bottom-2 duration-400 delay-150 fill-mode-forwards">
-        <span className="w-3 h-3">✨</span>
+        <Sparkles className="w-3 h-3" />
         FENASOJA 2026
       </span>
 
