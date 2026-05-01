@@ -13,7 +13,7 @@ import {
   User,
   Clock,
   AlertCircle,
-  Pencil,
+  
 } from "lucide-react";
 import { TEMP_BADGE, LABELS, type Temperatura } from "@/lib/leads";
 import { cn } from "@/lib/utils";
