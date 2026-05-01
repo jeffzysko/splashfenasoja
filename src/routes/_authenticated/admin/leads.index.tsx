@@ -312,13 +312,10 @@ function LeadsListPage() {
     toast.success(`${filtered.length} leads exportados!`);
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-      </div>
-    );
-  }
+  const hasActiveFilters =
+    filterTemp !== "all" || filterStatus !== "all" || debouncedSearch.trim().length > 0;
+
+  const showInitialSkeleton = loading;
 
   return (
     <div className="space-y-4">
@@ -329,12 +326,27 @@ function LeadsListPage() {
           </Button>
           <div>
             <h2 className="text-xl font-extrabold text-secondary tracking-tight">Leads</h2>
-            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
-              {filteredLeads.length} carregados {hasMore && "• mais disponíveis"}
+            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-1.5">
+              {showInitialSkeleton ? (
+                <Skeleton className="h-3 w-32" />
+              ) : (
+                <>
+                  {filteredLeads.length}
+                  {totalCount !== null && (
+                    <>
+                      {" "}de {totalCount.toLocaleString("pt-BR")}
+                    </>
+                  )}
+                  {hasMore && " • mais disponíveis"}
+                  {refreshing && (
+                    <Loader2 className="w-3 h-3 animate-spin text-primary ml-1" />
+                  )}
+                </>
+              )}
             </p>
           </div>
         </div>
-        <Button onClick={exportCSV} size="sm" className="bg-orange-500 hover:bg-orange-600 text-white font-bold h-10 px-4 rounded-xl shadow-md">
+        <Button onClick={exportCSV} size="sm" disabled={showInitialSkeleton} className="bg-orange-500 hover:bg-orange-600 text-white font-bold h-10 px-4 rounded-xl shadow-md">
           <Download className="w-4 h-4 mr-2" /> Exportar
         </Button>
       </div>
@@ -345,8 +357,23 @@ function LeadsListPage() {
             placeholder="Buscar por nome, zap ou cidade..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-12 bg-card border-border rounded-xl focus-visible:border-primary focus-visible:ring-0"
+            className="pl-9 pr-16 h-12 bg-card border-border rounded-xl focus-visible:border-primary focus-visible:ring-0"
           />
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            {refreshing && !showInitialSkeleton && (
+              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+            )}
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="w-7 h-7 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground"
+                aria-label="Limpar busca"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
@@ -367,10 +394,19 @@ function LeadsListPage() {
         </div>
       </div>
 
-      {filteredLeads.length === 0 ? (
-        <div className="text-center py-20">
-          <p className="text-muted-foreground font-medium">Nenhum lead encontrado com esses filtros.</p>
-        </div>
+      {showInitialSkeleton ? (
+        <LeadListSkeleton />
+      ) : refreshing && filteredLeads.length === 0 ? (
+        <LeadListSkeleton />
+      ) : filteredLeads.length === 0 ? (
+        <EmptyState
+          hasActiveFilters={hasActiveFilters}
+          onClear={() => {
+            setSearch("");
+            setFilterTemp("all");
+            setFilterStatus("all");
+          }}
+        />
       ) : shouldVirtualize ? (
         <div
           ref={parentRef}
