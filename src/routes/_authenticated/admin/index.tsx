@@ -189,6 +189,14 @@ function DashboardPage() {
           <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
             <Clock className="w-4 h-4" />
             Leads Recentes
+            {recentLeads.length > 0 && (
+              <span
+                className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full bg-primary/10 text-primary text-[11px] font-extrabold tabular-nums border border-primary/20"
+                aria-label={`${recentLeads.length} leads recentes`}
+              >
+                {recentLeads.length}
+              </span>
+            )}
           </h3>
           <Button variant="ghost" size="sm" asChild className="text-accent text-xs font-bold">
             <Link to="/admin/leads">
