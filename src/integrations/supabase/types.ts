@@ -140,6 +140,54 @@ export type Database = {
         }
         Relationships: []
       }
+      user_notif_prefs: {
+        Row: {
+          notif_frio: boolean
+          notif_morno: boolean
+          notif_quente: boolean
+          quiet_enabled: boolean
+          quiet_end: number
+          quiet_start: number
+          sound_enabled: boolean
+          sound_frio: string
+          sound_morno: string
+          sound_quente: string
+          toast_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          notif_frio?: boolean
+          notif_morno?: boolean
+          notif_quente?: boolean
+          quiet_enabled?: boolean
+          quiet_end?: number
+          quiet_start?: number
+          sound_enabled?: boolean
+          sound_frio?: string
+          sound_morno?: string
+          sound_quente?: string
+          toast_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          notif_frio?: boolean
+          notif_morno?: boolean
+          notif_quente?: boolean
+          quiet_enabled?: boolean
+          quiet_end?: number
+          quiet_start?: number
+          sound_enabled?: boolean
+          sound_frio?: string
+          sound_morno?: string
+          sound_quente?: string
+          toast_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
