@@ -1,7 +1,6 @@
 import { useFormStore } from "@/store/useFormStore";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, MapPin, Ruler } from "lucide-react";
-import { motion } from "framer-motion";
 import { ScreenContainer } from "./ScreenContainer";
 import { LABELS, SPLASH_WHATSAPP, TEMP_BADGE } from "@/lib/leads";
 
@@ -24,39 +23,18 @@ export const SuccessScreen = () => {
 
   return (
     <ScreenContainer centered>
-      <motion.div
-        initial={{ scale: 0, rotate: -90 }}
-        animate={{ scale: 1, rotate: 0 }}
-        transition={{ type: "spring", stiffness: 220, damping: 16, delay: 0.1 }}
-        className="w-20 h-20 rounded-full bg-accent/15 flex items-center justify-center mb-5 shadow-[0_12px_40px_-12px_color-mix(in_oklab,var(--accent)_55%,transparent)]"
-      >
+      <div className="w-20 h-20 rounded-full bg-accent/15 flex items-center justify-center mb-5 shadow-[0_12px_40px_-12px_color-mix(in_oklab,var(--accent)_55%,transparent)] animate-in zoom-in-50 fade-in duration-500 delay-100 fill-mode-forwards opacity-0 scale-50">
         <CheckCircle2 className="w-12 h-12 text-accent" strokeWidth={2.2} />
-      </motion.div>
+      </div>
 
-      <motion.h1
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25 }}
-        className="text-[30px] leading-tight font-extrabold text-secondary mb-2 max-w-sm tracking-tight"
-      >
+      <h1 className="text-[30px] leading-tight font-extrabold text-secondary mb-2 max-w-sm tracking-tight animate-in fade-in slide-in-from-bottom-2 duration-500 delay-250 fill-mode-forwards opacity-0">
         Pronto, {firstName}! 🎉
-      </motion.h1>
-      <motion.p
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.35 }}
-        className="text-base text-muted-foreground mb-6 max-w-md"
-      >
+      </h1>
+      <p className="text-base text-muted-foreground mb-6 max-w-md animate-in fade-in slide-in-from-bottom-2 duration-500 delay-350 fill-mode-forwards opacity-0">
         Já mandamos o catálogo pro seu WhatsApp.
-      </motion.p>
+      </p>
 
-      {/* Card resumo */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.45 }}
-        className="w-full max-w-sm bg-card border-2 border-border rounded-2xl p-5 mb-6 text-left"
-      >
+      <div className="w-full max-w-sm bg-card border-2 border-border rounded-2xl p-5 mb-6 text-left animate-in fade-in slide-in-from-bottom-3 duration-500 delay-450 fill-mode-forwards opacity-0">
         <div className="flex items-center justify-between mb-3">
           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
             Lead nº {leadShort}
@@ -77,14 +55,9 @@ export const SuccessScreen = () => {
             Quintal: {LABELS.tamanho_quintal[data.tamanho_quintal] ?? data.tamanho_quintal}
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.55 }}
-        className="w-full max-w-sm space-y-3"
-      >
+      <div className="w-full max-w-sm space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-550 fill-mode-forwards opacity-0">
         <a href={waLink} target="_blank" rel="noreferrer" className="block">
           <Button
             size="lg"
@@ -105,7 +78,7 @@ export const SuccessScreen = () => {
         <p className="text-xs text-muted-foreground pt-2">
           Algum vendedor da Splash já foi notificado e vai te chamar logo logo.
         </p>
-      </motion.div>
+      </div>
     </ScreenContainer>
   );
 };
