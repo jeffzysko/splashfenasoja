@@ -81,21 +81,11 @@ export const Route = createFileRoute("/_authenticated")({
     if (typeof window === "undefined") return;
 
     const now = Date.now();
-    const cached = loadCache();
 
-    // Cache fresco: libera instantaneamente.
-    if (cached && cached.expiresAt > now) {
-      if (!cached.hasAccess) throw redirect({ to: "/login" });
-      return;
-    }
-
-    // Cache stale (mas ainda dentro do limite): libera e revalida em background.
-    if (cached && cached.expiresAt + STALE_TTL_MS > now && cached.hasAccess) {
-      revalidateInBackground(cached.userId);
-      return;
-    }
-
-    // Sem cache utilizável: precisa validar agora, mas com timeout para não travar UI.
+    // SEMPRE valida a sessão Supabase primeiro — o cache só evita refazer o
+    // role check, nunca substitui a verificação da sessão. Sem isso, um cache
+    // "fresco" depois de logout/expiração mantinha a UI dentro do admin
+    // disparando 401s nas queries.
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       saveCache(null);
@@ -104,6 +94,25 @@ export const Route = createFileRoute("/_authenticated")({
         to: "/login",
         search: { redirect: currentPath.includes("/login") ? undefined : currentPath },
       });
+    }
+
+    const cached = loadCache();
+
+    // Cache fresco do mesmo usuário: libera instantaneamente.
+    if (cached && cached.userId === session.user.id && cached.expiresAt > now) {
+      if (!cached.hasAccess) throw redirect({ to: "/login" });
+      return;
+    }
+
+    // Cache stale do mesmo usuário (mas ainda dentro do limite): libera e revalida em background.
+    if (
+      cached &&
+      cached.userId === session.user.id &&
+      cached.expiresAt + STALE_TTL_MS > now &&
+      cached.hasAccess
+    ) {
+      revalidateInBackground(cached.userId);
+      return;
     }
 
     const res = await fetchRoleWithTimeout(session.user.id);
