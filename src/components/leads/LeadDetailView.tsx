@@ -58,6 +58,9 @@ export type LeadDetail = {
   status: LeadStatus;
   notes: string | null;
   created_at: string;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
 };
 
 export function useLeadDetail(id: string | null) {
