@@ -348,23 +348,37 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
         <p className="text-muted-foreground font-bold text-sm flex items-center gap-1 mt-1">
           {current.cidade}/{current.estado}
         </p>
-        <div
-          className={cn(
-            "mt-4 text-[10px] font-black px-3 py-1 rounded-full border uppercase tracking-widest",
-            badge.className
-          )}
-        >
-          {current.temperatura} • {current.score} Pontos
+        <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
+          <div
+            className={cn(
+              "text-[10px] font-black px-3 py-1 rounded-full border uppercase tracking-widest",
+              badge.className
+            )}
+          >
+            {current.temperatura} • {current.score} Pontos
+          </div>
+          <div className="text-[10px] font-bold px-3 py-1 rounded-full bg-muted text-muted-foreground uppercase tracking-widest border border-border">
+            <Clock className="w-3 h-3 inline mr-1 mb-0.5" />
+            {formatDistanceToNow(new Date(current.created_at), { addSuffix: true, locale: ptBR })}
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <Button
           onClick={openWhatsApp}
-          className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-black h-14 sm:h-16 rounded-2xl shadow-xl flex gap-3 text-base sm:text-lg"
+          className="bg-[#25D366] hover:bg-[#20bd5a] text-white font-black h-14 rounded-2xl shadow-lg flex gap-2 text-sm"
         >
-          <WhatsAppIcon className="w-5 h-5 sm:w-6 sm:h-6" /> Abrir WhatsApp
+          <WhatsAppIcon className="w-5 h-5" /> WhatsApp
         </Button>
+        <a href={`tel:${current.whatsapp.replace(/\D/g, "")}`} className="block">
+          <Button
+            variant="secondary"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black h-14 rounded-2xl shadow-lg flex gap-2 text-sm"
+          >
+            <MessageSquare className="w-5 h-5" /> Ligar
+          </Button>
+        </a>
       </div>
 
       <section className="space-y-3">
