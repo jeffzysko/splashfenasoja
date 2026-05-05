@@ -377,7 +377,7 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
             variant="secondary"
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black h-14 rounded-2xl shadow-lg flex gap-2 text-sm"
           >
-            <MessageSquare className="w-5 h-5" /> Ligar
+            <Phone className="w-5 h-5" /> Ligar
           </Button>
         </a>
       </div>
