@@ -797,7 +797,7 @@ const LeadRow = memo(function LeadRow({ lead: l }: { lead: Lead }) {
       aria-label={`${l.nome}, ${statusBadge.label}, temperatura ${l.temperatura}, ${l.cidade}/${l.estado}`}
       className="group text-left bg-card border border-border rounded-2xl p-3.5 sm:p-4 flex flex-col gap-2.5 hover:border-primary/40 transition-all active:scale-[0.99] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary/60"
     >
-      {/* Linha 1 — Nome (prioridade máxima) + ação WhatsApp grande no mobile */}
+      {/* Linha 1 — Nome (prioridade máxima) + ações rápidas */}
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
@@ -817,22 +817,36 @@ const LeadRow = memo(function LeadRow({ lead: l }: { lead: Lead }) {
             {l.cidade}/{l.estado} • {relative}
           </div>
         </div>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            window.open(
-              `https://wa.me/${l.whatsapp.replace(/\D/g, "")}`,
-              "_blank",
-              "noreferrer"
-            );
-          }}
-          className="w-12 h-12 sm:w-11 sm:h-11 rounded-full bg-green-500/10 active:bg-green-500/25 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors shrink-0"
-          aria-label={`Abrir WhatsApp de ${l.nome}`}
-        >
-          <WhatsAppIcon className="w-6 h-6 sm:w-5 sm:h-5" />
-        </button>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              window.open(`tel:${l.whatsapp.replace(/\D/g, "")}`);
+            }}
+            className="w-10 h-10 rounded-full bg-blue-500/10 active:bg-blue-500/25 flex items-center justify-center text-blue-600 hover:bg-blue-500/20 transition-colors"
+            aria-label={`Ligar para ${l.nome}`}
+          >
+            <Search className="w-5 h-5 rotate-90" />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              window.open(
+                `https://wa.me/${l.whatsapp.replace(/\D/g, "")}`,
+                "_blank",
+                "noreferrer"
+              );
+            }}
+            className="w-10 h-10 rounded-full bg-green-500/10 active:bg-green-500/25 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors"
+            aria-label={`Abrir WhatsApp de ${l.nome}`}
+          >
+            <WhatsAppIcon className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Linha 2 — Status + score (prioridade alta) */}
