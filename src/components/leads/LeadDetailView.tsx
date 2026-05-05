@@ -481,6 +481,34 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
         </div>
       </section>
 
+      {(current.utm_source || current.utm_campaign) && (
+        <section className="space-y-3">
+          <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" /> Origem do Lead
+          </h3>
+          <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+            {current.utm_source && (
+              <div>
+                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-tighter">Fonte (Source)</p>
+                <p className="font-bold text-secondary">{current.utm_source}</p>
+              </div>
+            )}
+            {current.utm_campaign && (
+              <div>
+                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-tighter">Campanha</p>
+                <p className="font-bold text-secondary">{current.utm_campaign}</p>
+              </div>
+            )}
+            {current.utm_medium && (
+              <div>
+                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-tighter">Meio (Medium)</p>
+                <p className="font-bold text-secondary">{current.utm_medium}</p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       <section className="space-y-3">
         <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
           Status do Atendimento
