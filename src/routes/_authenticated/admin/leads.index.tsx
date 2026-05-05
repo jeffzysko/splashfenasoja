@@ -11,6 +11,7 @@ import {
   X,
   SlidersHorizontal,
   ArrowUpDown,
+  Phone,
 } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import {
