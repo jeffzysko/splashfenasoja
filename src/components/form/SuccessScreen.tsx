@@ -2,7 +2,7 @@ import { useFormStore } from "@/store/useFormStore";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, MapPin, Ruler } from "lucide-react";
 import { ScreenContainer } from "./ScreenContainer";
-import { LABELS, SPLASH_WHATSAPP, TEMP_BADGE } from "@/lib/leads";
+import { LABELS, TEMP_BADGE } from "@/lib/leads";
 
 const SiWhatsapp = () => (
   <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor" aria-hidden>
@@ -11,41 +11,47 @@ const SiWhatsapp = () => (
 );
 
 export const SuccessScreen = () => {
-  const { data, submitted, reset } = useFormStore();
+  const { data, submitted, reset, feiraWhatsapp, feiraNome } = useFormStore();
   const firstName = data.nome.split(" ")[0] || "amigo(a)";
   const badge = TEMP_BADGE[submitted.temperatura];
   const leadShort = submitted.leadId ? submitted.leadId.slice(0, 8).toUpperCase() : "—";
-  const isDuplicate = submitted.isDuplicate ?? false;
 
   const waMessage = encodeURIComponent(
-    `Oi Splash! Acabei de preencher o formulário no evento. Quero receber o catálogo de piscinas de fibra. Meu nome é ${firstName}.`,
+    `Oi Splash! Acabei de preencher o formulário no evento ${feiraNome || ""}. Quero receber o catálogo de piscinas de fibra. Meu nome é ${firstName}.`,
   );
-  const waLink = `https://wa.me/${SPLASH_WHATSAPP}?text=${waMessage}`;
+  // Usa o WhatsApp da feira; se não tiver, oculta o botão
+  const waNumber = feiraWhatsapp ? feiraWhatsapp.replace(/\D/g, "") : null;
+  const waLink = waNumber ? `https://wa.me/${waNumber}?text=${waMessage}` : null;
 
-  // Visitante já cadastrado nesta feira — exibe mensagem amigável sem revelar o motivo
-  if (isDuplicate) {
+  // Tela alternativa para lead duplicado
+  if (submitted.isDuplicate) {
     return (
       <ScreenContainer centered>
-        <div className="w-20 h-20 rounded-full bg-accent/15 flex items-center justify-center mb-5 shadow-[0_12px_40px_-12px_color-mix(in_oklab,var(--accent)_55%,transparent)] animate-in zoom-in-50 fade-in duration-500 delay-100 fill-mode-forwards">
-          <CheckCircle2 className="w-12 h-12 text-accent" strokeWidth={2.2} />
+        <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center mb-5 animate-in zoom-in-50 fade-in duration-500">
+          <CheckCircle2 className="w-12 h-12 text-blue-500" strokeWidth={2.2} />
         </div>
-        <h1 className="text-[30px] leading-tight font-extrabold text-secondary mb-2 max-w-sm tracking-tight animate-in fade-in slide-in-from-bottom-2 duration-500 delay-250">
-          Tudo certo, {firstName}! 🎉
+        <h1 className="text-[28px] leading-tight font-extrabold text-secondary mb-2 max-w-sm tracking-tight animate-in fade-in slide-in-from-bottom-2 duration-500 delay-150">
+          Você já está no nosso sistema!
         </h1>
-        <p className="text-base text-muted-foreground mb-6 max-w-md animate-in fade-in slide-in-from-bottom-2 duration-500 delay-350">
-          Você já está no nosso sistema! Em breve um especialista da Splash entrará em contato pelo WhatsApp.
+        <p className="text-base text-muted-foreground mb-8 max-w-md animate-in fade-in slide-in-from-bottom-2 duration-500 delay-250">
+          Em breve um especialista da Splash entrará em contato com você pelo WhatsApp.
         </p>
-        <div className="w-full max-w-sm space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-450">
-          <a href={waLink} target="_blank" rel="noreferrer" className="block">
-            <Button
-              size="lg"
-              className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white h-[60px] rounded-2xl text-lg font-bold shadow-lg gap-2"
-            >
-              <SiWhatsapp />
-              Chamar especialista agora!
-            </Button>
-          </a>
-          <button onClick={reset} className="w-full text-secondary hover:text-primary text-sm font-bold py-3 transition-colors">
+        <div className="w-full max-w-sm space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-350">
+          {waLink && (
+            <a href={waLink} target="_blank" rel="noreferrer" className="block">
+              <Button
+                size="lg"
+                className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white h-[60px] rounded-2xl text-lg font-bold shadow-lg gap-2"
+              >
+                <SiWhatsapp />
+                Chamar especialista agora!
+              </Button>
+            </a>
+          )}
+          <button
+            onClick={reset}
+            className="w-full text-secondary hover:text-primary text-sm font-bold py-3 transition-colors"
+          >
             Cadastrar outro visitante
           </button>
         </div>
@@ -63,7 +69,7 @@ export const SuccessScreen = () => {
         Pronto, {firstName}! 🎉
       </h1>
       <p className="text-base text-muted-foreground mb-6 max-w-md animate-in fade-in slide-in-from-bottom-2 duration-500 delay-350">
-        Logo mais um especialista da Splash Santa Rosa ou Splash Santo Ângelo irá te chamar no WhatsApp.
+        Logo mais um especialista da {feiraNome || "Splash"} irá te chamar no WhatsApp.
       </p>
 
       <div className="w-full max-w-sm bg-card border-2 border-border rounded-2xl p-5 mb-6 text-left animate-in fade-in slide-in-from-bottom-3 duration-500 delay-450">
@@ -90,15 +96,17 @@ export const SuccessScreen = () => {
       </div>
 
       <div className="w-full max-w-sm space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-550">
-        <a href={waLink} target="_blank" rel="noreferrer" className="block">
-          <Button
-            size="lg"
-            className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white h-[60px] rounded-2xl text-lg font-bold shadow-lg gap-2"
-          >
-            <SiWhatsapp />
-            Chamar especialista agora!
-          </Button>
-        </a>
+        {waLink && (
+          <a href={waLink} target="_blank" rel="noreferrer" className="block">
+            <Button
+              size="lg"
+              className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white h-[60px] rounded-2xl text-lg font-bold shadow-lg gap-2"
+            >
+              <SiWhatsapp />
+              Chamar especialista agora!
+            </Button>
+          </a>
+        )}
 
         <button
           onClick={reset}

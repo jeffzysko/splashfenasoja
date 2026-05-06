@@ -35,7 +35,7 @@ export const Route = createFileRoute("/_authenticated/admin/feiras/$feiraId")({
   head: () => ({ meta: [{ title: "Gerenciar Feira — Splash Admin" }] }),
 });
 
-type Feira = { id: string; nome: string; slug: string; ativo: boolean; created_at: string };
+type Feira = { id: string; nome: string; slug: string; ativo: boolean; created_at: string; whatsapp: string | null };
 type UserRow = { user_id: string; email: string | null; full_name: string | null; role: string; vinculado: boolean };
 
 function slugify(text: string) {
@@ -55,6 +55,7 @@ function FeiraDetailPage() {
   const [editNome, setEditNome] = useState("");
   const [editSlug, setEditSlug] = useState("");
   const [editAtivo, setEditAtivo] = useState(true);
+  const [editWhatsapp, setEditWhatsapp] = useState("");
   const [slugManual, setSlugManual] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -71,6 +72,7 @@ function FeiraDetailPage() {
     setEditNome(data.nome);
     setEditSlug(data.slug);
     setEditAtivo(data.ativo);
+    setEditWhatsapp(data.whatsapp || "");
     setLoading(false);
   }, [feiraId, navigate]);
 
@@ -126,7 +128,13 @@ function FeiraDetailPage() {
     if (!editNome.trim() || !editSlug.trim()) { toast.error("Nome e slug são obrigatórios."); return; }
     if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(editSlug)) { toast.error("Slug inválido."); return; }
     setSaving(true);
-    const { error } = await supabase.from("feiras").update({ nome: editNome.trim(), slug: editSlug.trim(), ativo: editAtivo }).eq("id", feiraId);
+    const waClean = editWhatsapp.replace(/\D/g, "");
+    const { error } = await supabase.from("feiras").update({
+      nome: editNome.trim(),
+      slug: editSlug.trim(),
+      ativo: editAtivo,
+      whatsapp: waClean || null,
+    }).eq("id", feiraId);
     setSaving(false);
     if (error) { toast.error(error.message.includes("unique") ? "Esse slug já está em uso." : error.message); return; }
     toast.success("Feira atualizada!");
@@ -217,6 +225,22 @@ function FeiraDetailPage() {
               className="h-12 rounded-xl font-mono"
             />
           </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">
+            WhatsApp do responsável
+          </label>
+          <Input
+            value={editWhatsapp}
+            onChange={(e) => setEditWhatsapp(e.target.value)}
+            placeholder="Ex: 5555999990000 (com DDD e DDI)"
+            className="h-12 rounded-xl font-mono"
+            type="tel"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Número que aparece no botão "Chamar especialista" da tela de sucesso do formulário.
+          </p>
         </div>
 
         <div className="flex items-center justify-between py-1">

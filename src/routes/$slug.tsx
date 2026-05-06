@@ -5,7 +5,6 @@ import { useFormStore } from "@/store/useFormStore";
 import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 
 const ContactScreen = lazy(() =>
   import("@/components/form/ContactScreen").then((m) => ({ default: m.ContactScreen }))
@@ -29,13 +28,13 @@ const SuccessScreen = lazy(() =>
   import("@/components/form/SuccessScreen").then((m) => ({ default: m.SuccessScreen }))
 );
 
-type Feira = { id: string; nome: string; slug: string; ativo: boolean };
+type Feira = { id: string; nome: string; slug: string; ativo: boolean; whatsapp: string | null };
 
 export const Route = createFileRoute("/$slug")({
   loader: async ({ params }): Promise<Feira> => {
     const { data, error } = await supabase
       .from("feiras")
-      .select("id, nome, slug, ativo")
+      .select("id, nome, slug, ativo, whatsapp")
       .eq("slug", params.slug)
       .maybeSingle();
 
@@ -104,7 +103,7 @@ function FeiraFormPage() {
   // Sincroniza a feira no store sempre que o slug mudar
   useEffect(() => {
     if (feira && feiraId !== feira.id) {
-      setFeira(feira.id, feira.nome, feira.slug);
+      setFeira(feira.id, feira.nome, feira.slug, feira.whatsapp || "");
     }
   }, [feira, feiraId, setFeira]);
 

@@ -3,129 +3,106 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Plus, Loader2, Trash2, Eye, EyeOff, UserCog, CalendarDays } from "lucide-react";
-import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { Loader2, Plus, Pencil, Trash2, Eye, EyeOff, KeyRound, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 
 export const Route = createFileRoute("/_authenticated/admin/usuarios/")({
   component: UsuariosPage,
-  head: () => ({ meta: [{ title: "Usuários — Splash Admin" }] }),
 });
 
+type AppRole = "master" | "admin" | "user";
 type Feira = { id: string; nome: string; slug: string };
 type UserRow = {
   user_id: string;
-  email: string;
+  email: string | null;
   full_name: string | null;
-  role: string;
+  role: AppRole;
   feiras: Feira[];
-};
-
-const ROLE_LABEL: Record<string, string> = { master: "Master", admin: "Admin", user: "Vendedor" };
-const ROLE_CLASS: Record<string, string> = {
-  master: "bg-primary/15 text-primary border-primary/30",
-  admin: "bg-secondary/15 text-secondary border-secondary/30",
-  user: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
+  created_at?: string;
+  last_sign_in_at?: string | null;
 };
 
 function UsuariosPage() {
+  const { user: currentUser } = useSupabaseAuth();
+  const currentUserId = currentUser?.id ?? "";
+
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [feiras, setFeiras] = useState<Feira[]>([]);
+  const [allFeiras, setAllFeiras] = useState<Feira[]>([]);
 
-  // Dialog criar usuário
-  const [showCreate, setShowCreate] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
+  // ── Create dialog ────────────────────────────────────────────────────────
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newNome, setNewNome] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newSenha, setNewSenha] = useState("");
   const [showSenha, setShowSenha] = useState(false);
-  const [role, setRole] = useState("admin");
-  const [selectedFeiras, setSelectedFeiras] = useState<string[]>([]);
+  const [newRole, setNewRole] = useState<AppRole>("admin");
+  const [newFeiras, setNewFeiras] = useState<string[]>([]);
+  const [creating, setCreating] = useState(false);
 
-  // Dialog editar role
+  // ── Edit dialog ──────────────────────────────────────────────────────────
   const [editingUser, setEditingUser] = useState<UserRow | null>(null);
-  const [editRole, setEditRole] = useState<"master" | "admin" | "user">("user");
+  const [editRole, setEditRole] = useState<AppRole>("admin");
   const [editFeiras, setEditFeiras] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
+  // ── Reset password dialog ────────────────────────────────────────────────
+  const [resetUser, setResetUser] = useState<UserRow | null>(null);
+  const [resetSenha, setResetSenha] = useState("");
+  const [showResetSenha, setShowResetSenha] = useState(false);
+  const [resetting, setResetting] = useState(false);
+
+  // ── Deleting ─────────────────────────────────────────────────────────────
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  // ── Carrega lista via Edge Function list-users ───────────────────────────
   const loadUsers = useCallback(async () => {
     setLoading(true);
-
-    // Buscar todos os roles
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("user_id, role")
-      .order("role");
-
-    // Buscar perfis
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("id, full_name");
-
-    // Buscar emails via audit_log (melhor proxy disponível sem service_role)
-    const { data: auditRows } = await supabase
-      .from("admin_audit_log")
-      .select("user_id, email")
-      .order("created_at", { ascending: false });
-
-    // Buscar vinculações
-    const { data: fuRows } = await supabase
-      .from("feira_users")
-      .select("user_id, feira_id, feiras(id, nome, slug)");
-
-    const profileMap = new Map((profiles || []).map((p) => [p.id, p.full_name]));
-    const emailMap = new Map<string, string>();
-    for (const a of auditRows || []) {
-      if (a.email && !emailMap.has(a.user_id)) emailMap.set(a.user_id, a.email);
+    try {
+      const { data, error } = await supabase.functions.invoke("list-users");
+      if (error) throw error;
+      setUsers((data as any).users as UserRow[]);
+    } catch (err) {
+      console.error("Erro ao carregar usuários:", err);
+      toast.error("Não foi possível carregar a lista de usuários.");
+    } finally {
+      setLoading(false);
     }
-
-    // Agrupar feiras por user_id
-    const fairsByUser = new Map<string, Feira[]>();
-    for (const fu of fuRows || []) {
-      const f = (fu as any).feiras;
-      if (!f) continue;
-      if (!fairsByUser.has(fu.user_id)) fairsByUser.set(fu.user_id, []);
-      fairsByUser.get(fu.user_id)!.push(f as Feira);
-    }
-
-    // Deduplicar por user_id mantendo o role mais elevado
-    const userMap = new Map<string, UserRow>();
-    const rolePriority: Record<string, number> = { master: 3, admin: 2, user: 1 };
-    for (const r of roles || []) {
-      const existing = userMap.get(r.user_id);
-      if (!existing || (rolePriority[r.role] || 0) > (rolePriority[existing.role] || 0)) {
-        userMap.set(r.user_id, {
-          user_id: r.user_id,
-          email: emailMap.get(r.user_id) || "—",
-          full_name: profileMap.get(r.user_id) || null,
-          role: r.role,
-          feiras: fairsByUser.get(r.user_id) || [],
-        });
-      }
-    }
-
-    setUsers(Array.from(userMap.values()).sort((a, b) =>
-      (rolePriority[b.role] || 0) - (rolePriority[a.role] || 0)
-    ));
-    setLoading(false);
   }, []);
 
   const loadFeiras = useCallback(async () => {
-    const { data } = await supabase.from("feiras").select("id, nome, slug").order("nome");
-    if (data) setFeiras(data as Feira[]);
+    const { data } = await supabase
+      .from("feiras")
+      .select("id, nome, slug")
+      .order("nome");
+    if (data) setAllFeiras(data as Feira[]);
   }, []);
 
   useEffect(() => {
@@ -133,137 +110,129 @@ function UsuariosPage() {
     loadFeiras();
   }, [loadUsers, loadFeiras]);
 
+  // ── Criar usuário ────────────────────────────────────────────────────────
   const handleCreate = async () => {
-    if (!nome.trim() || !email.trim() || !senha || !role) {
-      toast.error("Preencha todos os campos obrigatórios.");
+    if (!newNome.trim() || !newEmail.trim() || !newSenha.trim()) {
+      toast.error("Preencha nome, e-mail e senha.");
+      return;
+    }
+    if (newSenha.length < 6) {
+      toast.error("Senha deve ter pelo menos 6 caracteres.");
       return;
     }
     setCreating(true);
-
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token;
-
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({ nome: nome.trim(), email: email.trim(), senha, role, feira_ids: selectedFeiras }),
-        }
-      );
-
-      const json = await res.json();
-      if (!res.ok) {
-        toast.error(json.error || "Erro ao criar usuário.");
+      const { data, error } = await supabase.functions.invoke("create-user", {
+        body: {
+          email: newEmail.trim().toLowerCase(),
+          password: newSenha,
+          full_name: newNome.trim(),
+          role: newRole,
+          feira_ids: newFeiras,
+        },
+      });
+      if (error || (data as any)?.error) {
+        toast.error((data as any)?.error || error?.message || "Erro ao criar usuário.");
         return;
       }
-
-      toast.success(`Usuário ${json.user.email} criado com sucesso!`);
-      setShowCreate(false);
-      setNome(""); setEmail(""); setSenha(""); setRole("admin"); setSelectedFeiras([]);
+      toast.success("Usuário criado com sucesso!");
+      setCreateOpen(false);
+      setNewNome(""); setNewEmail(""); setNewSenha(""); setNewRole("admin"); setNewFeiras([]);
       loadUsers();
-    } catch (e) {
-      toast.error("Erro de conexão com a função.");
     } finally {
       setCreating(false);
     }
   };
 
-  const handleDelete = async (userId: string) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token;
-
-    const res = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({ user_id: userId }),
-      }
-    );
-
-    const json = await res.json();
-    if (!res.ok) {
-      toast.error(json.error || "Erro ao excluir usuário.");
-      return;
-    }
-
-    toast.success("Usuário removido.");
-    loadUsers();
-  };
-
+  // ── Editar usuário ───────────────────────────────────────────────────────
   const openEdit = (u: UserRow) => {
     setEditingUser(u);
-    setEditRole(u.role as "master" | "admin" | "user");
+    setEditRole(u.role);
     setEditFeiras(u.feiras.map((f) => f.id));
   };
 
   const handleSaveEdit = async () => {
     if (!editingUser) return;
+    // Guard: master não pode trocar a própria role
+    if (editingUser.user_id === currentUserId && editRole !== "master") {
+      toast.error("Você não pode remover sua própria role de master.");
+      return;
+    }
     setSaving(true);
-
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const currentUserId = session?.user?.id;
-
-      // Proteção: master não pode remover o próprio role de master
-      if (editingUser.user_id === currentUserId && editingUser.role === "master" && editRole !== "master") {
-        toast.error("Você não pode remover seu próprio role de master.");
-        setSaving(false);
-        return;
-      }
-
-      // SAFE: inserir/upsert PRIMEIRO, só depois deletar os antigos.
-      // Isso evita a janela onde o usuário fica sem nenhum role,
-      // o que quebraria a RLS e travaria o sistema.
-      const { error: upsertErr } = await supabase
+      // UPSERT primeiro (nunca fica sem role), depois remove as antigas
+      await supabase
         .from("user_roles")
         .upsert({ user_id: editingUser.user_id, role: editRole }, { onConflict: "user_id,role" });
-
-      if (upsertErr) {
-        toast.error("Erro ao atualizar role: " + upsertErr.message);
-        return;
-      }
-
-      // Agora remove os outros roles (diferentes do novo)
       await supabase
         .from("user_roles")
         .delete()
         .eq("user_id", editingUser.user_id)
         .neq("role", editRole);
 
-      // Atualizar feiras: remover all, reinserir selecionadas
+      // Atualiza vínculos com feiras
       await supabase.from("feira_users").delete().eq("user_id", editingUser.user_id);
       if (editFeiras.length > 0) {
         await supabase.from("feira_users").insert(
-          editFeiras.map((fid) => ({ feira_id: fid, user_id: editingUser.user_id }))
+          editFeiras.map((fid) => ({ user_id: editingUser.user_id, feira_id: fid })),
         );
       }
 
-      // Se editou a própria conta: limpar cache de auth para forçar revalidação limpa
+      // Se for self-edit, limpa cache de auth
       if (editingUser.user_id === currentUserId) {
-        try {
-          sessionStorage.removeItem("admin_auth_cache_v1");
-          sessionStorage.removeItem(`is_master_${currentUserId}`);
-        } catch { /* ignore */ }
+        sessionStorage.removeItem("admin_auth_cache_v1");
+        sessionStorage.removeItem(`is_master_${currentUserId}`);
       }
 
-      toast.success("Usuário atualizado.");
+      toast.success("Usuário atualizado!");
       setEditingUser(null);
       loadUsers();
-    } catch (e) {
-      toast.error("Erro inesperado ao salvar.");
+    } catch {
+      toast.error("Erro ao salvar alterações.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  // ── Reset de senha ───────────────────────────────────────────────────────
+  const handleResetSenha = async () => {
+    if (!resetUser) return;
+    if (resetSenha.length < 6) {
+      toast.error("Senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
+    setResetting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("reset-password", {
+        body: { targetUserId: resetUser.user_id, newPassword: resetSenha },
+      });
+      if (error || (data as any)?.error) {
+        toast.error((data as any)?.error || "Erro ao redefinir senha.");
+        return;
+      }
+      toast.success(`Senha de ${resetUser.email || resetUser.full_name} redefinida!`);
+      setResetUser(null);
+      setResetSenha("");
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  // ── Deletar usuário ──────────────────────────────────────────────────────
+  const handleDelete = async (u: UserRow) => {
+    setDeleting(u.user_id);
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-user", {
+        body: { targetUserId: u.user_id },
+      });
+      if (error || (data as any)?.error) {
+        toast.error((data as any)?.error || "Erro ao excluir usuário.");
+        return;
+      }
+      toast.success("Usuário excluído.");
+      loadUsers();
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -272,241 +241,294 @@ function UsuariosPage() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Link to="/admin" className="p-2 -ml-2 text-muted-foreground hover:text-secondary rounded-full" aria-label="Voltar">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-black text-secondary tracking-tight flex items-center gap-2">
-              <UserCog className="w-6 h-6 text-primary" /> Usuários
-            </h1>
-            <p className="text-sm text-muted-foreground">{users.length} cadastrado{users.length !== 1 ? "s" : ""}</p>
-          </div>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-black text-secondary tracking-tight">Usuários</h1>
+          <p className="text-sm text-muted-foreground">Gerencie os responsáveis pelas feiras</p>
         </div>
-        <Button
-          onClick={() => setShowCreate(true)}
-          className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl gap-2 h-10"
-        >
-          <Plus className="w-4 h-4" /> Novo Usuário
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={loadUsers} className="rounded-xl gap-1.5">
+            <RefreshCw className="w-3.5 h-3.5" />
+            Atualizar
+          </Button>
+          <Button onClick={() => setCreateOpen(true)} className="rounded-xl gap-2 font-bold">
+            <Plus className="w-4 h-4" />
+            Novo usuário
+          </Button>
+        </div>
       </div>
 
       {/* Lista */}
-      <div className="bg-card border-2 border-border rounded-2xl overflow-hidden">
+      <div className="bg-card border border-border rounded-2xl overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center py-12 text-muted-foreground">
-            <Loader2 className="w-5 h-5 animate-spin mr-2" /> Carregando...
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
         ) : users.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground text-sm">Nenhum usuário cadastrado.</div>
+          <p className="text-center text-muted-foreground py-16">Nenhum usuário cadastrado.</p>
         ) : (
-          <ul className="divide-y divide-border">
+          <div className="divide-y divide-border">
             {users.map((u) => (
-              <li key={u.user_id} className="p-4 flex items-center justify-between gap-3">
+              <div key={u.user_id} className="flex items-center gap-3 p-4">
+                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <span className="text-sm font-bold text-primary">
+                    {(u.full_name || u.email || "?")[0].toUpperCase()}
+                  </span>
+                </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-bold text-secondary truncate">{u.full_name || "(sem nome)"}</span>
-                    <span className={cn("text-[10px] font-extrabold px-2 py-0.5 rounded-full border shrink-0", ROLE_CLASS[u.role] || "bg-muted text-muted-foreground border-border")}>
-                      {ROLE_LABEL[u.role] || u.role}
+                    <p className="text-sm font-bold text-secondary truncate">
+                      {u.full_name || "Sem nome"}
+                    </p>
+                    <span className={cn(
+                      "text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider",
+                      u.role === "master" ? "bg-purple-100 text-purple-700" :
+                      u.role === "admin" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"
+                    )}>
+                      {u.role}
                     </span>
                   </div>
-                  <div className="text-sm text-muted-foreground truncate">{u.email}</div>
+                  <p className="text-xs text-muted-foreground truncate">{u.email || "—"}</p>
                   {u.feiras.length > 0 && (
-                    <div className="flex items-center gap-1 mt-1 flex-wrap">
-                      <CalendarDays className="w-3 h-3 text-muted-foreground shrink-0" />
-                      {u.feiras.map((f) => (
-                        <span key={f.id} className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-md font-semibold">
-                          {f.nome}
-                        </span>
-                      ))}
-                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {u.feiras.map((f) => f.nome).join(", ")}
+                    </p>
                   )}
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <Button
-                    variant="ghost" size="icon"
-                    className="h-9 w-9 text-muted-foreground hover:text-primary rounded-xl"
+                  {/* Reset senha */}
+                  {u.user_id !== currentUserId && (
+                    <button
+                      onClick={() => { setResetUser(u); setResetSenha(""); setShowResetSenha(false); }}
+                      className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-secondary transition-colors"
+                      title="Redefinir senha"
+                    >
+                      <KeyRound className="w-4 h-4" />
+                    </button>
+                  )}
+                  {/* Editar */}
+                  <button
                     onClick={() => openEdit(u)}
+                    className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-secondary transition-colors"
                     title="Editar"
                   >
-                    <UserCog className="w-4 h-4" />
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="ghost" size="icon"
-                        className="h-9 w-9 text-muted-foreground hover:text-destructive rounded-xl"
-                        title="Excluir"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent className="rounded-2xl">
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Excluir usuário?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          <strong>{u.full_name || u.email}</strong> será removido permanentemente do sistema. Essa ação não pode ser desfeita.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
-                        <AlertDialogAction
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl"
-                          onClick={() => handleDelete(u.user_id)}
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  {/* Excluir */}
+                  {u.user_id !== currentUserId && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <button
+                          className="p-2 rounded-xl hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                          disabled={deleting === u.user_id}
+                          title="Excluir"
                         >
-                          Excluir
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                          {deleting === u.user_id
+                            ? <Loader2 className="w-4 h-4 animate-spin" />
+                            : <Trash2 className="w-4 h-4" />}
+                        </button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="rounded-2xl">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Excluir {u.email || u.full_name}?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            O usuário perderá acesso permanentemente. Os leads não serão afetados.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDelete(u)}
+                            className="bg-destructive hover:bg-destructive/90 rounded-xl"
+                          >
+                            Excluir
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
                 </div>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </div>
 
-      {/* Dialog: Criar usuário */}
-      <Dialog open={showCreate} onOpenChange={(v) => { if (!creating) setShowCreate(v); }}>
-        <DialogContent className="rounded-2xl max-w-md">
+      {/* ── Dialog: Criar usuário ─────────────────────────────────────────── */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="rounded-2xl max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-xl font-black text-secondary">Novo Usuário</DialogTitle>
+            <DialogTitle>Novo usuário</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <Field label="Nome completo">
-              <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="João da Silva" className="rounded-xl h-11" />
-            </Field>
-            <Field label="E-mail">
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="joao@splashpiscinas.com" className="rounded-xl h-11" />
-            </Field>
-            <Field label="Senha">
+          <div className="space-y-3 py-2">
+            <div className="space-y-1">
+              <label className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Nome completo</label>
+              <Input value={newNome} onChange={(e) => setNewNome(e.target.value)} placeholder="Maria Silva" className="h-11 rounded-xl" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">E-mail</label>
+              <Input value={newEmail} onChange={(e) => setNewEmail(e.target.value)} type="email" placeholder="maria@splash.com" className="h-11 rounded-xl" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Senha</label>
               <div className="relative">
                 <Input
+                  value={newSenha}
+                  onChange={(e) => setNewSenha(e.target.value)}
                   type={showSenha ? "text" : "password"}
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
                   placeholder="Mínimo 6 caracteres"
-                  className="rounded-xl h-11 pr-11"
+                  className="h-11 rounded-xl pr-10"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowSenha((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-secondary"
-                >
+                <button type="button" onClick={() => setShowSenha(!showSenha)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                   {showSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-            </Field>
-            <Field label="Função">
-              <Select value={role} onValueChange={setRole}>
-                <SelectTrigger className="rounded-xl h-11">
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Role</label>
+              <Select value={newRole} onValueChange={(v) => setNewRole(v as AppRole)}>
+                <SelectTrigger className="h-11 rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="user">Vendedor</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="user">User</SelectItem>
                   <SelectItem value="master">Master</SelectItem>
                 </SelectContent>
               </Select>
-            </Field>
-            {feiras.length > 0 && (
-              <Field label="Feiras vinculadas (opcional)">
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {feiras.map((f) => (
+            </div>
+            {allFeiras.length > 0 && (
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Feiras vinculadas</label>
+                <div className="flex flex-wrap gap-2">
+                  {allFeiras.map((f) => (
                     <button
                       key={f.id}
                       type="button"
-                      onClick={() => toggleFeira(f.id, selectedFeiras, setSelectedFeiras)}
+                      onClick={() => toggleFeira(f.id, newFeiras, setNewFeiras)}
                       className={cn(
-                        "text-xs font-bold px-3 py-1.5 rounded-xl border-2 transition-all",
-                        selectedFeiras.includes(f.id)
+                        "text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-all",
+                        newFeiras.includes(f.id)
                           ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-muted text-muted-foreground border-transparent hover:border-border"
+                          : "border-border text-muted-foreground hover:border-primary/50"
                       )}
                     >
                       {f.nome}
                     </button>
                   ))}
                 </div>
-              </Field>
+              </div>
             )}
           </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" className="rounded-xl" onClick={() => setShowCreate(false)} disabled={creating}>
-              Cancelar
-            </Button>
-            <Button onClick={handleCreate} disabled={creating} className="bg-primary text-primary-foreground rounded-xl font-bold gap-2">
-              {creating ? <><Loader2 className="w-4 h-4 animate-spin" /> Criando...</> : "Criar usuário"}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setCreateOpen(false)} className="rounded-xl">Cancelar</Button>
+            <Button onClick={handleCreate} disabled={creating} className="rounded-xl font-bold gap-2">
+              {creating && <Loader2 className="w-4 h-4 animate-spin" />}
+              Criar usuário
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog: Editar usuário */}
-      <Dialog open={!!editingUser} onOpenChange={(v) => { if (!saving && !v) setEditingUser(null); }}>
-        <DialogContent className="rounded-2xl max-w-md">
+      {/* ── Dialog: Editar usuário ────────────────────────────────────────── */}
+      <Dialog open={!!editingUser} onOpenChange={(v) => !v && setEditingUser(null)}>
+        <DialogContent className="rounded-2xl max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-xl font-black text-secondary">
-              Editar: {editingUser?.full_name || editingUser?.email}
-            </DialogTitle>
+            <DialogTitle>Editar usuário</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <Field label="Função">
-              <Select value={editRole} onValueChange={(v) => setEditRole(v as "master" | "admin" | "user")}>
-                <SelectTrigger className="rounded-xl h-11">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="user">Vendedor</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="master">Master</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-            {feiras.length > 0 && (
-              <Field label="Feiras vinculadas">
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {feiras.map((f) => (
-                    <button
-                      key={f.id}
-                      type="button"
-                      onClick={() => toggleFeira(f.id, editFeiras, setEditFeiras)}
-                      className={cn(
-                        "text-xs font-bold px-3 py-1.5 rounded-xl border-2 transition-all",
-                        editFeiras.includes(f.id)
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-muted text-muted-foreground border-transparent hover:border-border"
-                      )}
-                    >
-                      {f.nome}
-                    </button>
-                  ))}
+          {editingUser && (
+            <div className="space-y-3 py-2">
+              <div>
+                <p className="text-sm font-bold text-secondary">{editingUser.full_name || "—"}</p>
+                <p className="text-xs text-muted-foreground">{editingUser.email}</p>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Role</label>
+                <Select value={editRole} onValueChange={(v) => setEditRole(v as AppRole)}>
+                  <SelectTrigger className="h-11 rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="user">User</SelectItem>
+                    <SelectItem value="master">Master</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {allFeiras.length > 0 && (
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Feiras vinculadas</label>
+                  <div className="flex flex-wrap gap-2">
+                    {allFeiras.map((f) => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => toggleFeira(f.id, editFeiras, setEditFeiras)}
+                        className={cn(
+                          "text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-all",
+                          editFeiras.includes(f.id)
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "border-border text-muted-foreground hover:border-primary/50"
+                        )}
+                      >
+                        {f.nome}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </Field>
-            )}
-          </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" className="rounded-xl" onClick={() => setEditingUser(null)} disabled={saving}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveEdit} disabled={saving} className="bg-primary text-primary-foreground rounded-xl font-bold gap-2">
-              {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Salvando...</> : "Salvar"}
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditingUser(null)} className="rounded-xl">Cancelar</Button>
+            <Button onClick={handleSaveEdit} disabled={saving} className="rounded-xl font-bold gap-2">
+              {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+              Salvar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1.5">
-      <Label className="text-secondary font-black uppercase text-[10px] tracking-widest ml-1">{label}</Label>
-      {children}
+      {/* ── Dialog: Reset de senha ────────────────────────────────────────── */}
+      <Dialog open={!!resetUser} onOpenChange={(v) => !v && setResetUser(null)}>
+        <DialogContent className="rounded-2xl max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Redefinir senha</DialogTitle>
+          </DialogHeader>
+          {resetUser && (
+            <div className="space-y-3 py-2">
+              <div>
+                <p className="text-sm font-bold text-secondary">{resetUser.full_name || "—"}</p>
+                <p className="text-xs text-muted-foreground">{resetUser.email}</p>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Nova senha</label>
+                <div className="relative">
+                  <Input
+                    value={resetSenha}
+                    onChange={(e) => setResetSenha(e.target.value)}
+                    type={showResetSenha ? "text" : "password"}
+                    placeholder="Mínimo 6 caracteres"
+                    className="h-11 rounded-xl pr-10"
+                  />
+                  <button type="button" onClick={() => setShowResetSenha(!showResetSenha)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    {showResetSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setResetUser(null)} className="rounded-xl">Cancelar</Button>
+            <Button onClick={handleResetSenha} disabled={resetting} className="rounded-xl font-bold gap-2">
+              {resetting && <Loader2 className="w-4 h-4 animate-spin" />}
+              Redefinir senha
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -27,39 +27,89 @@ export const SubmittingScreen = () => {
 
         const params = new URLSearchParams(window.location.search);
 
-        const { error } = await supabase.from("leads").insert({
-          id: leadId,
-          nome: data.nome.trim(),
-          whatsapp: normalizeWhatsapp(data.whatsapp),
-          email: data.email?.trim() || null,
-          cidade: data.cidade,
-          estado: data.estado,
-          tamanho_quintal: data.tamanho_quintal,
-          prazo_compra: data.prazo_compra,
-          orcamento: data.orcamento,
-          score,
-          temperatura,
-          // Dados da feira — vêm do store, não hardcoded
-          evento: feiraNome || "Evento Splash",
-          feira_id: feiraId || null,
-          utm_source: params.get("utm_source"),
-          utm_medium: params.get("utm_medium"),
-          utm_campaign: params.get("utm_campaign"),
-          user_agent: navigator.userAgent,
-        });
+        // Tenta via Edge Function (captura IP + rate limiting)
+        // Fallback para insert direto se a função não estiver disponível
+        let useEdgeFunction = true;
+        let result: { leadId: string; score: number; temperatura: "quente" | "morno" | "frio" } | null = null;
 
-        if (error) {
-          // P0002 = lead duplicado (mesmo WhatsApp + feira já cadastrado).
-          // Tratamos como sucesso para não confundir o visitante.
-          if (error.code === "P0002" || error.message?.includes("LEAD_DUPLICATE")) {
-            setSubmitted({ leadId: "", score: 0, temperatura: "frio", isDuplicate: true });
-            setTimeout(() => setStep(7), 400);
-            return;
+        if (useEdgeFunction) {
+          const { data: fnData, error: fnError } = await supabase.functions.invoke("submit-lead", {
+            body: {
+              id: leadId,
+              nome: data.nome.trim(),
+              whatsapp: normalizeWhatsapp(data.whatsapp),
+              email: data.email?.trim() || null,
+              cidade: data.cidade,
+              estado: data.estado,
+              tamanho_quintal: data.tamanho_quintal,
+              prazo_compra: data.prazo_compra,
+              orcamento: data.orcamento,
+              score,
+              temperatura,
+              evento: feiraNome || "Evento Splash",
+              feira_id: feiraId || null,
+              utm_source: params.get("utm_source"),
+              utm_medium: params.get("utm_medium"),
+              utm_campaign: params.get("utm_campaign"),
+              user_agent: navigator.userAgent,
+            },
+          });
+
+          if (fnError) {
+            // Rate limit excedido
+            if (fnError.message?.includes("429") || (fnData as any)?.error === "RATE_LIMIT_EXCEEDED") {
+              toast.error("Muitas tentativas. Aguarde alguns minutos.", { duration: 6000 });
+              setStep(5);
+              return;
+            }
+            // Duplicata detectada
+            if ((fnData as any)?.error === "LEAD_DUPLICATE" || fnError.message?.includes("409")) {
+              setSubmitted({ leadId: "", score: 0, temperatura: "frio", isDuplicate: true });
+              setTimeout(() => setStep(7), 300);
+              return;
+            }
+            // Edge Function não disponível → fallback para insert direto
+            console.warn("Edge Function indisponível, usando fallback direto:", fnError);
+            useEdgeFunction = false;
+          } else {
+            result = { leadId: (fnData as any).leadId, score: (fnData as any).score, temperatura: (fnData as any).temperatura };
           }
-          throw error;
         }
 
-        setSubmitted({ leadId, score, temperatura, isDuplicate: false });
+        // Fallback: insert direto (sem captura de IP)
+        if (!useEdgeFunction || !result) {
+          const { error } = await supabase.from("leads").insert({
+            id: leadId,
+            nome: data.nome.trim(),
+            whatsapp: normalizeWhatsapp(data.whatsapp),
+            email: data.email?.trim() || null,
+            cidade: data.cidade,
+            estado: data.estado,
+            tamanho_quintal: data.tamanho_quintal,
+            prazo_compra: data.prazo_compra,
+            orcamento: data.orcamento,
+            score,
+            temperatura,
+            evento: feiraNome || "Evento Splash",
+            feira_id: feiraId || null,
+            utm_source: params.get("utm_source"),
+            utm_medium: params.get("utm_medium"),
+            utm_campaign: params.get("utm_campaign"),
+            user_agent: navigator.userAgent,
+          });
+
+          if (error) {
+            if (error.code === "P0002" || error.message?.includes("LEAD_DUPLICATE")) {
+              setSubmitted({ leadId: "", score: 0, temperatura: "frio", isDuplicate: true });
+              setTimeout(() => setStep(7), 300);
+              return;
+            }
+            throw error;
+          }
+          result = { leadId, score, temperatura };
+        }
+
+        setSubmitted({ leadId: result.leadId, score: result.score, temperatura: result.temperatura });
         setTimeout(() => setStep(7), 700);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : "Algo deu errado";

@@ -17,6 +17,7 @@ type FormStore = {
   feiraId: string;
   feiraNome: string;
   feiraSlug: string;
+  feiraWhatsapp: string;
   data: LeadData;
   submitted: {
     leadId: string | null;
@@ -25,7 +26,7 @@ type FormStore = {
     isDuplicate?: boolean;
   };
   setStep: (step: number) => void;
-  setFeira: (id: string, nome: string, slug: string) => void;
+  setFeira: (id: string, nome: string, slug: string, whatsapp?: string) => void;
   updateData: (newData: Partial<LeadData>) => void;
   setSubmitted: (s: { leadId: string; score: number; temperatura: 'quente' | 'morno' | 'frio'; isDuplicate?: boolean }) => void;
   reset: () => void;
@@ -47,10 +48,12 @@ export const useFormStore = create<FormStore>((set) => ({
   feiraId: '',
   feiraNome: '',
   feiraSlug: '',
+  feiraWhatsapp: '',
   data: emptyData,
   submitted: { leadId: null, score: 0, temperatura: 'frio', isDuplicate: false },
   setStep: (step) => set({ step }),
-  setFeira: (feiraId, feiraNome, feiraSlug) => set({ feiraId, feiraNome, feiraSlug }),
+  setFeira: (feiraId, feiraNome, feiraSlug, feiraWhatsapp = '') =>
+    set({ feiraId, feiraNome, feiraSlug, feiraWhatsapp }),
   updateData: (newData) => set((state) => ({ data: { ...state.data, ...newData } })),
   setSubmitted: (s) => set({ submitted: s }),
   reset: () =>
@@ -58,7 +61,7 @@ export const useFormStore = create<FormStore>((set) => ({
       step: 0,
       data: emptyData,
       submitted: { leadId: null, score: 0, temperatura: 'frio', isDuplicate: false },
-      // feiraId/feiraNome/feiraSlug são mantidos para o caso de o usuário
+      // feiraId/feiraNome/feiraSlug/feiraWhatsapp são mantidos para o caso de o usuário
       // querer preencher novamente na mesma feira
     }),
 }));
