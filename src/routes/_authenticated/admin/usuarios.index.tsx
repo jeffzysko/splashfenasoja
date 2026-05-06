@@ -57,7 +57,7 @@ function UsuariosPage() {
 
   // Dialog editar role
   const [editingUser, setEditingUser] = useState<UserRow | null>(null);
-  const [editRole, setEditRole] = useState("");
+  const [editRole, setEditRole] = useState<"master" | "admin" | "user">("user");
   const [editFeiras, setEditFeiras] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -203,7 +203,7 @@ function UsuariosPage() {
 
   const openEdit = (u: UserRow) => {
     setEditingUser(u);
-    setEditRole(u.role);
+    setEditRole(u.role as "master" | "admin" | "user");
     setEditFeiras(u.feiras.map((f) => f.id));
   };
 
@@ -455,7 +455,7 @@ function UsuariosPage() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <Field label="Função">
-              <Select value={editRole} onValueChange={setEditRole}>
+              <Select value={editRole} onValueChange={(v) => setEditRole(v as "master" | "admin" | "user")}>
                 <SelectTrigger className="rounded-xl h-11">
                   <SelectValue />
                 </SelectTrigger>
