@@ -62,14 +62,15 @@ function DashboardPage() {
     });
   }, [user?.id]);
 
-  const refreshGlobalStats = async () => {
-    const { data, error } = await supabase.rpc("leads_dashboard_stats");
+  const refreshGlobalStats = async (feiraId?: string) => {
+    const params = feiraId && feiraId !== "all" ? { p_feira_id: feiraId } : {};
+    const { data, error } = await supabase.rpc("leads_dashboard_stats", params);
     if (!error && data) setGlobalStats({ ...ZERO_STATS, ...(data as Stats) });
   };
 
-  const scheduleRefresh = () => {
+  const scheduleRefresh = (feiraId?: string) => {
     if (refreshTimer.current) clearTimeout(refreshTimer.current);
-    refreshTimer.current = setTimeout(refreshGlobalStats, 400);
+    refreshTimer.current = setTimeout(() => refreshGlobalStats(feiraId), 400);
   };
 
   useEffect(() => {
@@ -80,7 +81,7 @@ function DashboardPage() {
         .order("created_at", { ascending: false })
         .limit(10);
 
-      // Filtro por feira (para master com seletor; para outros, a RLS já filtra)
+      // Filtro por feira: master usa seletor, outros são filtrados pela RLS
       if (isMaster && selectedFeira !== "all") {
         q = q.eq("feira_id", selectedFeira);
       }
@@ -90,12 +91,15 @@ function DashboardPage() {
       setLoading(false);
     };
 
+    // Carregar leads e stats juntos, ambos filtrados pela feira selecionada
     fetchLeads();
-    refreshGlobalStats();
+    refreshGlobalStats(selectedFeira);
 
     const unsub = subscribeLeads((event, payload) => {
       if (event === "INSERT") {
         const newLead = payload.new as Lead;
+        // Para master com feira selecionada, só adiciona se for da feira certa
+        if (isMaster && selectedFeira !== "all" && newLead.feira_id !== selectedFeira) return;
         setLeads((current) => current ? [newLead, ...current].slice(0, 10) : [newLead]);
       } else if (event === "UPDATE") {
         const updated = payload.new as Lead;
@@ -104,7 +108,7 @@ function DashboardPage() {
         const oldLead = payload.old as Lead;
         setLeads((current) => current ? current.filter((l) => l.id !== oldLead.id) : current);
       }
-      scheduleRefresh();
+      scheduleRefresh(selectedFeira);
     });
 
     return () => { unsub(); if (refreshTimer.current) clearTimeout(refreshTimer.current); };
