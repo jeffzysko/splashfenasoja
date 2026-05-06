@@ -21,8 +21,8 @@ import { ptBR } from "date-fns/locale";
 import { subscribeLeads } from "@/lib/leadsRealtime";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
+  PieChart, Pie, Cell,
 } from "recharts";
 
 type Status = LeadStatus;
@@ -44,10 +44,11 @@ export const Route = createFileRoute("/_authenticated/admin/")({
 // ── Tooltip customizado para o AreaChart ──────────────────────────────────────
 function CustomAreaTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
+  const v = payload[0].value as number;
   return (
-    <div className="bg-card border border-border rounded-xl px-3 py-2 shadow-lg text-sm">
-      <p className="font-bold text-secondary mb-0.5">{label}</p>
-      <p className="text-primary font-extrabold">{payload[0].value} lead{payload[0].value !== 1 ? "s" : ""}</p>
+    <div className="bg-card border border-border rounded-xl px-3.5 py-2.5 shadow-xl text-sm">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">{label}</p>
+      <p className="text-primary font-extrabold text-base leading-none">{v} <span className="text-xs font-semibold text-muted-foreground">lead{v !== 1 ? "s" : ""}</span></p>
     </div>
   );
 }
@@ -56,8 +57,41 @@ function CustomAreaTooltip({ active, payload, label }: any) {
 function CustomPieTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-card border border-border rounded-xl px-3 py-2 shadow-lg text-sm">
+    <div className="bg-card border border-border rounded-xl px-3 py-2 shadow-xl text-sm">
       <p className="font-bold text-secondary">{payload[0].name}: <span className="text-primary font-extrabold">{payload[0].value}</span></p>
+    </div>
+  );
+}
+
+// ── Barra de progresso de temperatura ────────────────────────────────────────
+function TempBar({ label, value, total, color, bg }: { label: string; value: number; total: number; color: string; bg: string }) {
+  const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center gap-1.5">
+          <span className={`w-2 h-2 rounded-full ${color}`} />
+          <span className="font-semibold text-secondary">{label}</span>
+        </div>
+        <span className="font-extrabold text-secondary tabular-nums">{value} <span className="text-muted-foreground font-normal">({pct}%)</span></span>
+      </div>
+      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+        <div className={`h-full rounded-full ${bg} transition-all duration-700`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+// ── Barra de funil de status ──────────────────────────────────────────────────
+function FunnelBar({ label, value, max, colorClass }: { label: string; value: number; max: number; colorClass: string }) {
+  const pct = max > 0 ? (value / max) * 100 : 0;
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-xs font-semibold text-secondary w-20 shrink-0 truncate">{label}</span>
+      <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+        <div className={`h-full rounded-full ${colorClass} transition-all duration-700`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-xs font-extrabold text-secondary tabular-nums w-6 text-right shrink-0">{value}</span>
     </div>
   );
 }
@@ -181,6 +215,16 @@ function DashboardPage() {
 
   const feiraAtual = useMemo(() => selectedFeira === "all" ? null : feiras.find((f) => f.id === selectedFeira) || null, [feiras, selectedFeira]);
 
+  // Métricas derivadas da timeline
+  const chartMeta = useMemo(() => {
+    const totalPeriod = timeline.reduce((s, t) => s + t.leads, 0);
+    const avg = timeline.length > 0 ? totalPeriod / timeline.length : 0;
+    const peak = timeline.reduce((a, t) => t.leads > a.leads ? t : a, { dia: "—", leads: 0 });
+    const totalTemp = globalStats.quentes + globalStats.mornos + globalStats.frios;
+    const maxStatus = Math.max(globalStats.novo, globalStats.contatado, globalStats.qualificado, globalStats.vendido, globalStats.perdido, globalStats.descartado, 1);
+    return { totalPeriod, avg: Math.round(avg * 10) / 10, peak, totalTemp, maxStatus };
+  }, [timeline, globalStats]);
+
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
@@ -254,80 +298,134 @@ function DashboardPage() {
 
       {/* ── Análise (gráficos colapsáveis) ── */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden">
+        {/* Header do acordeão */}
         <button
           onClick={handleToggleCharts}
-          className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/40 transition-colors"
+          className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/40 transition-colors group"
         >
-          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Análise dos últimos 30 dias</span>
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground shrink-0">Análise · 30 dias</span>
+            {!showCharts && chartMeta.totalPeriod > 0 && (
+              <div className="hidden sm:flex items-center gap-2 text-[10px] text-muted-foreground font-medium">
+                <span className="w-1 h-1 rounded-full bg-border" />
+                <span>{chartMeta.totalPeriod} leads</span>
+                {chartMeta.peak.leads > 0 && (
+                  <><span className="w-1 h-1 rounded-full bg-border" /><span>pico {chartMeta.peak.leads} em {chartMeta.peak.dia}</span></>
+                )}
+              </div>
+            )}
+          </div>
           {showCharts
-            ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
-            : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+            ? <ChevronUp className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            : <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />}
         </button>
 
         {showCharts && (
-          <div className="px-4 pb-5 space-y-6 border-t border-border">
+          <div className="border-t border-border">
             {loadingCharts ? (
-              <div className="flex justify-center py-10">
+              <div className="flex justify-center py-12">
                 <Loader2 className="w-5 h-5 animate-spin text-primary" />
               </div>
             ) : (
-              <>
-                {/* Area chart: leads por dia */}
-                <div className="space-y-2 pt-4">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Leads / dia</p>
+              <div className="p-4 space-y-7">
+
+                {/* ── Area chart: leads / dia ── */}
+                <div className="space-y-3">
+                  <div className="flex items-end justify-between">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Leads por dia</p>
+                    {chartMeta.totalPeriod > 0 && (
+                      <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                        {chartMeta.peak.leads > 0 && (
+                          <span className="bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full">
+                            pico {chartMeta.peak.leads} — {chartMeta.peak.dia}
+                          </span>
+                        )}
+                        <span>média {chartMeta.avg}/dia</span>
+                      </div>
+                    )}
+                  </div>
                   {timeline.some((t) => t.leads > 0) ? (
-                    <ResponsiveContainer width="100%" height={160}>
-                      <AreaChart data={timeline} margin={{ top: 4, right: 4, left: -32, bottom: 0 }}>
+                    <ResponsiveContainer width="100%" height={170}>
+                      <AreaChart data={timeline} margin={{ top: 8, right: 4, left: -30, bottom: 0 }}>
                         <defs>
                           <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%"  stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                            <stop offset="0%"  stopColor="hsl(var(--primary))" stopOpacity={0.25} />
+                            <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                         <XAxis dataKey="dia" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} interval={4} />
                         <YAxis tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} allowDecimals={false} />
                         <Tooltip content={<CustomAreaTooltip />} cursor={{ stroke: "hsl(var(--primary))", strokeWidth: 1, strokeDasharray: "4 4" }} />
-                        <Area type="monotone" dataKey="leads" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#areaGrad)" dot={false} activeDot={{ r: 4, fill: "hsl(var(--primary))", strokeWidth: 0 }} />
+                        {chartMeta.avg > 0 && (
+                          <ReferenceLine y={chartMeta.avg} stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" strokeOpacity={0.5}
+                            label={{ value: `~${chartMeta.avg}`, position: "right", fontSize: 9, fill: "hsl(var(--muted-foreground))", dy: -4 }} />
+                        )}
+                        <Area type="monotone" dataKey="leads" stroke="hsl(var(--primary))" strokeWidth={2.5} fill="url(#areaGrad)" dot={false}
+                          activeDot={{ r: 5, fill: "hsl(var(--primary))", stroke: "hsl(var(--card))", strokeWidth: 2 }} />
                       </AreaChart>
                     </ResponsiveContainer>
                   ) : (
-                    <p className="text-xs text-muted-foreground text-center py-8">Nenhum lead nos últimos 30 dias.</p>
+                    <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-1">
+                      <p className="text-sm font-semibold">Nenhum lead nos últimos 30 dias</p>
+                    </div>
                   )}
                 </div>
 
-                {/* Pie chart: temperatura */}
-                {tempPieData.length > 0 && (
-                  <div className="space-y-2">
+                {/* ── Temperatura + Funil ── */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+
+                  {/* Donut + barras de temperatura */}
+                  <div className="space-y-3">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Temperatura</p>
-                    <div className="flex items-center gap-4">
-                      <ResponsiveContainer width={140} height={140}>
-                        <PieChart>
-                          <Pie data={tempPieData} cx="50%" cy="50%" innerRadius={38} outerRadius={60} paddingAngle={4} dataKey="value" strokeWidth={0}>
-                            {tempPieData.map((_, i) => <Cell key={i} fill={TEMP_PIE_COLORS[i % TEMP_PIE_COLORS.length]} />)}
-                          </Pie>
-                          <Tooltip content={<CustomPieTooltip />} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                      <div className="flex-1 space-y-2">
-                        {[
-                          { label: "Quente", value: globalStats.quentes, color: "bg-red-500" },
-                          { label: "Morno",  value: globalStats.mornos,  color: "bg-orange-500" },
-                          { label: "Frio",   value: globalStats.frios,   color: "bg-blue-500" },
-                        ].map(({ label, value, color }) => (
-                          <div key={label} className="flex items-center justify-between text-sm">
-                            <div className="flex items-center gap-2">
-                              <span className={`w-2.5 h-2.5 rounded-full ${color}`} />
-                              <span className="text-secondary font-semibold">{label}</span>
-                            </div>
-                            <span className="font-extrabold text-secondary tabular-nums">{value}</span>
+                    {chartMeta.totalTemp > 0 ? (
+                      <div className="flex items-center gap-4">
+                        {/* Donut com total no centro */}
+                        <div className="relative shrink-0" style={{ width: 100, height: 100 }}>
+                          <ResponsiveContainer width={100} height={100}>
+                            <PieChart>
+                              <Pie data={tempPieData} cx="50%" cy="50%" innerRadius={32} outerRadius={46} paddingAngle={3} dataKey="value" strokeWidth={0} startAngle={90} endAngle={-270}>
+                                {tempPieData.map((_, i) => <Cell key={i} fill={TEMP_PIE_COLORS[i % TEMP_PIE_COLORS.length]} />)}
+                              </Pie>
+                              <Tooltip content={<CustomPieTooltip />} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                            <span className="text-base font-black text-secondary tabular-nums leading-none">{chartMeta.totalTemp}</span>
+                            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider">total</span>
                           </div>
-                        ))}
+                        </div>
+                        {/* Barras de progresso */}
+                        <div className="flex-1 space-y-3">
+                          <TempBar label="Quente" value={globalStats.quentes} total={chartMeta.totalTemp} color="bg-red-500"    bg="bg-red-500" />
+                          <TempBar label="Morno"  value={globalStats.mornos}  total={chartMeta.totalTemp} color="bg-orange-500" bg="bg-orange-500" />
+                          <TempBar label="Frio"   value={globalStats.frios}   total={chartMeta.totalTemp} color="bg-blue-500"   bg="bg-blue-500" />
+                        </div>
                       </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground py-4">Sem dados de temperatura.</p>
+                    )}
+                  </div>
+
+                  {/* Funil de status */}
+                  <div className="space-y-3">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Funil de status</p>
+                    <div className="space-y-2.5">
+                      {[
+                        { label: "Novo",        value: globalStats.novo,        colorClass: "bg-blue-500" },
+                        { label: "Contatado",   value: globalStats.contatado,   colorClass: "bg-violet-500" },
+                        { label: "Qualificado", value: globalStats.qualificado, colorClass: "bg-amber-500" },
+                        { label: "Vendido",     value: globalStats.vendido,     colorClass: "bg-emerald-500" },
+                        { label: "Perdido",     value: globalStats.perdido,     colorClass: "bg-red-400" },
+                        { label: "Descartado",  value: globalStats.descartado,  colorClass: "bg-muted-foreground/40" },
+                      ].map(({ label, value, colorClass }) => (
+                        <FunnelBar key={label} label={label} value={value} max={chartMeta.maxStatus} colorClass={colorClass} />
+                      ))}
                     </div>
                   </div>
-                )}
-              </>
+                </div>
+
+              </div>
             )}
           </div>
         )}
