@@ -12,19 +12,19 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
-import { Route as IndexRouteImport } from './routes/index'
 import { Route as SlugRouteImport } from './routes/$slug'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
-import { Route as AuthenticatedAdminAdminsRouteImport } from './routes/_authenticated/admin/admins'
-import { Route as AuthenticatedAdminFeirasRouteImport } from './routes/_authenticated/admin/feiras'
 import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin/usuarios'
+import { Route as AuthenticatedAdminFeirasRouteImport } from './routes/_authenticated/admin/feiras'
+import { Route as AuthenticatedAdminAdminsRouteImport } from './routes/_authenticated/admin/admins'
+import { Route as AuthenticatedAdminUsuariosIndexRouteImport } from './routes/_authenticated/admin/usuarios.index'
 import { Route as AuthenticatedAdminLeadsIndexRouteImport } from './routes/_authenticated/admin/leads.index'
+import { Route as AuthenticatedAdminFeirasIndexRouteImport } from './routes/_authenticated/admin/feiras.index'
 import { Route as AuthenticatedAdminSettingsNotificationsRouteImport } from './routes/_authenticated/admin/settings.notifications'
 import { Route as AuthenticatedAdminLeadsIdRouteImport } from './routes/_authenticated/admin/leads.$id'
-import { Route as AuthenticatedAdminFeirasIndexRouteImport } from './routes/_authenticated/admin/feiras.index'
 import { Route as AuthenticatedAdminFeirasFeiraIdRouteImport } from './routes/_authenticated/admin/feiras.$feiraId'
-import { Route as AuthenticatedAdminUsuariosIndexRouteImport } from './routes/_authenticated/admin/usuarios.index'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -40,14 +40,14 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SlugRoute = SlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
@@ -60,51 +60,60 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
-const AuthenticatedAdminAdminsRoute = AuthenticatedAdminAdminsRouteImport.update({
-  id: '/admins',
-  path: '/admins',
-  getParentRoute: () => AuthenticatedAdminRoute,
-} as any)
-const AuthenticatedAdminFeirasRoute = AuthenticatedAdminFeirasRouteImport.update({
-  id: '/feiras',
-  path: '/feiras',
-  getParentRoute: () => AuthenticatedAdminRoute,
-} as any)
-const AuthenticatedAdminUsuariosRoute = AuthenticatedAdminUsuariosRouteImport.update({
-  id: '/usuarios',
-  path: '/usuarios',
-  getParentRoute: () => AuthenticatedAdminRoute,
-} as any)
-const AuthenticatedAdminLeadsIndexRoute = AuthenticatedAdminLeadsIndexRouteImport.update({
-  id: '/leads/',
-  path: '/leads/',
-  getParentRoute: () => AuthenticatedAdminRoute,
-} as any)
-const AuthenticatedAdminSettingsNotificationsRoute = AuthenticatedAdminSettingsNotificationsRouteImport.update({
-  id: '/settings/notifications',
-  path: '/settings/notifications',
-  getParentRoute: () => AuthenticatedAdminRoute,
-} as any)
-const AuthenticatedAdminLeadsIdRoute = AuthenticatedAdminLeadsIdRouteImport.update({
-  id: '/leads/$id',
-  path: '/leads/$id',
-  getParentRoute: () => AuthenticatedAdminRoute,
-} as any)
-const AuthenticatedAdminFeirasIndexRoute = AuthenticatedAdminFeirasIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthenticatedAdminFeirasRoute,
-} as any)
-const AuthenticatedAdminFeirasFeiraIdRoute = AuthenticatedAdminFeirasFeiraIdRouteImport.update({
-  id: '/$feiraId',
-  path: '/$feiraId',
-  getParentRoute: () => AuthenticatedAdminFeirasRoute,
-} as any)
-const AuthenticatedAdminUsuariosIndexRoute = AuthenticatedAdminUsuariosIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthenticatedAdminUsuariosRoute,
-} as any)
+const AuthenticatedAdminUsuariosRoute =
+  AuthenticatedAdminUsuariosRouteImport.update({
+    id: '/usuarios',
+    path: '/usuarios',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminFeirasRoute =
+  AuthenticatedAdminFeirasRouteImport.update({
+    id: '/feiras',
+    path: '/feiras',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminAdminsRoute =
+  AuthenticatedAdminAdminsRouteImport.update({
+    id: '/admins',
+    path: '/admins',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminUsuariosIndexRoute =
+  AuthenticatedAdminUsuariosIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminUsuariosRoute,
+  } as any)
+const AuthenticatedAdminLeadsIndexRoute =
+  AuthenticatedAdminLeadsIndexRouteImport.update({
+    id: '/leads/',
+    path: '/leads/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminFeirasIndexRoute =
+  AuthenticatedAdminFeirasIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminFeirasRoute,
+  } as any)
+const AuthenticatedAdminSettingsNotificationsRoute =
+  AuthenticatedAdminSettingsNotificationsRouteImport.update({
+    id: '/settings/notifications',
+    path: '/settings/notifications',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminLeadsIdRoute =
+  AuthenticatedAdminLeadsIdRouteImport.update({
+    id: '/leads/$id',
+    path: '/leads/$id',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminFeirasFeiraIdRoute =
+  AuthenticatedAdminFeirasFeiraIdRouteImport.update({
+    id: '/$feiraId',
+    path: '/$feiraId',
+    getParentRoute: () => AuthenticatedAdminFeirasRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -113,14 +122,14 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/admin/admins': typeof AuthenticatedAdminAdminsRoute
+  '/admin/feiras': typeof AuthenticatedAdminFeirasRouteWithChildren
+  '/admin/usuarios': typeof AuthenticatedAdminUsuariosRouteWithChildren
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/admin/feiras/$feiraId': typeof AuthenticatedAdminFeirasFeiraIdRoute
   '/admin/leads/$id': typeof AuthenticatedAdminLeadsIdRoute
   '/admin/settings/notifications': typeof AuthenticatedAdminSettingsNotificationsRoute
-  '/admin/leads/': typeof AuthenticatedAdminLeadsIndexRoute
-  '/admin/feiras': typeof AuthenticatedAdminFeirasRouteWithChildren
   '/admin/feiras/': typeof AuthenticatedAdminFeirasIndexRoute
-  '/admin/feiras/$feiraId': typeof AuthenticatedAdminFeirasFeiraIdRoute
-  '/admin/usuarios': typeof AuthenticatedAdminUsuariosRouteWithChildren
+  '/admin/leads/': typeof AuthenticatedAdminLeadsIndexRoute
   '/admin/usuarios/': typeof AuthenticatedAdminUsuariosIndexRoute
 }
 export interface FileRoutesByTo {
@@ -130,11 +139,11 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/admin/admins': typeof AuthenticatedAdminAdminsRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/admin/feiras/$feiraId': typeof AuthenticatedAdminFeirasFeiraIdRoute
   '/admin/leads/$id': typeof AuthenticatedAdminLeadsIdRoute
   '/admin/settings/notifications': typeof AuthenticatedAdminSettingsNotificationsRoute
-  '/admin/leads': typeof AuthenticatedAdminLeadsIndexRoute
   '/admin/feiras': typeof AuthenticatedAdminFeirasIndexRoute
-  '/admin/feiras/$feiraId': typeof AuthenticatedAdminFeirasFeiraIdRoute
+  '/admin/leads': typeof AuthenticatedAdminLeadsIndexRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosIndexRoute
 }
 export interface FileRoutesById {
@@ -146,14 +155,14 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/admin/admins': typeof AuthenticatedAdminAdminsRoute
+  '/_authenticated/admin/feiras': typeof AuthenticatedAdminFeirasRouteWithChildren
+  '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRouteWithChildren
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/admin/feiras/$feiraId': typeof AuthenticatedAdminFeirasFeiraIdRoute
   '/_authenticated/admin/leads/$id': typeof AuthenticatedAdminLeadsIdRoute
   '/_authenticated/admin/settings/notifications': typeof AuthenticatedAdminSettingsNotificationsRoute
-  '/_authenticated/admin/leads/': typeof AuthenticatedAdminLeadsIndexRoute
-  '/_authenticated/admin/feiras': typeof AuthenticatedAdminFeirasRouteWithChildren
   '/_authenticated/admin/feiras/': typeof AuthenticatedAdminFeirasIndexRoute
-  '/_authenticated/admin/feiras/$feiraId': typeof AuthenticatedAdminFeirasFeiraIdRoute
-  '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRouteWithChildren
+  '/_authenticated/admin/leads/': typeof AuthenticatedAdminLeadsIndexRoute
   '/_authenticated/admin/usuarios/': typeof AuthenticatedAdminUsuariosIndexRoute
 }
 export interface FileRouteTypes {
@@ -165,14 +174,14 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/admin'
     | '/admin/admins'
+    | '/admin/feiras'
+    | '/admin/usuarios'
     | '/admin/'
+    | '/admin/feiras/$feiraId'
     | '/admin/leads/$id'
     | '/admin/settings/notifications'
-    | '/admin/leads/'
-    | '/admin/feiras'
     | '/admin/feiras/'
-    | '/admin/feiras/$feiraId'
-    | '/admin/usuarios'
+    | '/admin/leads/'
     | '/admin/usuarios/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -182,11 +191,11 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/admin/admins'
     | '/admin'
+    | '/admin/feiras/$feiraId'
     | '/admin/leads/$id'
     | '/admin/settings/notifications'
-    | '/admin/leads'
     | '/admin/feiras'
-    | '/admin/feiras/$feiraId'
+    | '/admin/leads'
     | '/admin/usuarios'
   id:
     | '__root__'
@@ -197,14 +206,14 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/admin'
     | '/_authenticated/admin/admins'
+    | '/_authenticated/admin/feiras'
+    | '/_authenticated/admin/usuarios'
     | '/_authenticated/admin/'
+    | '/_authenticated/admin/feiras/$feiraId'
     | '/_authenticated/admin/leads/$id'
     | '/_authenticated/admin/settings/notifications'
-    | '/_authenticated/admin/leads/'
-    | '/_authenticated/admin/feiras'
     | '/_authenticated/admin/feiras/'
-    | '/_authenticated/admin/feiras/$feiraId'
-    | '/_authenticated/admin/usuarios'
+    | '/_authenticated/admin/leads/'
     | '/_authenticated/admin/usuarios/'
   fileRoutesById: FileRoutesById
 }
@@ -239,18 +248,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/$slug': {
       id: '/$slug'
       path: '/$slug'
       fullPath: '/$slug'
       preLoaderRoute: typeof SlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin': {
@@ -267,6 +276,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/usuarios': {
+      id: '/_authenticated/admin/usuarios'
+      path: '/usuarios'
+      fullPath: '/admin/usuarios'
+      preLoaderRoute: typeof AuthenticatedAdminUsuariosRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/feiras': {
+      id: '/_authenticated/admin/feiras'
+      path: '/feiras'
+      fullPath: '/admin/feiras'
+      preLoaderRoute: typeof AuthenticatedAdminFeirasRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/admins': {
       id: '/_authenticated/admin/admins'
       path: '/admins'
@@ -274,12 +297,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAdminsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/usuarios/': {
+      id: '/_authenticated/admin/usuarios/'
+      path: '/'
+      fullPath: '/admin/usuarios/'
+      preLoaderRoute: typeof AuthenticatedAdminUsuariosIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminUsuariosRoute
+    }
     '/_authenticated/admin/leads/': {
       id: '/_authenticated/admin/leads/'
       path: '/leads'
       fullPath: '/admin/leads/'
       preLoaderRoute: typeof AuthenticatedAdminLeadsIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/feiras/': {
+      id: '/_authenticated/admin/feiras/'
+      path: '/'
+      fullPath: '/admin/feiras/'
+      preLoaderRoute: typeof AuthenticatedAdminFeirasIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminFeirasRoute
     }
     '/_authenticated/admin/settings/notifications': {
       id: '/_authenticated/admin/settings/notifications'
@@ -295,20 +332,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminLeadsIdRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/admin/feiras': {
-      id: '/_authenticated/admin/feiras'
-      path: '/feiras'
-      fullPath: '/admin/feiras'
-      preLoaderRoute: typeof AuthenticatedAdminFeirasRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/feiras/': {
-      id: '/_authenticated/admin/feiras/'
-      path: '/'
-      fullPath: '/admin/feiras/'
-      preLoaderRoute: typeof AuthenticatedAdminFeirasIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminFeirasRoute
-    }
     '/_authenticated/admin/feiras/$feiraId': {
       id: '/_authenticated/admin/feiras/$feiraId'
       path: '/$feiraId'
@@ -316,78 +339,81 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminFeirasFeiraIdRouteImport
       parentRoute: typeof AuthenticatedAdminFeirasRoute
     }
-    '/_authenticated/admin/usuarios': {
-      id: '/_authenticated/admin/usuarios'
-      path: '/usuarios'
-      fullPath: '/admin/usuarios'
-      preLoaderRoute: typeof AuthenticatedAdminUsuariosRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/usuarios/': {
-      id: '/_authenticated/admin/usuarios/'
-      path: '/'
-      fullPath: '/admin/usuarios/'
-      preLoaderRoute: typeof AuthenticatedAdminUsuariosIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminUsuariosRoute
-    }
   }
 }
 
 interface AuthenticatedAdminFeirasRouteChildren {
-  AuthenticatedAdminFeirasIndexRoute: typeof AuthenticatedAdminFeirasIndexRoute
   AuthenticatedAdminFeirasFeiraIdRoute: typeof AuthenticatedAdminFeirasFeiraIdRoute
+  AuthenticatedAdminFeirasIndexRoute: typeof AuthenticatedAdminFeirasIndexRoute
 }
-const AuthenticatedAdminFeirasRouteChildren: AuthenticatedAdminFeirasRouteChildren = {
-  AuthenticatedAdminFeirasIndexRoute,
-  AuthenticatedAdminFeirasFeiraIdRoute,
-}
+
+const AuthenticatedAdminFeirasRouteChildren: AuthenticatedAdminFeirasRouteChildren =
+  {
+    AuthenticatedAdminFeirasFeiraIdRoute: AuthenticatedAdminFeirasFeiraIdRoute,
+    AuthenticatedAdminFeirasIndexRoute: AuthenticatedAdminFeirasIndexRoute,
+  }
+
 const AuthenticatedAdminFeirasRouteWithChildren =
-  AuthenticatedAdminFeirasRoute._addFileChildren(AuthenticatedAdminFeirasRouteChildren)
+  AuthenticatedAdminFeirasRoute._addFileChildren(
+    AuthenticatedAdminFeirasRouteChildren,
+  )
 
 interface AuthenticatedAdminUsuariosRouteChildren {
   AuthenticatedAdminUsuariosIndexRoute: typeof AuthenticatedAdminUsuariosIndexRoute
 }
-const AuthenticatedAdminUsuariosRouteChildren: AuthenticatedAdminUsuariosRouteChildren = {
-  AuthenticatedAdminUsuariosIndexRoute,
-}
+
+const AuthenticatedAdminUsuariosRouteChildren: AuthenticatedAdminUsuariosRouteChildren =
+  {
+    AuthenticatedAdminUsuariosIndexRoute: AuthenticatedAdminUsuariosIndexRoute,
+  }
+
 const AuthenticatedAdminUsuariosRouteWithChildren =
-  AuthenticatedAdminUsuariosRoute._addFileChildren(AuthenticatedAdminUsuariosRouteChildren)
+  AuthenticatedAdminUsuariosRoute._addFileChildren(
+    AuthenticatedAdminUsuariosRouteChildren,
+  )
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAdminsRoute: typeof AuthenticatedAdminAdminsRoute
+  AuthenticatedAdminFeirasRoute: typeof AuthenticatedAdminFeirasRouteWithChildren
+  AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRouteWithChildren
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminLeadsIdRoute: typeof AuthenticatedAdminLeadsIdRoute
   AuthenticatedAdminSettingsNotificationsRoute: typeof AuthenticatedAdminSettingsNotificationsRoute
   AuthenticatedAdminLeadsIndexRoute: typeof AuthenticatedAdminLeadsIndexRoute
-  AuthenticatedAdminFeirasRoute: typeof AuthenticatedAdminFeirasRouteWithChildren
-  AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRouteWithChildren
 }
+
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
-  AuthenticatedAdminAdminsRoute,
-  AuthenticatedAdminIndexRoute,
-  AuthenticatedAdminLeadsIdRoute,
-  AuthenticatedAdminSettingsNotificationsRoute,
-  AuthenticatedAdminLeadsIndexRoute,
+  AuthenticatedAdminAdminsRoute: AuthenticatedAdminAdminsRoute,
   AuthenticatedAdminFeirasRoute: AuthenticatedAdminFeirasRouteWithChildren,
   AuthenticatedAdminUsuariosRoute: AuthenticatedAdminUsuariosRouteWithChildren,
+  AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+  AuthenticatedAdminLeadsIdRoute: AuthenticatedAdminLeadsIdRoute,
+  AuthenticatedAdminSettingsNotificationsRoute:
+    AuthenticatedAdminSettingsNotificationsRoute,
+  AuthenticatedAdminLeadsIndexRoute: AuthenticatedAdminLeadsIndexRoute,
 }
+
 const AuthenticatedAdminRouteWithChildren =
   AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
 }
+
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
 }
-const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(AuthenticatedRouteChildren)
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute,
-  SlugRoute,
+  IndexRoute: IndexRoute,
+  SlugRoute: SlugRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
-  LoginRoute,
-  ResetPasswordRoute,
+  LoginRoute: LoginRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
