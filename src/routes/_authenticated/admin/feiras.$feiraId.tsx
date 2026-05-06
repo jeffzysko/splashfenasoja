@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
@@ -35,7 +36,7 @@ export const Route = createFileRoute("/_authenticated/admin/feiras/$feiraId")({
   head: () => ({ meta: [{ title: "Gerenciar Feira — Splash Admin" }] }),
 });
 
-type Feira = { id: string; nome: string; slug: string; ativo: boolean; created_at: string; whatsapp: string | null };
+type Feira = { id: string; nome: string; slug: string; ativo: boolean; created_at: string; whatsapp: string | null; mensagem_sucesso: string | null };
 type UserRow = { user_id: string; email: string | null; full_name: string | null; role: string; vinculado: boolean };
 
 function slugify(text: string) {
@@ -56,6 +57,7 @@ function FeiraDetailPage() {
   const [editSlug, setEditSlug] = useState("");
   const [editAtivo, setEditAtivo] = useState(true);
   const [editWhatsapp, setEditWhatsapp] = useState("");
+  const [editMensagem, setEditMensagem] = useState("");
   const [slugManual, setSlugManual] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -73,6 +75,7 @@ function FeiraDetailPage() {
     setEditSlug(data.slug);
     setEditAtivo(data.ativo);
     setEditWhatsapp(data.whatsapp || "");
+    setEditMensagem(data.mensagem_sucesso || "");
     setLoading(false);
   }, [feiraId, navigate]);
 
@@ -134,6 +137,7 @@ function FeiraDetailPage() {
       slug: editSlug.trim(),
       ativo: editAtivo,
       whatsapp: waClean || null,
+      mensagem_sucesso: editMensagem.trim() || null,
     }).eq("id", feiraId);
     setSaving(false);
     if (error) { toast.error(error.message.includes("unique") ? "Esse slug já está em uso." : error.message); return; }
@@ -240,6 +244,23 @@ function FeiraDetailPage() {
           />
           <p className="text-[11px] text-muted-foreground">
             Número que aparece no botão "Chamar especialista" da tela de sucesso do formulário.
+            Inclua DDI (55) + DDD + número. Apenas dígitos.
+          </p>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">
+            Mensagem de sucesso personalizada
+          </label>
+          <Textarea
+            value={editMensagem}
+            onChange={(e) => setEditMensagem(e.target.value)}
+            placeholder={`Ex: Logo um especialista da ${editNome || "Splash"} vai te chamar no WhatsApp!`}
+            className="rounded-xl resize-none min-h-[80px]"
+            maxLength={300}
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Texto exibido na tela de confirmação após o cadastro. Se vazio, usa mensagem padrão.
           </p>
         </div>
 
