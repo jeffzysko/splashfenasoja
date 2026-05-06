@@ -708,7 +708,7 @@ function LeadsListPage() {
         <div
           ref={parentRef}
           className="pb-4"
-          style={{ height: "calc(100dvh - 240px)", overflow: "auto" }}
+          style={{ height: "calc(100dvh - 304px - env(safe-area-inset-top) - env(safe-area-inset-bottom))", overflow: "auto" }}
         >
           <div
             style={{
@@ -1025,7 +1025,7 @@ function FiltersBar({
   const statusLabel = STATUS_FILTERS.find((s) => s.value === filterStatus)?.label ?? "Todos";
 
   return (
-    <div className="sticky top-14 z-30 bg-muted/40 -mx-4 px-4 py-2.5 space-y-2 backdrop-blur-md">
+    <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-30 bg-muted/40 -mx-4 px-4 py-2.5 space-y-2 backdrop-blur-md">
       <div className="flex items-center gap-2">
         <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
