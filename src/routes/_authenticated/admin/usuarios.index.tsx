@@ -211,22 +211,60 @@ function UsuariosPage() {
     if (!editingUser) return;
     setSaving(true);
 
-    // Atualizar role: remover old, inserir new
-    await supabase.from("user_roles").delete().eq("user_id", editingUser.user_id);
-    await supabase.from("user_roles").insert({ user_id: editingUser.user_id, role: editRole });
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUserId = session?.user?.id;
 
-    // Atualizar feiras: remover all, reinserir selecionadas
-    await supabase.from("feira_users").delete().eq("user_id", editingUser.user_id);
-    if (editFeiras.length > 0) {
-      await supabase.from("feira_users").insert(
-        editFeiras.map((fid) => ({ feira_id: fid, user_id: editingUser.user_id }))
-      );
+      // Proteção: master não pode remover o próprio role de master
+      if (editingUser.user_id === currentUserId && editingUser.role === "master" && editRole !== "master") {
+        toast.error("Você não pode remover seu próprio role de master.");
+        setSaving(false);
+        return;
+      }
+
+      // SAFE: inserir/upsert PRIMEIRO, só depois deletar os antigos.
+      // Isso evita a janela onde o usuário fica sem nenhum role,
+      // o que quebraria a RLS e travaria o sistema.
+      const { error: upsertErr } = await supabase
+        .from("user_roles")
+        .upsert({ user_id: editingUser.user_id, role: editRole }, { onConflict: "user_id,role" });
+
+      if (upsertErr) {
+        toast.error("Erro ao atualizar role: " + upsertErr.message);
+        return;
+      }
+
+      // Agora remove os outros roles (diferentes do novo)
+      await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", editingUser.user_id)
+        .neq("role", editRole);
+
+      // Atualizar feiras: remover all, reinserir selecionadas
+      await supabase.from("feira_users").delete().eq("user_id", editingUser.user_id);
+      if (editFeiras.length > 0) {
+        await supabase.from("feira_users").insert(
+          editFeiras.map((fid) => ({ feira_id: fid, user_id: editingUser.user_id }))
+        );
+      }
+
+      // Se editou a própria conta: limpar cache de auth para forçar revalidação limpa
+      if (editingUser.user_id === currentUserId) {
+        try {
+          sessionStorage.removeItem("admin_auth_cache_v1");
+          sessionStorage.removeItem(`is_master_${currentUserId}`);
+        } catch { /* ignore */ }
+      }
+
+      toast.success("Usuário atualizado.");
+      setEditingUser(null);
+      loadUsers();
+    } catch (e) {
+      toast.error("Erro inesperado ao salvar.");
+    } finally {
+      setSaving(false);
     }
-
-    toast.success("Usuário atualizado.");
-    setSaving(false);
-    setEditingUser(null);
-    loadUsers();
   };
 
   const toggleFeira = (id: string, arr: string[], set: (v: string[]) => void) => {
