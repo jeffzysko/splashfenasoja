@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
-import { LogOut, LayoutDashboard, Users, Shield, SlidersHorizontal, CalendarDays } from "lucide-react";
+import { LogOut, LayoutDashboard, Users, Shield, SlidersHorizontal, CalendarDays, UserCog } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -164,12 +164,12 @@ function AuthenticatedLayout() {
                   <CalendarDays className="w-5 h-5" />
                 </Link>
                 <Link
-                  to="/admin/admins"
+                  to="/admin/usuarios"
                   className="p-2 text-muted-foreground hover:text-primary transition-colors hidden sm:inline-flex"
-                  aria-label="Administradores"
-                  title="Administradores"
+                  aria-label="Usuários"
+                  title="Usuários"
                 >
-                  <Shield className="w-5 h-5" />
+                  <UserCog className="w-5 h-5" />
                 </Link>
               </>
             )}
@@ -202,7 +202,7 @@ function AuthenticatedLayout() {
           <NavButton to="/admin/feiras" icon={<CalendarDays className="w-6 h-6" />} label="Feiras" active={location.pathname.startsWith("/admin/feiras")} />
         )}
         {isMaster && (
-          <NavButton to="/admin/admins" icon={<Shield className="w-6 h-6" />} label="Admins" active={location.pathname.startsWith("/admin/admins")} />
+          <NavButton to="/admin/usuarios" icon={<UserCog className="w-6 h-6" />} label="Usuários" active={location.pathname.startsWith("/admin/usuarios")} />
         )}
       </nav>
     </div>
