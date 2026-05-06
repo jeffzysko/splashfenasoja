@@ -57,7 +57,7 @@ function UsuariosPage() {
 
   // Dialog editar role
   const [editingUser, setEditingUser] = useState<UserRow | null>(null);
-  const [editRole, setEditRole] = useState("");
+  const [editRole, setEditRole] = useState<"master" | "admin" | "user">("user");
   const [editFeiras, setEditFeiras] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
