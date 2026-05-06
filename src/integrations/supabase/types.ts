@@ -284,6 +284,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calc_lead_score: {
+        Args: {
+          email: string
+          orcamento: string
+          prazo: string
+          tamanho: string
+        }
+        Returns: number
+      }
       has_any_role: {
         Args: {
           _roles: Database["public"]["Enums"]["app_role"][]
@@ -298,7 +307,8 @@ export type Database = {
         }
         Returns: boolean
       }
-      leads_dashboard_stats: { Args: never; Returns: Json }
+      leads_dashboard_stats: { Args: { p_feira_id?: string }; Returns: Json }
+      normalize_phone: { Args: { p: string }; Returns: string }
     }
     Enums: {
       app_role: "master" | "admin" | "user"
