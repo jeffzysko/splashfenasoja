@@ -85,6 +85,7 @@ export type Database = {
           nome: string
           slug: string
           updated_at: string
+          whatsapp: string | null
         }
         Insert: {
           ativo?: boolean
@@ -94,6 +95,7 @@ export type Database = {
           nome: string
           slug: string
           updated_at?: string
+          whatsapp?: string | null
         }
         Update: {
           ativo?: boolean
@@ -103,6 +105,7 @@ export type Database = {
           nome?: string
           slug?: string
           updated_at?: string
+          whatsapp?: string | null
         }
         Relationships: []
       }
