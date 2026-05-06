@@ -12,6 +12,7 @@ import {
   SlidersHorizontal,
   ArrowUpDown,
   Phone,
+  CalendarDays,
 } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import {
@@ -27,6 +28,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { TEMP_BADGE, STATUS_BADGE, LABELS, formatWhatsappBR, type Temperatura, type LeadStatus } from "@/lib/leads";
+import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
@@ -145,7 +147,13 @@ function LeadsListPage() {
   const [filterTemp, setFilterTemp] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"recent" | "score" | "name">("recent");
+  const [selectedFeira, setSelectedFeira] = useState<string>("all");
+  const [isMaster, setIsMaster] = useState(false);
+  const [feiras, setFeiras] = useState<{ id: string; nome: string }[]>([]);
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
 
+  const { user } = useSupabaseAuth();
   const debouncedSearch = useDebounced(search, 300);
   const parentRef = useRef<HTMLDivElement | null>(null);
   const reqIdRef = useRef(0);
@@ -153,6 +161,25 @@ function LeadsListPage() {
   // Compensa cursor após INSERT/DELETE em tempo real para evitar gaps/duplicações
   const insertedSinceLoadRef = useRef(0);
   const deletedIdsRef = useRef<Set<string>>(new Set());
+
+  // Carrega feiras disponíveis para filtro
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.from("user_roles").select("role").eq("user_id", user.id).then(({ data }) => {
+      const isM = !!data?.some((r: any) => r.role === "master");
+      setIsMaster(isM);
+      if (isM) {
+        supabase.from("feiras").select("id, nome").order("nome").then(({ data: f }) => {
+          if (f) setFeiras(f);
+        });
+      } else {
+        supabase.from("feira_users").select("feira_id, feiras(id, nome)").eq("user_id", user.id).then(({ data: fu }) => {
+          const fs = (fu || []).map((r: any) => r.feiras).filter(Boolean);
+          setFeiras(fs);
+        });
+      }
+    });
+  }, [user?.id]);
 
   function buildCursorFromLast(items: Lead[], sort: SortBy): Cursor {
     const last = items[items.length - 1];
@@ -174,7 +201,10 @@ function LeadsListPage() {
       status: string,
       searchText: string,
       sort: SortBy,
-      withCount: boolean
+      withCount: boolean,
+      feiraId: string = "all",
+      dFrom: string = "",
+      dTo: string = ""
     ) => {
       let q = supabase
         .from("leads")
@@ -199,6 +229,9 @@ function LeadsListPage() {
 
       if (temp !== "all") q = q.eq("temperatura", temp);
       if (status !== "all") q = q.eq("status", status);
+      if (feiraId !== "all") q = q.eq("feira_id", feiraId);
+      if (dFrom) q = q.gte("created_at", dFrom + "T00:00:00");
+      if (dTo) q = q.lte("created_at", dTo + "T23:59:59");
 
       const term = searchText.trim();
       if (term) {
@@ -273,7 +306,7 @@ function LeadsListPage() {
       setHasMore(true);
     }
 
-    fetchPage(null, filterTemp, filterStatus, debouncedSearch, sortBy, true).then(
+    fetchPage(null, filterTemp, filterStatus, debouncedSearch, sortBy, true, selectedFeira, dateFrom, dateTo).then(
       ({ items, end, count }) => {
         if (reqId !== reqIdRef.current) return;
         setLeads(items);
@@ -295,7 +328,7 @@ function LeadsListPage() {
         });
       }
     );
-  }, [filterTemp, filterStatus, debouncedSearch, sortBy, fetchPage]);
+  }, [filterTemp, filterStatus, debouncedSearch, sortBy, fetchPage, selectedFeira, dateFrom, dateTo]);
 
   // Realtime: aplica em memória sem refetch
   useEffect(() => {
@@ -443,6 +476,9 @@ function LeadsListPage() {
       .order("created_at", { ascending: false });
     if (filterTemp !== "all") q = q.eq("temperatura", filterTemp);
     if (filterStatus !== "all") q = q.eq("status", filterStatus);
+    if (selectedFeira !== "all") q = q.eq("feira_id", selectedFeira);
+    if (dateFrom) q = q.gte("created_at", dateFrom + "T00:00:00");
+    if (dateTo) q = q.lte("created_at", dateTo + "T23:59:59");
 
     const term = debouncedSearch.trim();
     if (term) {
@@ -517,7 +553,10 @@ function LeadsListPage() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `leads-fenasoja-${new Date().toISOString().split("T")[0]}.csv`;
+    const feiraNomeExport = selectedFeira !== "all"
+      ? (feiras.find((f) => f.id === selectedFeira)?.nome || selectedFeira).replace(/[^a-zA-Z0-9]/g, "-").toLowerCase()
+      : "todas-feiras";
+    a.download = `leads-${feiraNomeExport}-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
     toast.success(`${filtered.length} leads exportados!`);
@@ -557,16 +596,61 @@ function LeadsListPage() {
             </p>
           </div>
         </div>
-        <Button
-          onClick={exportCSV}
-          size="sm"
-          disabled={showInitialSkeleton}
-          className="bg-orange-500 hover:bg-orange-600 text-white font-bold h-10 px-3 sm:px-4 rounded-xl shadow-md shrink-0"
-          aria-label="Exportar leads em CSV"
-        >
-          <Download className="w-4 h-4 sm:mr-2" />
-          <span className="hidden sm:inline">Exportar</span>
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          {isMaster && feiras.length > 0 && (
+            <Select value={selectedFeira} onValueChange={setSelectedFeira}>
+              <SelectTrigger className="h-10 w-[160px] rounded-xl text-sm font-semibold">
+                <SelectValue placeholder="Todas as feiras" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as feiras</SelectItem>
+                {feiras.map((f) => (
+                  <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <Button
+            onClick={exportCSV}
+            size="sm"
+            disabled={showInitialSkeleton}
+            className="bg-orange-500 hover:bg-orange-600 text-white font-bold h-10 px-3 sm:px-4 rounded-xl shadow-md shrink-0"
+            aria-label="Exportar leads em CSV"
+          >
+            <Download className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Exportar</span>
+          </Button>
+        </div>
+      </div>
+      {/* Filtro de período */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold">
+          <CalendarDays className="w-3.5 h-3.5" />
+          Período:
+        </div>
+        <input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => setDateFrom(e.target.value)}
+          className="h-8 px-2 rounded-lg border border-border bg-background text-sm text-secondary font-medium focus:outline-none focus:ring-1 focus:ring-primary"
+          aria-label="Data inicial"
+        />
+        <span className="text-xs text-muted-foreground">até</span>
+        <input
+          type="date"
+          value={dateTo}
+          onChange={(e) => setDateTo(e.target.value)}
+          className="h-8 px-2 rounded-lg border border-border bg-background text-sm text-secondary font-medium focus:outline-none focus:ring-1 focus:ring-primary"
+          aria-label="Data final"
+        />
+        {(dateFrom || dateTo) && (
+          <button
+            onClick={() => { setDateFrom(""); setDateTo(""); }}
+            className="text-xs text-muted-foreground hover:text-primary font-semibold flex items-center gap-1"
+          >
+            <X className="w-3 h-3" /> Limpar
+          </button>
+        )}
       </div>
       <FiltersBar
         search={search}
