@@ -21,6 +21,18 @@ import { cn } from "@/lib/utils";
 type LoginSearch = { redirect?: string };
 
 export const Route = createFileRoute("/login")({
+  // Injeta o manifest do admin apenas na rota de login (PWA admin).
+  // O formulário público ($slug) não recebe manifest — sem PWA lá.
+  head: () => ({
+    meta: [
+      { name: "apple-mobile-web-app-title", content: "Splash Admin" },
+      { name: "application-name", content: "Splash Admin" },
+      { title: "Splash Admin — Login" },
+    ],
+    links: [
+      { rel: "manifest", href: "/admin-manifest.webmanifest" },
+    ],
+  }),
   validateSearch: (search: Record<string, unknown>): LoginSearch => ({
     redirect: typeof search.redirect === "string" ? search.redirect : undefined,
   }),

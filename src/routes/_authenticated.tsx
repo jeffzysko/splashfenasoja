@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { NotificationBell } from "@/components/NotificationBell";
 import { NotificationSettings } from "@/components/NotificationSettings";
+import { AdminPWAInstall } from "@/components/pwa/AdminPWAInstall";
 
 type AuthCache = { userId: string; hasAccess: boolean; expiresAt: number };
 const CACHE_KEY = "admin_auth_cache_v1";
@@ -67,6 +68,16 @@ function revalidateInBackground(userId: string) {
 }
 
 export const Route = createFileRoute("/_authenticated")({
+  // Manifest do admin injetado em todas as rotas autenticadas
+  head: () => ({
+    meta: [
+      { name: "apple-mobile-web-app-title", content: "Splash Admin" },
+      { name: "application-name", content: "Splash Admin" },
+    ],
+    links: [
+      { rel: "manifest", href: "/admin-manifest.webmanifest" },
+    ],
+  }),
   beforeLoad: async ({ location }) => {
     if (typeof window === "undefined") return;
     const now = Date.now();
@@ -106,6 +117,15 @@ function AuthenticatedLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMaster, setIsMaster] = useState(false);
+
+  // Registra o Service Worker do admin (assets estáticos + offline fallback).
+  // Feito aqui para garantir que o SW só ative em rotas autenticadas.
+  useEffect(() => {
+    if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+    navigator.serviceWorker
+      .register("/sw.js", { scope: "/" })
+      .catch(() => { /* registro opcional — falha silenciosa */ });
+  }, []);
 
   useEffect(() => {
     if (!user?.id) { setIsMaster(false); return; }
@@ -190,6 +210,9 @@ function AuthenticatedLayout() {
       <main className="max-w-4xl mx-auto px-4 py-5 sm:py-6">
         <Outlet />
       </main>
+
+      {/* Banner de instalação do PWA admin */}
+      <AdminPWAInstall />
 
       {/* Bottom nav mobile */}
       <nav

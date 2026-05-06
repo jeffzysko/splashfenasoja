@@ -78,7 +78,9 @@ export const Route = createRootRoute({
       { rel: "icon", type: "image/png", sizes: "32x32", href: `/favicon-32.png${v}` },
       { rel: "icon", type: "image/png", sizes: "192x192", href: `/icon-192.png${v}` },
       { rel: "apple-touch-icon", sizes: "180x180", href: `/apple-touch-icon.png${v}` },
-      { rel: "manifest", href: `/manifest.webmanifest${v}` },
+      // Manifest NÃO injetado aqui — é injetado condicionalmente por rota:
+      // • login.tsx + _authenticated.tsx → /admin-manifest.webmanifest
+      // • $slug.tsx (formulário público) → sem manifest, sem PWA
       ...splashLinks,
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       {

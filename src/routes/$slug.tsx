@@ -107,6 +107,14 @@ function FeiraFormPage() {
     }
   }, [feira, feiraId, setFeira]);
 
+  // Suprime o prompt de instalação de PWA nesta página pública.
+  // O PWA é exclusivo da área administrativa — não deve aparecer no formulário do lead.
+  useEffect(() => {
+    const suppress = (e: Event) => e.preventDefault();
+    window.addEventListener("beforeinstallprompt", suppress);
+    return () => window.removeEventListener("beforeinstallprompt", suppress);
+  }, []);
+
   if (!feira.ativo) return <FeiraInativa nome={feira.nome} />;
 
   const progressStep = step === 0 ? 0 : Math.min(step, TOTAL_STEPS);
