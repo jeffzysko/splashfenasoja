@@ -3,20 +3,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
-import { LogOut, LayoutDashboard, Users, Shield, SlidersHorizontal } from "lucide-react";
+import { LogOut, LayoutDashboard, Users, Shield, SlidersHorizontal, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { NotificationBell } from "@/components/NotificationBell";
 import { NotificationSettings } from "@/components/NotificationSettings";
 
-// Cache de auth para evitar refazer getSession + user_roles em toda navegação.
-// Persiste em sessionStorage (sobrevive F5) e usa stale-while-revalidate.
 type AuthCache = { userId: string; hasAccess: boolean; expiresAt: number };
 const CACHE_KEY = "admin_auth_cache_v1";
-const FRESH_TTL_MS = 5 * 60_000; // 5 min: usa direto sem revalidar
-const STALE_TTL_MS = 30 * 60_000; // 30 min: usa, mas revalida em background
-const ROLE_QUERY_TIMEOUT_MS = 3_000; // não trava UI mais que 3s
+const FRESH_TTL_MS = 5 * 60_000;
+const STALE_TTL_MS = 30 * 60_000;
+const ROLE_QUERY_TIMEOUT_MS = 3_000;
 
 let authCache: AuthCache | null = null;
 let revalidating = false;
@@ -29,9 +27,7 @@ function loadCache(): AuthCache | null {
     if (!raw) return null;
     authCache = JSON.parse(raw) as AuthCache;
     return authCache;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
 function saveCache(c: AuthCache | null) {
@@ -45,9 +41,7 @@ function saveCache(c: AuthCache | null) {
 
 if (typeof window !== "undefined") {
   supabase.auth.onAuthStateChange((event) => {
-    if (event === "SIGNED_OUT" || event === "SIGNED_IN" || event === "USER_UPDATED") {
-      saveCache(null);
-    }
+    if (event === "SIGNED_OUT" || event === "SIGNED_IN" || event === "USER_UPDATED") saveCache(null);
   });
 }
 
@@ -57,73 +51,45 @@ async function fetchRoleWithTimeout(userId: string): Promise<{ hasAccess: boolea
       supabase.from("user_roles").select("role").eq("user_id", userId),
       new Promise<null>((resolve) => setTimeout(() => resolve(null), ROLE_QUERY_TIMEOUT_MS)),
     ]);
-    if (!result) return null; // timeout
+    if (!result) return null;
     const { data, error } = result as { data: Array<{ role: string }> | null; error: unknown };
     if (error) return null;
-    return { hasAccess: !!data?.some(r => ["master", "admin"].includes(r.role)) };
-  } catch {
-    return null;
-  }
+    return { hasAccess: !!data?.some(r => ["master", "admin", "user"].includes(r.role)) };
+  } catch { return null; }
 }
 
 function revalidateInBackground(userId: string) {
   if (revalidating) return;
   revalidating = true;
   fetchRoleWithTimeout(userId).then((res) => {
-    if (res) {
-      saveCache({ userId, hasAccess: res.hasAccess, expiresAt: Date.now() + FRESH_TTL_MS });
-    }
+    if (res) saveCache({ userId, hasAccess: res.hasAccess, expiresAt: Date.now() + FRESH_TTL_MS });
   }).finally(() => { revalidating = false; });
 }
 
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async ({ location }) => {
     if (typeof window === "undefined") return;
-
     const now = Date.now();
-
-    // SEMPRE valida a sessão Supabase primeiro — o cache só evita refazer o
-    // role check, nunca substitui a verificação da sessão. Sem isso, um cache
-    // "fresco" depois de logout/expiração mantinha a UI dentro do admin
-    // disparando 401s nas queries.
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       saveCache(null);
       const currentPath = location.pathname + (location.searchStr || "");
-      throw redirect({
-        to: "/login",
-        search: { redirect: currentPath.includes("/login") ? undefined : currentPath },
-      });
+      throw redirect({ to: "/login", search: { redirect: currentPath.includes("/login") ? undefined : currentPath } });
     }
 
     const cached = loadCache();
-
-    // Cache fresco do mesmo usuário: libera instantaneamente.
     if (cached && cached.userId === session.user.id && cached.expiresAt > now) {
       if (!cached.hasAccess) throw redirect({ to: "/login" });
       return;
     }
-
-    // Cache stale do mesmo usuário (mas ainda dentro do limite): libera e revalida em background.
-    if (
-      cached &&
-      cached.userId === session.user.id &&
-      cached.expiresAt + STALE_TTL_MS > now &&
-      cached.hasAccess
-    ) {
+    if (cached && cached.userId === session.user.id && cached.expiresAt + STALE_TTL_MS > now && cached.hasAccess) {
       revalidateInBackground(cached.userId);
       return;
     }
 
     const res = await fetchRoleWithTimeout(session.user.id);
     if (!res) {
-      // Backend lento/indisponível: se já tinha cache anterior com acesso, confia nele.
-      if (cached?.userId === session.user.id && cached.hasAccess) {
-        revalidateInBackground(session.user.id);
-        return;
-      }
-      // Sem informação prévia: deixa entrar (a RLS protege os dados de qualquer forma)
-      // e revalida em background. Evita tela travada se o PostgREST estiver lento.
+      if (cached?.userId === session.user.id && cached.hasAccess) { revalidateInBackground(session.user.id); return; }
       revalidateInBackground(session.user.id);
       saveCache({ userId: session.user.id, hasAccess: true, expiresAt: now + 30_000 });
       return;
@@ -142,13 +108,8 @@ function AuthenticatedLayout() {
   const [isMaster, setIsMaster] = useState(false);
 
   useEffect(() => {
-    if (!user?.id) {
-      setIsMaster(false);
-      return;
-    }
+    if (!user?.id) { setIsMaster(false); return; }
     let cancelled = false;
-    // chave estável para cache local de "isMaster" — evita refazer query
-    // a cada navegação interna do admin.
     const key = `is_master_${user.id}`;
     try {
       const cached = sessionStorage.getItem(key);
@@ -156,17 +117,12 @@ function AuthenticatedLayout() {
       else if (cached === "0") setIsMaster(false);
     } catch { /* ignore */ }
 
-    supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .then(({ data }) => {
-        if (cancelled) return;
-        const isM = !!data?.some((r) => r.role === "master");
-        setIsMaster(isM);
-        try { sessionStorage.setItem(key, isM ? "1" : "0"); } catch { /* ignore */ }
-      });
-
+    supabase.from("user_roles").select("role").eq("user_id", user.id).then(({ data }) => {
+      if (cancelled) return;
+      const isM = !!data?.some((r) => r.role === "master");
+      setIsMaster(isM);
+      try { sessionStorage.setItem(key, isM ? "1" : "0"); } catch { /* ignore */ }
+    });
     return () => { cancelled = true; };
   }, [user?.id]);
 
@@ -193,24 +149,31 @@ function AuthenticatedLayout() {
             <Link
               to="/admin/settings/notifications"
               className="p-2 text-muted-foreground hover:text-primary transition-colors hidden sm:inline-flex"
-              aria-label="Configurações de notificação (página completa)"
-              title="Gerenciar notificações"
+              aria-label="Configurações de notificação"
             >
               <SlidersHorizontal className="w-5 h-5" />
             </Link>
             {isMaster && (
-              <Link
-                to="/admin/admins"
-                className="p-2 text-muted-foreground hover:text-primary transition-colors hidden sm:inline-flex"
-                aria-label="Administradores"
-                title="Administradores"
-              >
-                <Shield className="w-5 h-5" />
-              </Link>
+              <>
+                <Link
+                  to="/admin/feiras"
+                  className="p-2 text-muted-foreground hover:text-primary transition-colors hidden sm:inline-flex"
+                  aria-label="Feiras"
+                  title="Feiras"
+                >
+                  <CalendarDays className="w-5 h-5" />
+                </Link>
+                <Link
+                  to="/admin/admins"
+                  className="p-2 text-muted-foreground hover:text-primary transition-colors hidden sm:inline-flex"
+                  aria-label="Administradores"
+                  title="Administradores"
+                >
+                  <Shield className="w-5 h-5" />
+                </Link>
+              </>
             )}
-
             <div className="h-6 w-[1px] bg-border/60 mx-0.5 hidden sm:block" />
-
             <Button
               variant="ghost"
               size="icon"
@@ -228,15 +191,19 @@ function AuthenticatedLayout() {
         <Outlet />
       </main>
 
+      {/* Bottom nav mobile */}
       <nav
         className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border/50 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-stretch justify-around shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.1)]"
         aria-label="Navegação principal"
       >
         <NavButton to="/admin" icon={<LayoutDashboard className="w-6 h-6" />} label="Dashboard" active={location.pathname === "/admin" || location.pathname === "/admin/"} />
         <NavButton to="/admin/leads" icon={<Users className="w-6 h-6" />} label="Leads" active={location.pathname.startsWith("/admin/leads")} />
-        {isMaster ? (
+        {isMaster && (
+          <NavButton to="/admin/feiras" icon={<CalendarDays className="w-6 h-6" />} label="Feiras" active={location.pathname.startsWith("/admin/feiras")} />
+        )}
+        {isMaster && (
           <NavButton to="/admin/admins" icon={<Shield className="w-6 h-6" />} label="Admins" active={location.pathname.startsWith("/admin/admins")} />
-        ) : null}
+        )}
       </nav>
     </div>
   );

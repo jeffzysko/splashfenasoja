@@ -57,17 +57,17 @@ export const Route = createRootRoute({
       { name: "apple-mobile-web-app-title", content: "Splash Lead" },
       { name: "application-name", content: "Splash Lead" },
       { name: "app-version", content: APP_VERSION },
-      { title: "Splash Lead — FENASOJA 2026" },
+      { title: "Splash Lead — Splash Piscinas" },
       {
         name: "description",
         content:
-          "Cadastro rápido de leads — Splash Piscinas no stand da FENASOJA 2026.",
+          "Cadastro rápido de leads para eventos e feiras da Splash Piscinas.",
       },
-      { property: "og:title", content: "Splash Lead — FENASOJA 2026" },
+      { property: "og:title", content: "Splash Lead — Splash Piscinas" },
       {
         property: "og:description",
         content:
-          "Cadastro rápido de leads — Splash Piscinas no stand da FENASOJA 2026.",
+          "Cadastro rápido de leads para eventos e feiras da Splash Piscinas.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

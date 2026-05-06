@@ -5,7 +5,8 @@ import { ScreenContainer } from "./ScreenContainer";
 import { Sparkles } from "lucide-react";
 
 export const WelcomeScreen = () => {
-  const { setStep } = useFormStore();
+  const { setStep, feiraNome } = useFormStore();
+  const eventoLabel = feiraNome || "Evento Splash";
 
   return (
     <ScreenContainer centered>
@@ -15,7 +16,7 @@ export const WelcomeScreen = () => {
 
       <span className="inline-flex items-center gap-1.5 bg-secondary text-secondary-foreground text-[11px] font-bold uppercase tracking-[0.12em] px-3 py-1.5 rounded-full mb-8 animate-in fade-in slide-in-from-bottom-2 duration-400 delay-150 fill-mode-forwards">
         <Sparkles className="w-3 h-3" />
-        FENASOJA 2026
+        {eventoLabel}
       </span>
 
       <h1 className="text-[34px] leading-[1.1] font-extrabold text-secondary mb-4 max-w-sm tracking-tight animate-in fade-in slide-in-from-bottom-3 duration-500 delay-250 fill-mode-forwards">

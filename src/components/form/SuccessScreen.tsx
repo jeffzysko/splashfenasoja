@@ -17,7 +17,7 @@ export const SuccessScreen = () => {
   const leadShort = submitted.leadId ? submitted.leadId.slice(0, 8).toUpperCase() : "—";
 
   const waMessage = encodeURIComponent(
-    `Oi Splash! Acabei de preencher o formulário no stand da FENASOJA. Quero receber o catálogo de piscinas de fibra. Meu nome é ${firstName}.`,
+    `Oi Splash! Acabei de preencher o formulário no evento. Quero receber o catálogo de piscinas de fibra. Meu nome é ${firstName}.`,
   );
   const waLink = `https://wa.me/${SPLASH_WHATSAPP}?text=${waMessage}`;
 

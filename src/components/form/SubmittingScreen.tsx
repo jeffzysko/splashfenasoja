@@ -7,7 +7,7 @@ import { ScreenContainer } from "./ScreenContainer";
 import { calcScore, normalizeWhatsapp } from "@/lib/leads";
 
 export const SubmittingScreen = () => {
-  const { data, setStep, setSubmitted } = useFormStore();
+  const { data, feiraId, feiraNome, setStep, setSubmitted } = useFormStore();
 
   useEffect(() => {
     const submit = async () => {
@@ -19,43 +19,43 @@ export const SubmittingScreen = () => {
           tamanho_quintal: data.tamanho_quintal,
         });
 
-        const leadId = typeof crypto.randomUUID === 'function' 
-          ? crypto.randomUUID() 
-          : Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        const leadId =
+          typeof crypto.randomUUID === "function"
+            ? crypto.randomUUID()
+            : Math.random().toString(36).substring(2, 15) +
+              Math.random().toString(36).substring(2, 15);
 
         const params = new URLSearchParams(window.location.search);
-        
-        const { error } = await supabase
-          .from("leads")
-          .insert({
-            id: leadId,
-            nome: data.nome.trim(),
-            whatsapp: normalizeWhatsapp(data.whatsapp),
-            email: data.email?.trim() || null,
-            cidade: data.cidade,
-            estado: data.estado,
-            tamanho_quintal: data.tamanho_quintal,
-            prazo_compra: data.prazo_compra,
-            orcamento: data.orcamento,
-            score,
-            temperatura,
-            evento: "FENASOJA 2026",
-            utm_source: params.get("utm_source"),
-            utm_medium: params.get("utm_medium"),
-            utm_campaign: params.get("utm_campaign"),
-            user_agent: navigator.userAgent,
-          });
+
+        const { error } = await supabase.from("leads").insert({
+          id: leadId,
+          nome: data.nome.trim(),
+          whatsapp: normalizeWhatsapp(data.whatsapp),
+          email: data.email?.trim() || null,
+          cidade: data.cidade,
+          estado: data.estado,
+          tamanho_quintal: data.tamanho_quintal,
+          prazo_compra: data.prazo_compra,
+          orcamento: data.orcamento,
+          score,
+          temperatura,
+          // Dados da feira — vêm do store, não hardcoded
+          evento: feiraNome || "Evento Splash",
+          feira_id: feiraId || null,
+          utm_source: params.get("utm_source"),
+          utm_medium: params.get("utm_medium"),
+          utm_campaign: params.get("utm_campaign"),
+          user_agent: navigator.userAgent,
+        });
 
         if (error) throw error;
 
         setSubmitted({ leadId, score, temperatura });
         setTimeout(() => setStep(7), 700);
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Algo deu errado";
         console.error("Erro ao salvar lead:", err);
-        const errorMessage = err.message || "Algo deu errado";
-        toast.error(`Não conseguimos salvar: ${errorMessage}. Tenta de novo?`, {
-          duration: 5000,
-        });
+        toast.error(`Não conseguimos salvar: ${msg}. Tenta de novo?`, { duration: 5000 });
         setStep(5);
       }
     };

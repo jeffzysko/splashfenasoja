@@ -13,14 +13,18 @@ export type LeadData = {
 
 type FormStore = {
   step: number;
+  // Contexto da feira atual (preenchido pela rota /$slug)
+  feiraId: string;
+  feiraNome: string;
+  feiraSlug: string;
   data: LeadData;
-  // Resultado do submit (usado na tela de sucesso)
   submitted: {
     leadId: string | null;
     score: number;
     temperatura: 'quente' | 'morno' | 'frio';
   };
   setStep: (step: number) => void;
+  setFeira: (id: string, nome: string, slug: string) => void;
   updateData: (newData: Partial<LeadData>) => void;
   setSubmitted: (s: { leadId: string; score: number; temperatura: 'quente' | 'morno' | 'frio' }) => void;
   reset: () => void;
@@ -39,9 +43,13 @@ const emptyData: LeadData = {
 
 export const useFormStore = create<FormStore>((set) => ({
   step: 0,
+  feiraId: '',
+  feiraNome: '',
+  feiraSlug: '',
   data: emptyData,
   submitted: { leadId: null, score: 0, temperatura: 'frio' },
   setStep: (step) => set({ step }),
+  setFeira: (feiraId, feiraNome, feiraSlug) => set({ feiraId, feiraNome, feiraSlug }),
   updateData: (newData) => set((state) => ({ data: { ...state.data, ...newData } })),
   setSubmitted: (s) => set({ submitted: s }),
   reset: () =>
@@ -49,5 +57,7 @@ export const useFormStore = create<FormStore>((set) => ({
       step: 0,
       data: emptyData,
       submitted: { leadId: null, score: 0, temperatura: 'frio' },
+      // feiraId/feiraNome/feiraSlug são mantidos para o caso de o usuário
+      // querer preencher novamente na mesma feira
     }),
 }));
