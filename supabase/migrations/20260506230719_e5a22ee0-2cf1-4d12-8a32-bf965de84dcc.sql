@@ -1,0 +1,1 @@
+ALTER TABLE public.feiras ADD COLUMN IF NOT EXISTS mensagem_sucesso TEXT;

@@ -82,6 +82,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          mensagem_sucesso: string | null
           nome: string
           slug: string
           updated_at: string
@@ -92,6 +93,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          mensagem_sucesso?: string | null
           nome: string
           slug: string
           updated_at?: string
@@ -102,6 +104,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          mensagem_sucesso?: string | null
           nome?: string
           slug?: string
           updated_at?: string
