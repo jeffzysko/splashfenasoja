@@ -13,12 +13,16 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as AuthenticatedAdminAdminsRouteImport } from './routes/_authenticated/admin/admins'
+import { Route as AuthenticatedAdminFeirasRouteImport } from './routes/_authenticated/admin/feiras'
 import { Route as AuthenticatedAdminLeadsIndexRouteImport } from './routes/_authenticated/admin/leads.index'
 import { Route as AuthenticatedAdminSettingsNotificationsRouteImport } from './routes/_authenticated/admin/settings.notifications'
 import { Route as AuthenticatedAdminLeadsIdRouteImport } from './routes/_authenticated/admin/leads.$id'
+import { Route as AuthenticatedAdminFeirasIndexRouteImport } from './routes/_authenticated/admin/feiras.index'
+import { Route as AuthenticatedAdminFeirasFeiraIdRouteImport } from './routes/_authenticated/admin/feiras.$feiraId'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -39,6 +43,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SlugRoute = SlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -53,6 +62,12 @@ const AuthenticatedAdminAdminsRoute =
   AuthenticatedAdminAdminsRouteImport.update({
     id: '/admins',
     path: '/admins',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminFeirasRoute =
+  AuthenticatedAdminFeirasRouteImport.update({
+    id: '/feiras',
+    path: '/feiras',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminLeadsIndexRoute =
@@ -73,9 +88,22 @@ const AuthenticatedAdminLeadsIdRoute =
     path: '/leads/$id',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminFeirasIndexRoute =
+  AuthenticatedAdminFeirasIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminFeirasRoute,
+  } as any)
+const AuthenticatedAdminFeirasFeiraIdRoute =
+  AuthenticatedAdminFeirasFeiraIdRouteImport.update({
+    id: '/$feiraId',
+    path: '/$feiraId',
+    getParentRoute: () => AuthenticatedAdminFeirasRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$slug': typeof SlugRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
@@ -84,9 +112,13 @@ export interface FileRoutesByFullPath {
   '/admin/leads/$id': typeof AuthenticatedAdminLeadsIdRoute
   '/admin/settings/notifications': typeof AuthenticatedAdminSettingsNotificationsRoute
   '/admin/leads/': typeof AuthenticatedAdminLeadsIndexRoute
+  '/admin/feiras': typeof AuthenticatedAdminFeirasRouteWithChildren
+  '/admin/feiras/': typeof AuthenticatedAdminFeirasIndexRoute
+  '/admin/feiras/$feiraId': typeof AuthenticatedAdminFeirasFeiraIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$slug': typeof SlugRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin/admins': typeof AuthenticatedAdminAdminsRoute
@@ -94,10 +126,13 @@ export interface FileRoutesByTo {
   '/admin/leads/$id': typeof AuthenticatedAdminLeadsIdRoute
   '/admin/settings/notifications': typeof AuthenticatedAdminSettingsNotificationsRoute
   '/admin/leads': typeof AuthenticatedAdminLeadsIndexRoute
+  '/admin/feiras': typeof AuthenticatedAdminFeirasIndexRoute
+  '/admin/feiras/$feiraId': typeof AuthenticatedAdminFeirasFeiraIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$slug': typeof SlugRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -107,11 +142,15 @@ export interface FileRoutesById {
   '/_authenticated/admin/leads/$id': typeof AuthenticatedAdminLeadsIdRoute
   '/_authenticated/admin/settings/notifications': typeof AuthenticatedAdminSettingsNotificationsRoute
   '/_authenticated/admin/leads/': typeof AuthenticatedAdminLeadsIndexRoute
+  '/_authenticated/admin/feiras': typeof AuthenticatedAdminFeirasRouteWithChildren
+  '/_authenticated/admin/feiras/': typeof AuthenticatedAdminFeirasIndexRoute
+  '/_authenticated/admin/feiras/$feiraId': typeof AuthenticatedAdminFeirasFeiraIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/$slug'
     | '/login'
     | '/reset-password'
     | '/admin'
@@ -120,9 +159,13 @@ export interface FileRouteTypes {
     | '/admin/leads/$id'
     | '/admin/settings/notifications'
     | '/admin/leads/'
+    | '/admin/feiras'
+    | '/admin/feiras/'
+    | '/admin/feiras/$feiraId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/$slug'
     | '/login'
     | '/reset-password'
     | '/admin/admins'
@@ -130,9 +173,12 @@ export interface FileRouteTypes {
     | '/admin/leads/$id'
     | '/admin/settings/notifications'
     | '/admin/leads'
+    | '/admin/feiras'
+    | '/admin/feiras/$feiraId'
   id:
     | '__root__'
     | '/'
+    | '/$slug'
     | '/_authenticated'
     | '/login'
     | '/reset-password'
@@ -142,10 +188,14 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/leads/$id'
     | '/_authenticated/admin/settings/notifications'
     | '/_authenticated/admin/leads/'
+    | '/_authenticated/admin/feiras'
+    | '/_authenticated/admin/feiras/'
+    | '/_authenticated/admin/feiras/$feiraId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SlugRoute: typeof SlugRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -179,6 +229,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$slug': {
+      id: '/$slug'
+      path: '/$slug'
+      fullPath: '/$slug'
+      preLoaderRoute: typeof SlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin': {
@@ -223,8 +280,45 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminLeadsIdRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/feiras': {
+      id: '/_authenticated/admin/feiras'
+      path: '/feiras'
+      fullPath: '/admin/feiras'
+      preLoaderRoute: typeof AuthenticatedAdminFeirasRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/feiras/': {
+      id: '/_authenticated/admin/feiras/'
+      path: '/'
+      fullPath: '/admin/feiras/'
+      preLoaderRoute: typeof AuthenticatedAdminFeirasIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminFeirasRoute
+    }
+    '/_authenticated/admin/feiras/$feiraId': {
+      id: '/_authenticated/admin/feiras/$feiraId'
+      path: '/$feiraId'
+      fullPath: '/admin/feiras/$feiraId'
+      preLoaderRoute: typeof AuthenticatedAdminFeirasFeiraIdRouteImport
+      parentRoute: typeof AuthenticatedAdminFeirasRoute
+    }
   }
 }
+
+interface AuthenticatedAdminFeirasRouteChildren {
+  AuthenticatedAdminFeirasIndexRoute: typeof AuthenticatedAdminFeirasIndexRoute
+  AuthenticatedAdminFeirasFeiraIdRoute: typeof AuthenticatedAdminFeirasFeiraIdRoute
+}
+
+const AuthenticatedAdminFeirasRouteChildren: AuthenticatedAdminFeirasRouteChildren =
+  {
+    AuthenticatedAdminFeirasIndexRoute: AuthenticatedAdminFeirasIndexRoute,
+    AuthenticatedAdminFeirasFeiraIdRoute: AuthenticatedAdminFeirasFeiraIdRoute,
+  }
+
+const AuthenticatedAdminFeirasRouteWithChildren =
+  AuthenticatedAdminFeirasRoute._addFileChildren(
+    AuthenticatedAdminFeirasRouteChildren,
+  )
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAdminsRoute: typeof AuthenticatedAdminAdminsRoute
@@ -232,6 +326,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminLeadsIdRoute: typeof AuthenticatedAdminLeadsIdRoute
   AuthenticatedAdminSettingsNotificationsRoute: typeof AuthenticatedAdminSettingsNotificationsRoute
   AuthenticatedAdminLeadsIndexRoute: typeof AuthenticatedAdminLeadsIndexRoute
+  AuthenticatedAdminFeirasRoute: typeof AuthenticatedAdminFeirasRouteWithChildren
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
@@ -241,6 +336,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminSettingsNotificationsRoute:
     AuthenticatedAdminSettingsNotificationsRoute,
   AuthenticatedAdminLeadsIndexRoute: AuthenticatedAdminLeadsIndexRoute,
+  AuthenticatedAdminFeirasRoute: AuthenticatedAdminFeirasRouteWithChildren,
 }
 
 const AuthenticatedAdminRouteWithChildren =
@@ -260,6 +356,7 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SlugRoute: SlugRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
