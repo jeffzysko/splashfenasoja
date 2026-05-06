@@ -22,11 +22,12 @@ type FormStore = {
     leadId: string | null;
     score: number;
     temperatura: 'quente' | 'morno' | 'frio';
+    isDuplicate?: boolean;
   };
   setStep: (step: number) => void;
   setFeira: (id: string, nome: string, slug: string) => void;
   updateData: (newData: Partial<LeadData>) => void;
-  setSubmitted: (s: { leadId: string; score: number; temperatura: 'quente' | 'morno' | 'frio' }) => void;
+  setSubmitted: (s: { leadId: string; score: number; temperatura: 'quente' | 'morno' | 'frio'; isDuplicate?: boolean }) => void;
   reset: () => void;
 };
 
@@ -47,7 +48,7 @@ export const useFormStore = create<FormStore>((set) => ({
   feiraNome: '',
   feiraSlug: '',
   data: emptyData,
-  submitted: { leadId: null, score: 0, temperatura: 'frio' },
+  submitted: { leadId: null, score: 0, temperatura: 'frio', isDuplicate: false },
   setStep: (step) => set({ step }),
   setFeira: (feiraId, feiraNome, feiraSlug) => set({ feiraId, feiraNome, feiraSlug }),
   updateData: (newData) => set((state) => ({ data: { ...state.data, ...newData } })),
@@ -56,7 +57,7 @@ export const useFormStore = create<FormStore>((set) => ({
     set({
       step: 0,
       data: emptyData,
-      submitted: { leadId: null, score: 0, temperatura: 'frio' },
+      submitted: { leadId: null, score: 0, temperatura: 'frio', isDuplicate: false },
       // feiraId/feiraNome/feiraSlug são mantidos para o caso de o usuário
       // querer preencher novamente na mesma feira
     }),

@@ -15,11 +15,43 @@ export const SuccessScreen = () => {
   const firstName = data.nome.split(" ")[0] || "amigo(a)";
   const badge = TEMP_BADGE[submitted.temperatura];
   const leadShort = submitted.leadId ? submitted.leadId.slice(0, 8).toUpperCase() : "—";
+  const isDuplicate = submitted.isDuplicate ?? false;
 
   const waMessage = encodeURIComponent(
     `Oi Splash! Acabei de preencher o formulário no evento. Quero receber o catálogo de piscinas de fibra. Meu nome é ${firstName}.`,
   );
   const waLink = `https://wa.me/${SPLASH_WHATSAPP}?text=${waMessage}`;
+
+  // Visitante já cadastrado nesta feira — exibe mensagem amigável sem revelar o motivo
+  if (isDuplicate) {
+    return (
+      <ScreenContainer centered>
+        <div className="w-20 h-20 rounded-full bg-accent/15 flex items-center justify-center mb-5 shadow-[0_12px_40px_-12px_color-mix(in_oklab,var(--accent)_55%,transparent)] animate-in zoom-in-50 fade-in duration-500 delay-100 fill-mode-forwards">
+          <CheckCircle2 className="w-12 h-12 text-accent" strokeWidth={2.2} />
+        </div>
+        <h1 className="text-[30px] leading-tight font-extrabold text-secondary mb-2 max-w-sm tracking-tight animate-in fade-in slide-in-from-bottom-2 duration-500 delay-250">
+          Tudo certo, {firstName}! 🎉
+        </h1>
+        <p className="text-base text-muted-foreground mb-6 max-w-md animate-in fade-in slide-in-from-bottom-2 duration-500 delay-350">
+          Você já está no nosso sistema! Em breve um especialista da Splash entrará em contato pelo WhatsApp.
+        </p>
+        <div className="w-full max-w-sm space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-450">
+          <a href={waLink} target="_blank" rel="noreferrer" className="block">
+            <Button
+              size="lg"
+              className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white h-[60px] rounded-2xl text-lg font-bold shadow-lg gap-2"
+            >
+              <SiWhatsapp />
+              Chamar especialista agora!
+            </Button>
+          </a>
+          <button onClick={reset} className="w-full text-secondary hover:text-primary text-sm font-bold py-3 transition-colors">
+            Cadastrar outro visitante
+          </button>
+        </div>
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer centered>

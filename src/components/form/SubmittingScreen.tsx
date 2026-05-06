@@ -48,9 +48,18 @@ export const SubmittingScreen = () => {
           user_agent: navigator.userAgent,
         });
 
-        if (error) throw error;
+        if (error) {
+          // P0002 = lead duplicado (mesmo WhatsApp + feira já cadastrado).
+          // Tratamos como sucesso para não confundir o visitante.
+          if (error.code === "P0002" || error.message?.includes("LEAD_DUPLICATE")) {
+            setSubmitted({ leadId: "", score: 0, temperatura: "frio", isDuplicate: true });
+            setTimeout(() => setStep(7), 400);
+            return;
+          }
+          throw error;
+        }
 
-        setSubmitted({ leadId, score, temperatura });
+        setSubmitted({ leadId, score, temperatura, isDuplicate: false });
         setTimeout(() => setStep(7), 700);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : "Algo deu errado";
