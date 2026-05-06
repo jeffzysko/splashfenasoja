@@ -623,32 +623,39 @@ function LeadsListPage() {
         </div>
       </div>
       {/* Filtro de período */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold">
+      <div className="bg-card border border-border rounded-2xl px-4 py-3">
+        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2.5">
           <CalendarDays className="w-3.5 h-3.5" />
-          Período:
+          Período
         </div>
-        <input
-          type="date"
-          value={dateFrom}
-          onChange={(e) => setDateFrom(e.target.value)}
-          className="h-8 px-2 rounded-lg border border-border bg-background text-sm text-secondary font-medium focus:outline-none focus:ring-1 focus:ring-primary"
-          aria-label="Data inicial"
-        />
-        <span className="text-xs text-muted-foreground">até</span>
-        <input
-          type="date"
-          value={dateTo}
-          onChange={(e) => setDateTo(e.target.value)}
-          className="h-8 px-2 rounded-lg border border-border bg-background text-sm text-secondary font-medium focus:outline-none focus:ring-1 focus:ring-primary"
-          aria-label="Data final"
-        />
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1">
+            <label className="text-[10px] text-muted-foreground font-semibold">De</label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm text-secondary font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-colors"
+              aria-label="Data inicial"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[10px] text-muted-foreground font-semibold">Até</label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm text-secondary font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-colors"
+              aria-label="Data final"
+            />
+          </div>
+        </div>
         {(dateFrom || dateTo) && (
           <button
             onClick={() => { setDateFrom(""); setDateTo(""); }}
-            className="text-xs text-muted-foreground hover:text-primary font-semibold flex items-center gap-1"
+            className="mt-2 text-xs text-muted-foreground hover:text-destructive font-semibold flex items-center gap-1 transition-colors"
           >
-            <X className="w-3 h-3" /> Limpar
+            <X className="w-3 h-3" /> Limpar período
           </button>
         )}
       </div>

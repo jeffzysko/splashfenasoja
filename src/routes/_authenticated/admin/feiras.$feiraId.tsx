@@ -178,15 +178,15 @@ function FeiraDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <Link to="/admin/feiras" className="p-2 -ml-2 text-muted-foreground hover:text-secondary rounded-full" aria-label="Voltar">
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
+        <Button variant="ghost" size="icon" className="rounded-full shrink-0 -ml-2" asChild>
+          <Link to="/admin/feiras"><ArrowLeft className="w-5 h-5" /></Link>
+        </Button>
         <div>
-          <h1 className="text-2xl font-black text-secondary tracking-tight">{feira?.nome}</h1>
-          <p className="text-xs text-muted-foreground font-mono">/{feira?.slug}</p>
+          <h2 className="text-xl font-extrabold text-secondary tracking-tight">{feira?.nome}</h2>
+          <p className="text-xs text-muted-foreground font-mono tracking-wide">/{feira?.slug}</p>
         </div>
       </div>
 
@@ -326,9 +326,10 @@ function FeiraDetailPage() {
                   <div className="flex items-center gap-2 mt-0.5">
                     {u.email && <p className="text-xs text-muted-foreground truncate">{u.email}</p>}
                     <span className={cn(
-                      "text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider",
-                      u.role === "master" ? "bg-purple-100 text-purple-700" :
-                      u.role === "admin" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"
+                      "text-[9px] font-extrabold px-2 py-0.5 rounded-full border uppercase tracking-wider",
+                      u.role === "master" ? "bg-purple-500/15 text-purple-700 border-purple-500/30" :
+                      u.role === "admin"  ? "bg-blue-500/15 text-blue-700 border-blue-500/30" :
+                                            "bg-muted text-muted-foreground border-border"
                     )}>
                       {u.role}
                     </span>

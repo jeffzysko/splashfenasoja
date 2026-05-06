@@ -1,6 +1,7 @@
 import { createFileRoute, redirect, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, Shield, Users } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/admins")({
@@ -69,27 +70,22 @@ function AdminsPage() {
   }, []);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
       <div className="flex items-center gap-2">
-        <Link
-          to="/admin"
-          className="p-2 -ml-2 text-muted-foreground hover:text-secondary rounded-full"
-          aria-label="Voltar"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
+        <Button variant="ghost" size="icon" className="rounded-full shrink-0 -ml-2" asChild>
+          <Link to="/admin"><ArrowLeft className="w-5 h-5" /></Link>
+        </Button>
         <div>
-          <h1 className="text-2xl font-black text-secondary tracking-tight flex items-center gap-2">
-            <Shield className="w-6 h-6 text-primary" />
-            Administradores
-          </h1>
+          <h2 className="text-xl font-extrabold text-secondary tracking-tight flex items-center gap-2">
+            <Shield className="w-5 h-5 text-primary" /> Administradores
+          </h2>
           <p className="text-sm text-muted-foreground">
             Lista visível apenas para usuários master.
           </p>
         </div>
       </div>
 
-      <div className="bg-card border-2 border-border rounded-2xl overflow-hidden">
+      <div className="bg-card border border-border rounded-2xl overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-12 text-muted-foreground">
             <Loader2 className="w-5 h-5 animate-spin mr-2" /> Carregando...

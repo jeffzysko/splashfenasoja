@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Plus, Pencil, Trash2, Eye, EyeOff, KeyRound, RefreshCw } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, Eye, EyeOff, KeyRound, ArrowLeft, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 
@@ -241,12 +241,17 @@ function UsuariosPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
       {/* Header */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-black text-secondary tracking-tight">Usuários</h1>
-          <p className="text-sm text-muted-foreground">Gerencie os responsáveis pelas feiras</p>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="rounded-full shrink-0 -ml-2" asChild>
+            <Link to="/admin"><ArrowLeft className="w-5 h-5" /></Link>
+          </Button>
+          <div>
+            <h2 className="text-xl font-extrabold text-secondary tracking-tight">Usuários</h2>
+            <p className="text-xs text-muted-foreground">Gerencie os responsáveis pelas feiras</p>
+          </div>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={loadUsers} className="rounded-xl gap-1.5">
@@ -283,9 +288,10 @@ function UsuariosPage() {
                       {u.full_name || "Sem nome"}
                     </p>
                     <span className={cn(
-                      "text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider",
-                      u.role === "master" ? "bg-purple-100 text-purple-700" :
-                      u.role === "admin" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"
+                      "text-[9px] font-extrabold px-2 py-0.5 rounded-full border uppercase tracking-wider",
+                      u.role === "master" ? "bg-purple-500/15 text-purple-700 border-purple-500/30" :
+                      u.role === "admin"  ? "bg-blue-500/15 text-blue-700 border-blue-500/30" :
+                                            "bg-muted text-muted-foreground border-border"
                     )}>
                       {u.role}
                     </span>

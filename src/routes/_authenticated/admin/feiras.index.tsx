@@ -10,6 +10,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { ArrowLeft, Plus, Loader2, CheckCircle2, XCircle, ExternalLink, Users } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -121,14 +122,14 @@ function FeirasPage() {
     `${window.location.origin}/${slug}`;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Link to="/admin" className="p-2 -ml-2 text-muted-foreground hover:text-secondary rounded-full" aria-label="Voltar">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
+          <Button variant="ghost" size="icon" className="rounded-full shrink-0 -ml-2" asChild>
+            <Link to="/admin"><ArrowLeft className="w-5 h-5" /></Link>
+          </Button>
           <div>
-            <h1 className="text-2xl font-black text-secondary tracking-tight">Feiras</h1>
+            <h2 className="text-xl font-extrabold text-secondary tracking-tight">Feiras</h2>
             <p className="text-xs text-muted-foreground">Gerencie eventos e usuários responsáveis</p>
           </div>
         </div>
@@ -168,19 +169,20 @@ function FeirasPage() {
                     {f.ativo ? "Ativa" : "Encerrada"}
                   </span>
                 </div>
-                <div className="flex items-center gap-3 mt-1 flex-wrap">
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
                   <span className="text-xs text-muted-foreground font-mono">/{f.slug}</span>
+                  <span className="w-1 h-1 rounded-full bg-border" />
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Users className="w-3 h-3" /> {f._users_count} usuários
+                    <Users className="w-3 h-3" /> {f._users_count}
                   </span>
                   <span className="text-xs text-muted-foreground">{f._leads_count} leads</span>
                 </div>
               </div>
-              <div className="flex items-center gap-2 flex-wrap shrink-0">
+              <div className="flex items-center gap-2 sm:shrink-0 flex-wrap sm:flex-nowrap">
                 <button
                   type="button"
                   onClick={() => navigator.clipboard.writeText(publicUrl(f.slug)).then(() => toast.success("Link copiado!"))}
-                  className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+                  className="text-xs font-bold text-primary hover:text-primary/70 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors"
                   title="Copiar link público"
                 >
                   <ExternalLink className="w-3.5 h-3.5" /> Link
@@ -189,18 +191,20 @@ function FeirasPage() {
                   type="button"
                   onClick={() => toggleAtivo(f)}
                   className={cn(
-                    "flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-xl border transition-colors",
+                    "flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-xl border transition-colors",
                     f.ativo
-                      ? "border-red-200 text-red-600 hover:bg-red-50"
-                      : "border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                      ? "border-red-200 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                      : "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
                   )}
                 >
-                  {f.ativo ? <><XCircle className="w-3.5 h-3.5" /> Desativar</> : <><CheckCircle2 className="w-3.5 h-3.5" /> Ativar</>}
+                  {f.ativo
+                    ? <><XCircle className="w-3.5 h-3.5" /> Desativar</>
+                    : <><CheckCircle2 className="w-3.5 h-3.5" /> Ativar</>}
                 </button>
                 <Link
                   to="/admin/feiras/$feiraId"
                   params={{ feiraId: f.id }}
-                  className="text-[11px] font-bold px-3 py-1.5 rounded-xl border border-border hover:border-primary/40 transition-colors"
+                  className="text-[11px] font-bold px-3 py-1.5 rounded-xl border border-border hover:border-primary/50 hover:bg-muted/40 transition-colors"
                 >
                   Gerenciar →
                 </Link>

@@ -320,7 +320,7 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
     const firstName = current.nome.split(" ")[0];
     const sellerName =
       user?.user_metadata?.display_name || user?.email?.split("@")[0] || "da Splash";
-    const text = `Oi ${firstName}, aqui é ${sellerName} da Splash! Vi que você visitou nosso stand na FENASOJA e gostaria de saber mais sobre piscinas de fibra. Posso te ajudar?`;
+    const text = `Oi ${firstName}, aqui é ${sellerName} da Splash! Vi que você visitou nosso stand e gostaria de saber mais sobre nossas piscinas de fibra. Posso te ajudar?`;
     window.open(
       `https://wa.me/${current.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(text)}`,
       "_blank"
@@ -383,11 +383,9 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
       </div>
 
       <section className="space-y-3">
-        <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4" /> Qualificação
-          <span className="text-[10px] font-semibold text-muted-foreground/70 normal-case tracking-normal ml-auto">
-            Edite direto aqui
-          </span>
+        <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+          <CheckCircle2 className="w-3.5 h-3.5" /> Qualificação
+          <span className="text-[10px] font-medium text-muted-foreground/60 normal-case tracking-normal ml-auto">Edite direto aqui</span>
         </h3>
         <div className="bg-card border border-border rounded-2xl divide-y divide-border">
           <EditableRow
@@ -434,15 +432,13 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
       </section>
 
       <section className="space-y-3">
-        <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-          <User className="w-4 h-4" /> Contato
+        <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+          <User className="w-3.5 h-3.5" /> Contato
         </h3>
         <div className="bg-card border border-border rounded-2xl divide-y divide-border">
           <div className="p-4 flex items-center justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-tighter">
-                WhatsApp
-              </p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">WhatsApp</p>
               <p className="font-bold text-secondary">{formatWhatsappBR(current.whatsapp)}</p>
             </div>
             <Button
@@ -457,7 +453,7 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
           {current.email && (
             <div className="p-4 flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-tighter">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                   E-mail
                 </p>
                 <p className="font-bold text-secondary break-all">{current.email}</p>
@@ -484,25 +480,25 @@ export function LeadDetailView({ lead, onUpdate, onDeleted }: Props) {
 
       {(current.utm_source || current.utm_campaign) && (
         <section className="space-y-3">
-          <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-            <AlertCircle className="w-4 h-4" /> Origem do Lead
+          <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+            <AlertCircle className="w-3.5 h-3.5" /> Origem do Lead
           </h3>
           <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
             {current.utm_source && (
               <div>
-                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-tighter">Fonte (Source)</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Fonte (Source)</p>
                 <p className="font-bold text-secondary">{current.utm_source}</p>
               </div>
             )}
             {current.utm_campaign && (
               <div>
-                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-tighter">Campanha</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Campanha</p>
                 <p className="font-bold text-secondary">{current.utm_campaign}</p>
               </div>
             )}
             {current.utm_medium && (
               <div>
-                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-tighter">Meio (Medium)</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Meio (Medium)</p>
                 <p className="font-bold text-secondary">{current.utm_medium}</p>
               </div>
             )}
