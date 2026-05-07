@@ -26,6 +26,7 @@ import { Route as AuthenticatedAdminCatalogoIndexRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminSettingsNotificationsRouteImport } from './routes/_authenticated/admin/settings.notifications'
 import { Route as AuthenticatedAdminLeadsIdRouteImport } from './routes/_authenticated/admin/leads.$id'
 import { Route as AuthenticatedAdminFeirasFeiraIdRouteImport } from './routes/_authenticated/admin/feiras.$feiraId'
+import { Route as AuthenticatedAdminCatalogoGerenciarRouteImport } from './routes/_authenticated/admin/catalogo.gerenciar'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -121,6 +122,12 @@ const AuthenticatedAdminFeirasFeiraIdRoute =
     path: '/$feiraId',
     getParentRoute: () => AuthenticatedAdminFeirasRoute,
   } as any)
+const AuthenticatedAdminCatalogoGerenciarRoute =
+  AuthenticatedAdminCatalogoGerenciarRouteImport.update({
+    id: '/catalogo/gerenciar',
+    path: '/catalogo/gerenciar',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -132,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/admin/feiras': typeof AuthenticatedAdminFeirasRouteWithChildren
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRouteWithChildren
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/admin/catalogo/gerenciar': typeof AuthenticatedAdminCatalogoGerenciarRoute
   '/admin/feiras/$feiraId': typeof AuthenticatedAdminFeirasFeiraIdRoute
   '/admin/leads/$id': typeof AuthenticatedAdminLeadsIdRoute
   '/admin/settings/notifications': typeof AuthenticatedAdminSettingsNotificationsRoute
@@ -147,6 +155,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/admin/admins': typeof AuthenticatedAdminAdminsRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/admin/catalogo/gerenciar': typeof AuthenticatedAdminCatalogoGerenciarRoute
   '/admin/feiras/$feiraId': typeof AuthenticatedAdminFeirasFeiraIdRoute
   '/admin/leads/$id': typeof AuthenticatedAdminLeadsIdRoute
   '/admin/settings/notifications': typeof AuthenticatedAdminSettingsNotificationsRoute
@@ -167,6 +176,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/feiras': typeof AuthenticatedAdminFeirasRouteWithChildren
   '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRouteWithChildren
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/admin/catalogo/gerenciar': typeof AuthenticatedAdminCatalogoGerenciarRoute
   '/_authenticated/admin/feiras/$feiraId': typeof AuthenticatedAdminFeirasFeiraIdRoute
   '/_authenticated/admin/leads/$id': typeof AuthenticatedAdminLeadsIdRoute
   '/_authenticated/admin/settings/notifications': typeof AuthenticatedAdminSettingsNotificationsRoute
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/admin/feiras'
     | '/admin/usuarios'
     | '/admin/'
+    | '/admin/catalogo/gerenciar'
     | '/admin/feiras/$feiraId'
     | '/admin/leads/$id'
     | '/admin/settings/notifications'
@@ -202,6 +213,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/admin/admins'
     | '/admin'
+    | '/admin/catalogo/gerenciar'
     | '/admin/feiras/$feiraId'
     | '/admin/leads/$id'
     | '/admin/settings/notifications'
@@ -221,6 +233,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/feiras'
     | '/_authenticated/admin/usuarios'
     | '/_authenticated/admin/'
+    | '/_authenticated/admin/catalogo/gerenciar'
     | '/_authenticated/admin/feiras/$feiraId'
     | '/_authenticated/admin/leads/$id'
     | '/_authenticated/admin/settings/notifications'
@@ -359,6 +372,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminFeirasFeiraIdRouteImport
       parentRoute: typeof AuthenticatedAdminFeirasRoute
     }
+    '/_authenticated/admin/catalogo/gerenciar': {
+      id: '/_authenticated/admin/catalogo/gerenciar'
+      path: '/catalogo/gerenciar'
+      fullPath: '/admin/catalogo/gerenciar'
+      preLoaderRoute: typeof AuthenticatedAdminCatalogoGerenciarRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
   }
 }
 
@@ -397,6 +417,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminFeirasRoute: typeof AuthenticatedAdminFeirasRouteWithChildren
   AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRouteWithChildren
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+  AuthenticatedAdminCatalogoGerenciarRoute: typeof AuthenticatedAdminCatalogoGerenciarRoute
   AuthenticatedAdminLeadsIdRoute: typeof AuthenticatedAdminLeadsIdRoute
   AuthenticatedAdminSettingsNotificationsRoute: typeof AuthenticatedAdminSettingsNotificationsRoute
   AuthenticatedAdminCatalogoIndexRoute: typeof AuthenticatedAdminCatalogoIndexRoute
@@ -408,6 +429,8 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminFeirasRoute: AuthenticatedAdminFeirasRouteWithChildren,
   AuthenticatedAdminUsuariosRoute: AuthenticatedAdminUsuariosRouteWithChildren,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+  AuthenticatedAdminCatalogoGerenciarRoute:
+    AuthenticatedAdminCatalogoGerenciarRoute,
   AuthenticatedAdminLeadsIdRoute: AuthenticatedAdminLeadsIdRoute,
   AuthenticatedAdminSettingsNotificationsRoute:
     AuthenticatedAdminSettingsNotificationsRoute,

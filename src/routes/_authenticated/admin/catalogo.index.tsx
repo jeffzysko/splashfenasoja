@@ -46,12 +46,9 @@ function CatalogoPage() {
   }, [user?.id]);
 
   useEffect(() => {
-    (supabase.from("produtos" as never) as never as { select: (s: string) => { eq: (a: string, b: boolean) => { order: (a: string) => { order: (a: string) => Promise<{ data: Produto[] | null }> } } } })
-      .select("*")
-      .eq("ativo", true)
-      .order("ordem")
-      .order("created_at")
-      .then(({ data }) => {
+    const tbl = (supabase as unknown as { from: (t: string) => any }).from("produtos");
+    tbl.select("*").eq("ativo", true).order("ordem").order("created_at")
+      .then(({ data }: { data: Produto[] | null }) => {
         setProdutos((data ?? []) as Produto[]);
         setLoading(false);
       });
