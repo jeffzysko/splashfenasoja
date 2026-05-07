@@ -229,6 +229,7 @@ function AuthenticatedLayout() {
       >
         <NavButton to="/admin" icon={<LayoutDashboard className="w-6 h-6" />} label="Dashboard" active={location.pathname === "/admin" || location.pathname === "/admin/"} />
         <NavButton to="/admin/leads" icon={<Users className="w-6 h-6" />} label="Leads" active={location.pathname.startsWith("/admin/leads")} />
+        <NavButton to="/admin/catalogo" icon={<BookOpen className="w-6 h-6" />} label="Catálogo" active={location.pathname.startsWith("/admin/catalogo")} />
         {isMaster && (
           <NavButton to="/admin/feiras" icon={<CalendarDays className="w-6 h-6" />} label="Feiras" active={location.pathname.startsWith("/admin/feiras")} />
         )}
