@@ -192,6 +192,45 @@ export type Database = {
           },
         ]
       }
+      produtos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          fotos: Json
+          id: string
+          nome: string
+          opcionais: Json
+          ordem: number
+          tamanhos: Json
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          fotos?: Json
+          id?: string
+          nome: string
+          opcionais?: Json
+          ordem?: number
+          tamanhos?: Json
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          fotos?: Json
+          id?: string
+          nome?: string
+          opcionais?: Json
+          ordem?: number
+          tamanhos?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
