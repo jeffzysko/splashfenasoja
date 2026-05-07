@@ -3,8 +3,8 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import {
-  ArrowLeft, ChevronLeft, ChevronRight, X, ZoomIn,
-  Settings2, Loader2, ImageOff, Maximize2, CheckCircle2,
+  ArrowLeft, ChevronLeft, ChevronRight, X,
+  Settings2, Loader2, ImageOff, CheckCircle2, Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -15,20 +15,46 @@ export const Route = createFileRoute("/_authenticated/admin/catalogo/")({
 });
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type Foto = { url: string; path: string; ordem: number };
-type Tamanho = { label: string; comprimento: number; largura: number; profundidade: number; capacidade: string };
-type Opcional = { porcelana_atlas?: boolean; acrilico?: boolean };
+type Tamanho = {
+  label: string;
+  comprimento: string;
+  largura: string;
+  profundidade: string;
+  capacidade?: string;
+};
 
 type Produto = {
   id: string;
   nome: string;
   descricao: string | null;
   tamanhos: Tamanho[];
-  opcionais: Opcional;
-  fotos: Foto[];
+  opcionais: string[];
+  fotos: string[];
   ativo: boolean;
   ordem: number;
 };
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function hasPorcelana(opcionais: string[]) {
+  return Array.isArray(opcionais) && opcionais.some((o) =>
+    typeof o === "string" && o.toLowerCase().includes("porcelana")
+  );
+}
+
+function hasAcrilico(opcionais: string[]) {
+  return Array.isArray(opcionais) && opcionais.some((o) =>
+    typeof o === "string" && o.toLowerCase().includes("acr")
+  );
+}
+
+function dimensaoLabel(t: Tamanho) {
+  const parts: string[] = [];
+  if (t.comprimento) parts.push(t.comprimento);
+  if (t.largura) parts.push(t.largura);
+  if (t.profundidade) parts.push(t.profundidade);
+  const dims = parts.join(" × ");
+  return t.label ? `${t.label} — ${dims}` : dims;
+}
 
 // ── Catalog Page ──────────────────────────────────────────────────────────────
 function CatalogoPage() {
@@ -74,7 +100,7 @@ function CatalogoPage() {
   const nextPhoto = () =>
     setPhotoIdx((i) => Math.min((selected?.fotos.length ?? 1) - 1, i + 1));
 
-  // keyboard navigation inside modal
+  // Keyboard navigation inside modal
   useEffect(() => {
     if (!selected) return;
     const onKey = (e: KeyboardEvent) => {
@@ -84,31 +110,30 @@ function CatalogoPage() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selected]);
+  }, [selected, photoIdx]);
 
   return (
-    // Full-bleed dark background within the admin content area
-    <div className="-mx-4 -my-5 sm:-my-6 min-h-[calc(100dvh-3.5rem)] bg-[#001830] animate-in fade-in duration-300">
+    <div className="-mx-4 -my-5 sm:-my-6 min-h-[calc(100dvh-3.5rem)] bg-[#00111f] animate-in fade-in duration-300">
 
       {/* ── Page Header ───────────────────────────────────────────────── */}
-      <div className="px-4 sm:px-6 pt-5 pb-4 flex items-center justify-between gap-3">
+      <div className="px-4 sm:px-6 pt-5 pb-5 flex items-center justify-between gap-3 border-b border-white/[0.07]">
         <div className="flex items-center gap-3 min-w-0">
           <Button variant="ghost" size="icon" asChild
-            className="rounded-full shrink-0 text-white/60 hover:text-white hover:bg-white/10">
+            className="rounded-full shrink-0 text-white/50 hover:text-white hover:bg-white/10">
             <Link to="/admin"><ArrowLeft className="w-5 h-5" /></Link>
           </Button>
           <div>
             <h1 className="text-xl font-extrabold text-white tracking-tight">Catálogo</h1>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">
-              Splash Piscinas · {produtos.length} modelo{produtos.length !== 1 ? "s" : ""}
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">
+              Splash Piscinas · {loading ? "…" : `${produtos.length} modelo${produtos.length !== 1 ? "s" : ""}`}
             </p>
           </div>
         </div>
         {isMaster && (
           <Button asChild size="sm" variant="outline"
-            className="border-white/20 bg-white/5 text-white/80 hover:bg-white/15 hover:text-white font-bold rounded-xl">
+            className="border-white/15 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white font-semibold rounded-xl text-xs">
             <Link to="/admin/catalogo/gerenciar">
-              <Settings2 className="w-4 h-4 mr-1.5" />
+              <Settings2 className="w-3.5 h-3.5 mr-1.5" />
               Gerenciar
             </Link>
           </Button>
@@ -117,23 +142,25 @@ function CatalogoPage() {
 
       {/* ── Content ───────────────────────────────────────────────────── */}
       {loading ? (
-        <div className="flex items-center justify-center py-32">
-          <Loader2 className="w-8 h-8 animate-spin text-white/40" />
+        <div className="flex items-center justify-center py-40">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="w-9 h-9 animate-spin text-sky-400/60" />
+            <p className="text-white/30 text-xs font-semibold tracking-wider">Carregando catálogo…</p>
+          </div>
         </div>
       ) : produtos.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-32 gap-4 text-white/40">
+        <div className="flex flex-col items-center justify-center py-40 gap-4 text-white/30">
           <ImageOff className="w-16 h-16 opacity-30" />
           <p className="text-base font-bold">Nenhum produto cadastrado</p>
           {isMaster && (
             <Button asChild variant="outline"
-              className="border-white/20 bg-white/5 text-white/80 hover:bg-white/15 mt-2">
+              className="border-white/20 bg-white/5 text-white/70 hover:bg-white/10 mt-2 text-sm">
               <Link to="/admin/catalogo/gerenciar">Adicionar primeiro produto</Link>
             </Button>
           )}
         </div>
       ) : (
-        <div className="px-4 sm:px-6 pb-24 sm:pb-8">
-          {/* Product Grid — 2 cols mobile, 3 tablet, 4 large */}
+        <div className="px-4 sm:px-6 py-6 pb-24 sm:pb-10">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
             {produtos.map((p) => (
               <ProductCard key={p.id} produto={p} onClick={() => openDetail(p)} />
@@ -147,6 +174,7 @@ function CatalogoPage() {
         <ProductDetail
           produto={selected}
           photoIdx={photoIdx}
+          onSetPhoto={setPhotoIdx}
           onPrev={prevPhoto}
           onNext={nextPhoto}
           onClose={closeDetail}
@@ -158,56 +186,71 @@ function CatalogoPage() {
 
 // ── Product Card ──────────────────────────────────────────────────────────────
 function ProductCard({ produto, onClick }: { produto: Produto; onClick: () => void }) {
-  const coverFoto = produto.fotos.find((f) => f.ordem === 0) ?? produto.fotos[0];
-  const hasOps = produto.opcionais?.porcelana_atlas || produto.opcionais?.acrilico;
+  const coverUrl = Array.isArray(produto.fotos) && produto.fotos.length > 0
+    ? produto.fotos[0]
+    : null;
+
+  const hasOps = Array.isArray(produto.opcionais) && produto.opcionais.length > 0;
+  const porcelana = hasPorcelana(produto.opcionais ?? []);
+  const acrilico = hasAcrilico(produto.opcionais ?? []);
+  const fotoCount = Array.isArray(produto.fotos) ? produto.fotos.length : 0;
+  const tamanhoCount = Array.isArray(produto.tamanhos) ? produto.tamanhos.length : 0;
 
   return (
     <button
       onClick={onClick}
-      className="group relative aspect-[4/3] rounded-2xl overflow-hidden bg-white/5 border border-white/10 text-left transition-all duration-200 hover:border-white/30 hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      className="group relative flex flex-col rounded-2xl overflow-hidden bg-white/[0.04] border border-white/[0.09] text-left transition-all duration-300 hover:border-sky-400/30 hover:shadow-lg hover:shadow-sky-900/20 hover:-translate-y-0.5 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
     >
       {/* Photo */}
-      {coverFoto ? (
-        <img
-          src={coverFoto.url}
-          alt={produto.nome}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
-        />
-      ) : (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <ImageOff className="w-10 h-10 text-white/20" />
-        </div>
-      )}
-
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-      {/* Badge: foto count */}
-      {produto.fotos.length > 1 && (
-        <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/50 backdrop-blur-sm text-white/80 text-[10px] font-bold px-2 py-0.5 rounded-full border border-white/10">
-          <ZoomIn className="w-3 h-3" />
-          {produto.fotos.length}
-        </div>
-      )}
-
-      {/* Footer info */}
-      <div className="absolute bottom-0 left-0 right-0 p-3">
-        <p className="text-white font-extrabold text-sm leading-tight truncate">{produto.nome}</p>
-        {produto.tamanhos.length > 0 && (
-          <p className="text-white/60 text-[10px] font-semibold mt-0.5 truncate">
-            {produto.tamanhos.map((t) => t.label).join(" · ")}
-          </p>
+      <div className="relative aspect-[4/3] overflow-hidden bg-[#001830]">
+        {coverUrl ? (
+          <img
+            src={coverUrl}
+            alt={produto.nome}
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            loading="lazy"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = "none";
+            }}
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <ImageOff className="w-10 h-10 text-white/10" />
+          </div>
         )}
+
+        {/* Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#00111f]/90 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-300" />
+
+        {/* Photo count badge */}
+        {fotoCount > 1 && (
+          <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/60 backdrop-blur-md text-white/70 text-[10px] font-bold px-2 py-0.5 rounded-full border border-white/10">
+            <Layers className="w-3 h-3" />
+            {fotoCount}
+          </div>
+        )}
+      </div>
+
+      {/* Card footer */}
+      <div className="p-3 space-y-2">
+        <div>
+          <p className="text-white font-extrabold text-sm leading-snug">{produto.nome}</p>
+          {tamanhoCount > 0 && (
+            <p className="text-white/35 text-[10px] font-semibold mt-0.5">
+              {tamanhoCount} tamanho{tamanhoCount !== 1 ? "s" : ""} disponíve{tamanhoCount !== 1 ? "is" : "l"}
+            </p>
+          )}
+        </div>
+
         {hasOps && (
-          <div className="flex gap-1 mt-1.5 flex-wrap">
-            {produto.opcionais?.porcelana_atlas && (
-              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/20">
+          <div className="flex flex-wrap gap-1">
+            {porcelana && (
+              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300/90 border border-amber-400/20">
                 Porcelana Atlas
               </span>
             )}
-            {produto.opcionais?.acrilico && (
-              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-cyan-400/20 text-cyan-300 border border-cyan-400/20">
+            {acrilico && (
+              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-sky-500/15 text-sky-300/90 border border-sky-400/20">
                 Acrílico
               </span>
             )}
@@ -220,140 +263,162 @@ function ProductCard({ produto, onClick }: { produto: Produto; onClick: () => vo
 
 // ── Product Detail Modal ──────────────────────────────────────────────────────
 function ProductDetail({
-  produto, photoIdx, onPrev, onNext, onClose,
+  produto, photoIdx, onSetPhoto, onPrev, onNext, onClose,
 }: {
   produto: Produto;
   photoIdx: number;
+  onSetPhoto: (i: number) => void;
   onPrev: () => void;
   onNext: () => void;
   onClose: () => void;
 }) {
-  const fotos = produto.fotos.slice().sort((a, b) => a.ordem - b.ordem);
-  const currentFoto = fotos[photoIdx];
+  const fotos = Array.isArray(produto.fotos) ? produto.fotos : [];
+  const currentUrl = fotos[photoIdx] ?? null;
   const hasPrev = photoIdx > 0;
   const hasNext = photoIdx < fotos.length - 1;
+  const porcelana = hasPorcelana(produto.opcionais ?? []);
+  const acrilico = hasAcrilico(produto.opcionais ?? []);
+  const hasOps = porcelana || acrilico;
+  const tamanhos = Array.isArray(produto.tamanhos) ? produto.tamanhos : [];
 
   return (
     <div
-      className="fixed inset-0 z-[60] bg-black/95 flex flex-col md:flex-row animate-in fade-in duration-200"
-      style={{ top: "0" }}
+      className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-sm flex flex-col md:flex-row animate-in fade-in duration-200"
+      style={{ top: 0 }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      {/* ── Photo Column ─────────────────────────────────── */}
-      <div className="relative flex-1 flex items-center justify-center min-h-[45dvh] md:min-h-0 bg-[#000d1a]">
-        {currentFoto ? (
-          <img
-            key={currentFoto.url}
-            src={currentFoto.url}
-            alt={`${produto.nome} — foto ${photoIdx + 1}`}
-            className="w-full h-full object-contain max-h-[50dvh] md:max-h-full animate-in fade-in duration-200"
-          />
-        ) : (
-          <div className="flex flex-col items-center gap-3 text-white/30">
-            <ImageOff className="w-20 h-20" />
-            <p className="text-sm font-semibold">Sem fotos cadastradas</p>
-          </div>
-        )}
+      {/* ── Photo Column ─────────────────────────────────────────────── */}
+      <div className="relative flex-1 flex flex-col bg-[#00060f] min-h-[45dvh] md:min-h-0">
 
-        {/* Photo navigation */}
+        {/* Main image */}
+        <div className="flex-1 flex items-center justify-center overflow-hidden">
+          {currentUrl ? (
+            <img
+              key={currentUrl}
+              src={currentUrl}
+              alt={`${produto.nome} — foto ${photoIdx + 1}`}
+              className="w-full h-full object-contain max-h-[55dvh] md:max-h-[calc(100dvh-140px)] animate-in fade-in duration-150"
+            />
+          ) : (
+            <div className="flex flex-col items-center gap-4 text-white/20">
+              <ImageOff className="w-20 h-20" />
+              <p className="text-sm font-semibold">Sem fotos cadastradas</p>
+            </div>
+          )}
+        </div>
+
+        {/* Prev / Next arrows */}
         {fotos.length > 1 && (
           <>
             <button
               onClick={onPrev}
               disabled={!hasPrev}
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm text-white flex items-center justify-center border border-white/10 disabled:opacity-20 hover:bg-black/70 transition"
+              aria-label="Foto anterior"
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm text-white flex items-center justify-center border border-white/10 disabled:opacity-20 hover:bg-black/80 hover:border-white/20 transition"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
             <button
               onClick={onNext}
               disabled={!hasNext}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm text-white flex items-center justify-center border border-white/10 disabled:opacity-20 hover:bg-black/70 transition"
+              aria-label="Próxima foto"
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm text-white flex items-center justify-center border border-white/10 disabled:opacity-20 hover:bg-black/80 hover:border-white/20 transition"
             >
               <ChevronRight className="w-5 h-5" />
             </button>
-
-            {/* Dot indicators */}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-              {fotos.map((_, i) => (
-                <div
-                  key={i}
-                  className={cn(
-                    "rounded-full transition-all",
-                    i === photoIdx
-                      ? "w-5 h-1.5 bg-white"
-                      : "w-1.5 h-1.5 bg-white/40"
-                  )}
-                />
-              ))}
-            </div>
           </>
         )}
 
         {/* Thumbnail strip */}
         {fotos.length > 1 && (
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 hidden md:flex gap-2">
-            {fotos.map((f, i) => (
+          <div className="shrink-0 px-4 py-3 border-t border-white/[0.07] overflow-x-auto">
+            <div className="flex gap-2 w-max mx-auto">
+              {fotos.map((url, i) => (
+                <button
+                  key={i}
+                  onClick={() => onSetPhoto(i)}
+                  className={cn(
+                    "w-14 h-14 rounded-xl overflow-hidden border-2 transition-all duration-200 shrink-0",
+                    i === photoIdx
+                      ? "border-sky-400 ring-2 ring-sky-400/30 scale-105"
+                      : "border-white/10 opacity-50 hover:opacity-90 hover:border-white/30"
+                  )}
+                >
+                  <img src={url} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Dot indicators (mobile only, when too many thumbnails) */}
+        {fotos.length > 1 && fotos.length <= 8 && (
+          <div className="flex md:hidden justify-center gap-1.5 pb-2">
+            {fotos.map((_, i) => (
               <button
-                key={f.path}
-                onClick={() => { /* parent manages index via onPrev/onNext logic — use direct idx */ }}
+                key={i}
+                onClick={() => onSetPhoto(i)}
                 className={cn(
-                  "w-12 h-12 rounded-lg overflow-hidden border-2 transition-all",
-                  i === photoIdx ? "border-white scale-110" : "border-white/20 opacity-60 hover:opacity-100"
+                  "rounded-full transition-all",
+                  i === photoIdx ? "w-5 h-1.5 bg-sky-400" : "w-1.5 h-1.5 bg-white/25"
                 )}
-              >
-                <img src={f.url} alt="" className="w-full h-full object-cover" />
-              </button>
+              />
             ))}
           </div>
         )}
       </div>
 
-      {/* ── Info Panel ───────────────────────────────────── */}
-      <div className="w-full md:w-[380px] md:max-w-[40%] bg-[#001830] flex flex-col overflow-y-auto">
+      {/* ── Info Panel ───────────────────────────────────────────────── */}
+      <div className="w-full md:w-[400px] md:max-w-[42%] bg-[#00111f] flex flex-col overflow-y-auto border-l border-white/[0.07]">
+
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 p-5 border-b border-white/10 shrink-0">
+        <div className="flex items-start justify-between gap-3 px-6 pt-6 pb-5 border-b border-white/[0.07] shrink-0">
           <div className="min-w-0">
-            <h2 className="text-xl font-extrabold text-white leading-tight">{produto.nome}</h2>
+            <h2 className="text-2xl font-extrabold text-white leading-tight tracking-tight">{produto.nome}</h2>
             {fotos.length > 0 && (
-              <p className="text-[11px] text-white/40 font-semibold mt-0.5">
-                {photoIdx + 1} / {fotos.length}
+              <p className="text-[11px] text-white/30 font-semibold mt-1">
+                {photoIdx + 1} / {fotos.length} foto{fotos.length !== 1 ? "s" : ""}
               </p>
             )}
           </div>
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white flex items-center justify-center transition shrink-0"
+            aria-label="Fechar"
+            className="w-9 h-9 rounded-full bg-white/8 hover:bg-white/15 text-white/60 hover:text-white flex items-center justify-center transition shrink-0 mt-0.5"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="flex-1 p-5 space-y-6">
+        {/* Body */}
+        <div className="flex-1 px-6 py-6 space-y-7">
+
           {/* Descrição */}
           {produto.descricao && (
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2">Descrição</p>
-              <p className="text-sm text-white/80 leading-relaxed">{produto.descricao}</p>
+              <SectionLabel>Descrição</SectionLabel>
+              <p className="text-sm text-white/65 leading-relaxed mt-2">{produto.descricao}</p>
             </div>
           )}
 
           {/* Tamanhos */}
-          {produto.tamanhos.length > 0 && (
+          {tamanhos.length > 0 && (
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-3">Tamanhos disponíveis</p>
-              <div className="grid grid-cols-2 gap-2">
-                {produto.tamanhos.map((t, i) => (
+              <SectionLabel>{tamanhos.length} Tamanho{tamanhos.length !== 1 ? "s" : ""} disponíve{tamanhos.length !== 1 ? "is" : "l"}</SectionLabel>
+              <div className="mt-3 grid grid-cols-1 gap-2">
+                {tamanhos.map((t, i) => (
                   <div
                     key={i}
-                    className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-1"
+                    className="flex items-center gap-3 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 hover:bg-white/[0.07] transition-colors"
                   >
-                    <p className="text-white font-extrabold text-base leading-none">{t.label}</p>
-                    <div className="text-white/50 text-[10px] font-semibold space-y-0.5">
-                      {t.comprimento && t.largura && (
-                        <p>{t.comprimento}m × {t.largura}m{t.profundidade ? ` × ${t.profundidade}m` : ""}</p>
+                    <div className="w-2 h-2 rounded-full bg-sky-400/60 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-white/85 font-semibold text-sm leading-snug">
+                        {dimensaoLabel(t)}
+                      </p>
+                      {t.capacidade && (
+                        <p className="text-sky-400/70 text-[11px] font-semibold mt-0.5">{t.capacidade}</p>
                       )}
-                      {t.capacidade && <p className="text-cyan-400/80">{t.capacidade}</p>}
                     </div>
                   </div>
                 ))}
@@ -362,51 +427,89 @@ function ProductDetail({
           )}
 
           {/* Opcionais */}
-          {(produto.opcionais?.porcelana_atlas || produto.opcionais?.acrilico) && (
+          {hasOps && (
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-3">Opcionais disponíveis</p>
-              <div className="space-y-2">
-                {produto.opcionais?.porcelana_atlas && (
-                  <div className="flex items-center gap-3 bg-amber-400/10 border border-amber-400/20 rounded-xl p-3">
-                    <div className="w-8 h-8 rounded-full bg-amber-400/20 flex items-center justify-center shrink-0">
-                      <CheckCircle2 className="w-4 h-4 text-amber-400" />
-                    </div>
-                    <div>
-                      <p className="text-amber-300 font-extrabold text-sm">Porcelana Atlas</p>
-                      <p className="text-amber-400/60 text-[10px] font-semibold">Revestimento premium em porcelana</p>
-                    </div>
-                  </div>
+              <SectionLabel>Opcionais disponíveis</SectionLabel>
+              <div className="mt-3 space-y-2">
+                {porcelana && (
+                  <OpcionalCard
+                    color="amber"
+                    title="Pastilha de Porcelana Atlas"
+                    subtitle="Revestimento premium em porcelana"
+                  />
                 )}
-                {produto.opcionais?.acrilico && (
-                  <div className="flex items-center gap-3 bg-cyan-400/10 border border-cyan-400/20 rounded-xl p-3">
-                    <div className="w-8 h-8 rounded-full bg-cyan-400/20 flex items-center justify-center shrink-0">
-                      <CheckCircle2 className="w-4 h-4 text-cyan-400" />
-                    </div>
-                    <div>
-                      <p className="text-cyan-300 font-extrabold text-sm">Acrílico</p>
-                      <p className="text-cyan-400/60 text-[10px] font-semibold">Tampa e acabamento em acrílico</p>
-                    </div>
-                  </div>
+                {acrilico && (
+                  <OpcionalCard
+                    color="sky"
+                    title="Acrílico"
+                    subtitle="Tampa e acabamento em acrílico"
+                  />
                 )}
               </div>
             </div>
           )}
         </div>
 
-        {/* Photo nav footer (mobile) */}
+        {/* Mobile nav footer */}
         {fotos.length > 1 && (
-          <div className="md:hidden flex items-center justify-between px-5 pb-6 pt-3 border-t border-white/10 shrink-0">
+          <div className="md:hidden flex items-center justify-between px-6 pb-8 pt-4 border-t border-white/[0.07] shrink-0">
             <Button onClick={onPrev} disabled={!hasPrev} variant="outline" size="sm"
-              className="border-white/20 bg-white/5 text-white disabled:opacity-20">
+              className="border-white/15 bg-white/5 text-white/70 disabled:opacity-25 text-xs">
               <ChevronLeft className="w-4 h-4 mr-1" /> Anterior
             </Button>
-            <span className="text-white/40 text-xs font-bold">{photoIdx + 1}/{fotos.length}</span>
+            <span className="text-white/30 text-xs font-bold">{photoIdx + 1}/{fotos.length}</span>
             <Button onClick={onNext} disabled={!hasNext} variant="outline" size="sm"
-              className="border-white/20 bg-white/5 text-white disabled:opacity-20">
+              className="border-white/15 bg-white/5 text-white/70 disabled:opacity-25 text-xs">
               Próxima <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[10px] font-black uppercase tracking-widest text-white/30">
+      {children}
+    </p>
+  );
+}
+
+function OpcionalCard({
+  color, title, subtitle,
+}: {
+  color: "amber" | "sky";
+  title: string;
+  subtitle: string;
+}) {
+  const styles = {
+    amber: {
+      wrap: "bg-amber-500/8 border-amber-400/15",
+      icon: "bg-amber-400/15",
+      svg: "text-amber-400",
+      title: "text-amber-200",
+      sub: "text-amber-400/55",
+    },
+    sky: {
+      wrap: "bg-sky-500/8 border-sky-400/15",
+      icon: "bg-sky-400/15",
+      svg: "text-sky-400",
+      title: "text-sky-200",
+      sub: "text-sky-400/55",
+    },
+  }[color];
+
+  return (
+    <div className={cn("flex items-center gap-3 border rounded-xl p-3.5", styles.wrap)}>
+      <div className={cn("w-9 h-9 rounded-full flex items-center justify-center shrink-0", styles.icon)}>
+        <CheckCircle2 className={cn("w-4.5 h-4.5", styles.svg)} />
+      </div>
+      <div>
+        <p className={cn("font-extrabold text-sm", styles.title)}>{title}</p>
+        <p className={cn("text-[11px] font-semibold mt-0.5", styles.sub)}>{subtitle}</p>
       </div>
     </div>
   );
