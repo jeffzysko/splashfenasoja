@@ -167,6 +167,14 @@ function AuthenticatedLayout() {
             <NotificationBell />
             <NotificationSettings />
             <Link
+              to="/admin/catalogo"
+              className="p-2 text-muted-foreground hover:text-primary transition-colors hidden sm:inline-flex"
+              aria-label="Catálogo"
+              title="Catálogo"
+            >
+              <BookOpen className="w-5 h-5" />
+            </Link>
+            <Link
               to="/admin/settings/notifications"
               className="p-2 text-muted-foreground hover:text-primary transition-colors hidden sm:inline-flex"
               aria-label="Configurações de notificação"
