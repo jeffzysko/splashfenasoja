@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
-import { LogOut, LayoutDashboard, Users, Shield, SlidersHorizontal, CalendarDays, UserCog } from "lucide-react";
+import { LogOut, LayoutDashboard, Users, Shield, SlidersHorizontal, CalendarDays, UserCog, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -176,6 +176,14 @@ function AuthenticatedLayout() {
             {isMaster && (
               <>
                 <Link
+                  to="/admin/catalogo"
+                  className="p-2 text-muted-foreground hover:text-primary transition-colors hidden sm:inline-flex"
+                  aria-label="Catálogo de produtos"
+                  title="Catálogo"
+                >
+                  <BookOpen className="w-5 h-5" />
+                </Link>
+                <Link
                   to="/admin/feiras"
                   className="p-2 text-muted-foreground hover:text-primary transition-colors hidden sm:inline-flex"
                   aria-label="Feiras"
@@ -221,6 +229,7 @@ function AuthenticatedLayout() {
       >
         <NavButton to="/admin" icon={<LayoutDashboard className="w-6 h-6" />} label="Dashboard" active={location.pathname === "/admin" || location.pathname === "/admin/"} />
         <NavButton to="/admin/leads" icon={<Users className="w-6 h-6" />} label="Leads" active={location.pathname.startsWith("/admin/leads")} />
+        <NavButton to="/admin/catalogo" icon={<BookOpen className="w-6 h-6" />} label="Catálogo" active={location.pathname.startsWith("/admin/catalogo")} />
         {isMaster && (
           <NavButton to="/admin/feiras" icon={<CalendarDays className="w-6 h-6" />} label="Feiras" active={location.pathname.startsWith("/admin/feiras")} />
         )}
