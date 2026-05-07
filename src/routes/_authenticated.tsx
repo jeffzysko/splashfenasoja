@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
-import { LogOut, LayoutDashboard, Users, Shield, SlidersHorizontal, CalendarDays, UserCog } from "lucide-react";
+import { LogOut, LayoutDashboard, Users, Shield, SlidersHorizontal, CalendarDays, UserCog, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
