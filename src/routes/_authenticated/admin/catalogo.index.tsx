@@ -638,7 +638,7 @@ function ProductDetail({
           <div className="mt-3 grid grid-cols-2 gap-2">
             {tamanhos.map(renderTamanhoCard)}
           </div>
-          {tamanhos.some(t => t.porcelana_atlas) && tamanhos.some(t => !t.porcelana_atlas) && (
+          {tamanhos.some(t => t.porcelana_atlas) && (
             <p className="text-[10px] text-white/25 mt-3 font-semibold">
               * Tamanhos com <span className="text-amber-400/60">✦ Porcelana</span> aceitam Pastilha de Porcelana Atlas
             </p>
