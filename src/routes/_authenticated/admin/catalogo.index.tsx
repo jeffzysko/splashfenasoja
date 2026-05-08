@@ -641,41 +641,82 @@ function ProductDetail({
               <SectionLabel>
                 {tamanhos.length} Tamanho{tamanhos.length !== 1 ? "s" : ""} disponíve{tamanhos.length !== 1 ? "is" : "l"}
               </SectionLabel>
-              <div className="mt-3 grid grid-cols-1 gap-2">
+              <div className="mt-3 grid grid-cols-2 gap-2">
                 {tamanhos.map((t, i) => {
-                  const dims = [t.comprimento, t.largura, t.profundidade].filter(Boolean).join(" × ");
+                  const isSPA     = /\bspa\b/i.test(t.label ?? "");
+                  const isPrainha = /prainha/i.test(t.label ?? "");
+                  const isOvalShape = (produto.formato ?? "retangular") === "oval";
+
+                  // Parse dims for proportional pool shape
+                  const comp = parseFloat((t.comprimento ?? "").replace(",", "."));
+                  const larg = parseFloat((t.largura ?? "").replace(",", "."));
+                  const ratio = comp && larg ? comp / larg : 1.6;
+                  const poolW = Math.round(Math.min(60, Math.max(22, 28 * ratio)));
+                  const poolH = Math.round(Math.min(28, Math.max(10, poolW / ratio)));
+
                   return (
-                    <div key={i}
-                      className="flex items-start gap-3 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 hover:bg-white/[0.07] transition-colors">
-                      <div className="w-2 h-2 rounded-full bg-sky-400/60 shrink-0 mt-1.5" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-white/85 font-semibold text-sm leading-snug">
-                          {t.label ? (
-                            <>
-                              <HighlightedLabel label={t.label} />
-                              {" — "}
-                              <span className="text-white/50 font-normal">{dims}</span>
-                            </>
-                          ) : dims}
-                        </p>
-                        {t.capacidade && (
-                          <p className="text-sky-400/70 text-[11px] font-semibold mt-0.5">{t.capacidade}</p>
-                        )}
-                      </div>
-                      {/* Porcelana Atlas badge por tamanho */}
+                    <div key={i} className={cn(
+                      "relative flex flex-col gap-2.5 rounded-2xl p-3.5 border transition-all duration-200 group overflow-hidden",
+                      isSPA
+                        ? "bg-violet-500/8 border-violet-400/20 hover:bg-violet-500/12 hover:border-violet-400/35"
+                        : isPrainha
+                          ? "bg-emerald-500/8 border-emerald-400/20 hover:bg-emerald-500/12 hover:border-emerald-400/35"
+                          : "bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.14]"
+                    )}>
+
+                      {/* Porcelana badge — top right */}
                       {t.porcelana_atlas && (
-                        <span className="shrink-0 text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300/80 border border-amber-400/20 mt-0.5 whitespace-nowrap">
-                          Porcelana
+                        <span className="absolute top-2.5 right-2.5 text-[7px] font-black uppercase tracking-wider px-1.5 py-[3px] rounded-full bg-amber-500/15 text-amber-300/80 border border-amber-400/20 whitespace-nowrap leading-none">
+                          ✦ Porcelana
                         </span>
                       )}
+
+                      {/* Mini pool shape */}
+                      <div className="h-7 flex items-center">
+                        <div
+                          style={{ width: poolW, height: poolH }}
+                          className={cn(
+                            "border-2 border-sky-400/35 bg-sky-400/10 transition-all duration-200",
+                            "group-hover:border-sky-400/60 group-hover:bg-sky-400/18",
+                            isOvalShape ? "rounded-full" : "rounded-[3px]"
+                          )}
+                        />
+                      </div>
+
+                      {/* Label badge */}
+                      {t.label && (
+                        <span className={cn(
+                          "text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full self-start border leading-none",
+                          isSPA
+                            ? "bg-violet-500/20 text-violet-300 border-violet-400/25"
+                            : isPrainha
+                              ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/25"
+                              : "bg-white/8 text-white/45 border-white/10"
+                        )}>
+                          <HighlightedLabel label={t.label} />
+                        </span>
+                      )}
+
+                      {/* Dimensions */}
+                      <div>
+                        <p className="text-white font-black text-base leading-none tracking-tight">
+                          {t.comprimento}
+                        </p>
+                        <p className="text-white/40 text-[11px] font-medium mt-1 tracking-wide">
+                          {t.largura} × {t.profundidade}
+                        </p>
+                        {t.capacidade && (
+                          <p className="text-sky-400/60 text-[10px] font-semibold mt-0.5">{t.capacidade}</p>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
               </div>
               {/* Legenda se houver mix */}
               {tamanhos.some(t => t.porcelana_atlas) && tamanhos.some(t => !t.porcelana_atlas) && (
-                <p className="text-[10px] text-white/25 mt-2 font-semibold">
-                  * Tamanhos marcados com <span className="text-amber-400/60">Porcelana</span> aceitam Pastilha de Porcelana Atlas
+                <p className="text-[10px] text-white/25 mt-3 font-semibold">
+                  * Tamanhos com <span className="text-amber-400/60">✦ Porcelana</span> aceitam Pastilha de Porcelana Atlas
                 </p>
               )}
             </div>
