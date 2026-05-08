@@ -110,7 +110,7 @@ function HighlightedLabel({ label }: { label: string }) {
     <>
       {tokens.map((token, i) =>
         /^(prainha|spa)$/i.test(token) ? (
-          <span key={i} className="text-sky-600 font-extrabold">{token}</span>
+          <span key={i} className="text-sky-300 font-extrabold">{token}</span>
         ) : (
           <span key={i}>{token}</span>
         )
@@ -460,12 +460,12 @@ function ProductCard({ produto, onClick }: { produto: Produto; onClick: () => vo
         {hasOps && (
           <div className="flex flex-wrap gap-1">
             {porcelana && (
-              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300/90 border border-amber-400/20">
+              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
                 Porcelana Atlas
               </span>
             )}
             {acrilico && (
-              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-sky-500/15 text-sky-300/90 border border-sky-400/20">
+              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-700 border border-sky-200">
                 Acrílico
               </span>
             )}
@@ -556,32 +556,32 @@ function ProductDetail({
       </div>
 
       {/* ── Info Panel ───────────────────────────────────────────────── */}
-      <div className="w-full md:w-[420px] md:max-w-[44%] bg-background flex flex-col overflow-y-auto border-l border-border/50">
+      <div className="w-full md:w-[420px] md:max-w-[44%] bg-[#00111f] flex flex-col overflow-y-auto border-l border-white/[0.07]">
 
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 px-6 pt-6 pb-5 border-b border-border/50 shrink-0">
+        <div className="flex items-start justify-between gap-3 px-6 pt-6 pb-5 border-b border-white/[0.07] shrink-0">
           <div className="min-w-0">
-            <h2 className="text-2xl font-extrabold leading-tight tracking-tight">{produto.nome}</h2>
+            <h2 className="text-2xl font-extrabold text-white leading-tight tracking-tight">{produto.nome}</h2>
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               {(produto.formato ?? "retangular") === "oval" && (
-                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 border border-violet-200">
+                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 border border-violet-400/20">
                   Oval
                 </span>
               )}
               {(produto.formato ?? "retangular") === "retangular" && (
-                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border">
+                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/8 text-white/40 border border-white/10">
                   Retangular
                 </span>
               )}
               {galleryFotos.length > 0 && (
-                <p className="text-[11px] text-muted-foreground font-semibold">
+                <p className="text-[11px] text-white/30 font-semibold">
                   {photoIdx + 1} / {galleryFotos.length} foto{galleryFotos.length !== 1 ? "s" : ""}
                 </p>
               )}
             </div>
           </div>
           <button onClick={onClose} aria-label="Fechar"
-            className="w-9 h-9 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground flex items-center justify-center transition shrink-0 mt-0.5">
+            className="w-9 h-9 rounded-full bg-white/8 hover:bg-white/15 text-white/60 hover:text-white flex items-center justify-center transition shrink-0 mt-0.5">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -596,7 +596,7 @@ function ProductDetail({
                 <Box className="w-3 h-3 opacity-60" />
                 Modelo 3D
               </SectionLabel>
-              <div className="mt-3 rounded-2xl overflow-hidden border border-border bg-muted">
+              <div className="mt-3 rounded-2xl overflow-hidden border border-white/[0.08] bg-[#000d1a]">
                 <img
                   src={modeloUrl}
                   alt={`${produto.nome} — modelo 3D`}
@@ -614,7 +614,7 @@ function ProductDetail({
           {produto.descricao && (
             <div>
               <SectionLabel>Descrição</SectionLabel>
-              <p className="text-sm text-muted-foreground leading-relaxed mt-2">{produto.descricao}</p>
+              <p className="text-sm text-white/65 leading-relaxed mt-2">{produto.descricao}</p>
             </div>
           )}
 
@@ -646,20 +646,20 @@ function ProductDetail({
                   const dims = [t.comprimento, t.largura, t.profundidade].filter(Boolean).join(" × ");
                   return (
                     <div key={i}
-                      className="flex items-start gap-3 bg-muted/40 border border-border/60 rounded-xl px-4 py-3 hover:bg-muted/70 transition-colors">
-                      <div className="w-2 h-2 rounded-full bg-sky-500/70 shrink-0 mt-1.5" />
+                      className="flex items-start gap-3 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 hover:bg-white/[0.07] transition-colors">
+                      <div className="w-2 h-2 rounded-full bg-sky-400/60 shrink-0 mt-1.5" />
                       <div className="min-w-0 flex-1">
-                        <p className="text-foreground font-semibold text-sm leading-snug">
+                        <p className="text-white/85 font-semibold text-sm leading-snug">
                           {t.label ? (
                             <>
                               <HighlightedLabel label={t.label} />
                               {" — "}
-                              <span className="text-muted-foreground font-normal">{dims}</span>
+                              <span className="text-white/50 font-normal">{dims}</span>
                             </>
                           ) : dims}
                         </p>
                         {t.capacidade && (
-                          <p className="text-sky-600 text-[11px] font-semibold mt-0.5">{t.capacidade}</p>
+                          <p className="text-sky-400/70 text-[11px] font-semibold mt-0.5">{t.capacidade}</p>
                         )}
                       </div>
                       {/* Porcelana Atlas badge por tamanho */}
@@ -674,8 +674,8 @@ function ProductDetail({
               </div>
               {/* Legenda se houver mix */}
               {tamanhos.some(t => t.porcelana_atlas) && tamanhos.some(t => !t.porcelana_atlas) && (
-                <p className="text-[10px] text-muted-foreground mt-2 font-semibold">
-                  * Tamanhos marcados com <span className="text-amber-600 font-bold">Porcelana</span> aceitam Pastilha de Porcelana Atlas
+                <p className="text-[10px] text-white/25 mt-2 font-semibold">
+                  * Tamanhos marcados com <span className="text-amber-400/60">Porcelana</span> aceitam Pastilha de Porcelana Atlas
                 </p>
               )}
             </div>
@@ -684,14 +684,14 @@ function ProductDetail({
 
         {/* Mobile nav footer */}
         {galleryFotos.length > 1 && (
-          <div className="md:hidden flex items-center justify-between px-6 pb-8 pt-4 border-t border-border/50 shrink-0">
+          <div className="md:hidden flex items-center justify-between px-6 pb-8 pt-4 border-t border-white/[0.07] shrink-0">
             <Button onClick={onPrev} disabled={!hasPrev} variant="outline" size="sm"
-              className="disabled:opacity-25 text-xs">
+              className="border-white/15 bg-white/5 text-white/70 disabled:opacity-25 text-xs">
               <ChevronLeft className="w-4 h-4 mr-1" /> Anterior
             </Button>
-            <span className="text-muted-foreground text-xs font-bold">{photoIdx + 1}/{galleryFotos.length}</span>
+            <span className="text-white/30 text-xs font-bold">{photoIdx + 1}/{galleryFotos.length}</span>
             <Button onClick={onNext} disabled={!hasNext} variant="outline" size="sm"
-              className="disabled:opacity-25 text-xs">
+              className="border-white/15 bg-white/5 text-white/70 disabled:opacity-25 text-xs">
               Próxima <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
@@ -704,7 +704,7 @@ function ProductDetail({
 // ── Sub-components ────────────────────────────────────────────────────────────
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+    <p className="text-[10px] font-black uppercase tracking-widest text-white/30 flex items-center gap-1.5">
       {children}
     </p>
   );
@@ -714,8 +714,8 @@ function OpcionalCard({ color, title, subtitle }: {
   color: "amber" | "sky"; title: string; subtitle: string;
 }) {
   const s = {
-    amber: { wrap: "bg-amber-50 border-amber-200", icon: "bg-amber-100", svg: "text-amber-600", title: "text-amber-900", sub: "text-amber-600/70" },
-    sky: { wrap: "bg-sky-50 border-sky-200", icon: "bg-sky-100", svg: "text-sky-600", title: "text-sky-900", sub: "text-sky-600/70" },
+    amber: { wrap: "bg-amber-500/8 border-amber-400/15", icon: "bg-amber-400/15", svg: "text-amber-400", title: "text-amber-200", sub: "text-amber-400/55" },
+    sky: { wrap: "bg-sky-500/8 border-sky-400/15", icon: "bg-sky-400/15", svg: "text-sky-400", title: "text-sky-200", sub: "text-sky-400/55" },
   }[color];
   return (
     <div className={cn("flex items-center gap-3 border rounded-xl p-3.5", s.wrap)}>
