@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import {
   ArrowLeft, ChevronLeft, ChevronRight, X,
-  Settings2, Loader2, ImageOff, CheckCircle2, Layers,
+  Settings2, Loader2, ImageOff, CheckCircle2, Layers, Box,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -56,6 +56,27 @@ function dimensaoLabel(t: Tamanho) {
   return t.label ? `${t.label} — ${dims}` : dims;
 }
 
+// Highlights "prainha" and "spa" in description text
+function HighlightedText({ text }: { text: string }) {
+  const tokens = text.split(/(\bprainha\b|\bspa\b)/gi);
+  return (
+    <>
+      {tokens.map((token, i) =>
+        /^(prainha|spa)$/i.test(token) ? (
+          <span
+            key={i}
+            className="text-sky-300 font-bold"
+          >
+            {token}
+          </span>
+        ) : (
+          <span key={i}>{token}</span>
+        )
+      )}
+    </>
+  );
+}
+
 // ── Catalog Page ──────────────────────────────────────────────────────────────
 function CatalogoPage() {
   const { user } = useSupabaseAuth();
@@ -96,9 +117,12 @@ function CatalogoPage() {
   const openDetail = (p: Produto) => { setSelected(p); setPhotoIdx(0); };
   const closeDetail = () => setSelected(null);
 
+  // Gallery = fotos.slice(1); photoIdx is relative to gallery
   const prevPhoto = () => setPhotoIdx((i) => Math.max(0, i - 1));
-  const nextPhoto = () =>
-    setPhotoIdx((i) => Math.min((selected?.fotos.length ?? 1) - 1, i + 1));
+  const nextPhoto = () => {
+    const galleryLen = Math.max(0, (selected?.fotos.length ?? 1) - 1);
+    setPhotoIdx((i) => Math.min(galleryLen - 1, i + 1));
+  };
 
   // Keyboard navigation inside modal
   useEffect(() => {
@@ -186,14 +210,15 @@ function CatalogoPage() {
 
 // ── Product Card ──────────────────────────────────────────────────────────────
 function ProductCard({ produto, onClick }: { produto: Produto; onClick: () => void }) {
-  const coverUrl = Array.isArray(produto.fotos) && produto.fotos.length > 0
-    ? produto.fotos[0]
-    : null;
+  // fotos[0] = 3D model (used as card cover); fotos[1..] = gallery
+  const allFotos = Array.isArray(produto.fotos) ? produto.fotos : [];
+  const coverUrl = allFotos[0] ?? null;
 
   const hasOps = Array.isArray(produto.opcionais) && produto.opcionais.length > 0;
   const porcelana = hasPorcelana(produto.opcionais ?? []);
   const acrilico = hasAcrilico(produto.opcionais ?? []);
-  const fotoCount = Array.isArray(produto.fotos) ? produto.fotos.length : 0;
+  // Gallery count = total - 1 (exclude 3D model)
+  const galleryCount = Math.max(0, allFotos.length - 1);
   const tamanhoCount = Array.isArray(produto.tamanhos) ? produto.tamanhos.length : 0;
 
   return (
@@ -222,11 +247,11 @@ function ProductCard({ produto, onClick }: { produto: Produto; onClick: () => vo
         {/* Gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-[#00111f]/90 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-300" />
 
-        {/* Photo count badge */}
-        {fotoCount > 1 && (
+        {/* Gallery count badge */}
+        {galleryCount > 0 && (
           <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/60 backdrop-blur-md text-white/70 text-[10px] font-bold px-2 py-0.5 rounded-full border border-white/10">
             <Layers className="w-3 h-3" />
-            {fotoCount}
+            {galleryCount}
           </div>
         )}
       </div>
@@ -272,10 +297,14 @@ function ProductDetail({
   onNext: () => void;
   onClose: () => void;
 }) {
-  const fotos = Array.isArray(produto.fotos) ? produto.fotos : [];
-  const currentUrl = fotos[photoIdx] ?? null;
+  const allFotos = Array.isArray(produto.fotos) ? produto.fotos : [];
+  // fotos[0] = 3D model, shown in the info panel
+  const modeloUrl = allFotos[0] ?? null;
+  // Gallery = fotos[1..], photoIdx is relative to this slice
+  const galleryFotos = allFotos.slice(1);
+  const currentUrl = galleryFotos[photoIdx] ?? null;
   const hasPrev = photoIdx > 0;
-  const hasNext = photoIdx < fotos.length - 1;
+  const hasNext = photoIdx < galleryFotos.length - 1;
   const porcelana = hasPorcelana(produto.opcionais ?? []);
   const acrilico = hasAcrilico(produto.opcionais ?? []);
   const hasOps = porcelana || acrilico;
@@ -287,7 +316,7 @@ function ProductDetail({
       style={{ top: 0 }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      {/* ── Photo Column ─────────────────────────────────────────────── */}
+      {/* ── Photo Gallery Column ─────────────────────────────────────── */}
       <div className="relative flex-1 flex flex-col bg-[#00060f] min-h-[45dvh] md:min-h-0">
 
         {/* Main image */}
@@ -299,16 +328,16 @@ function ProductDetail({
               alt={`${produto.nome} — foto ${photoIdx + 1}`}
               className="w-full h-full object-contain max-h-[55dvh] md:max-h-[calc(100dvh-140px)] animate-in fade-in duration-150"
             />
-          ) : (
+          ) : galleryFotos.length === 0 ? (
             <div className="flex flex-col items-center gap-4 text-white/20">
               <ImageOff className="w-20 h-20" />
-              <p className="text-sm font-semibold">Sem fotos cadastradas</p>
+              <p className="text-sm font-semibold">Sem fotos na galeria</p>
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Prev / Next arrows */}
-        {fotos.length > 1 && (
+        {galleryFotos.length > 1 && (
           <>
             <button
               onClick={onPrev}
@@ -330,10 +359,10 @@ function ProductDetail({
         )}
 
         {/* Thumbnail strip */}
-        {fotos.length > 1 && (
+        {galleryFotos.length > 1 && (
           <div className="shrink-0 px-4 py-3 border-t border-white/[0.07] overflow-x-auto">
             <div className="flex gap-2 w-max mx-auto">
-              {fotos.map((url, i) => (
+              {galleryFotos.map((url, i) => (
                 <button
                   key={i}
                   onClick={() => onSetPhoto(i)}
@@ -351,10 +380,10 @@ function ProductDetail({
           </div>
         )}
 
-        {/* Dot indicators (mobile only, when too many thumbnails) */}
-        {fotos.length > 1 && fotos.length <= 8 && (
+        {/* Dot indicators (mobile, up to 8 photos) */}
+        {galleryFotos.length > 1 && galleryFotos.length <= 8 && (
           <div className="flex md:hidden justify-center gap-1.5 pb-2">
-            {fotos.map((_, i) => (
+            {galleryFotos.map((_, i) => (
               <button
                 key={i}
                 onClick={() => onSetPhoto(i)}
@@ -375,9 +404,9 @@ function ProductDetail({
         <div className="flex items-start justify-between gap-3 px-6 pt-6 pb-5 border-b border-white/[0.07] shrink-0">
           <div className="min-w-0">
             <h2 className="text-2xl font-extrabold text-white leading-tight tracking-tight">{produto.nome}</h2>
-            {fotos.length > 0 && (
+            {galleryFotos.length > 0 && (
               <p className="text-[11px] text-white/30 font-semibold mt-1">
-                {photoIdx + 1} / {fotos.length} foto{fotos.length !== 1 ? "s" : ""}
+                {photoIdx + 1} / {galleryFotos.length} foto{galleryFotos.length !== 1 ? "s" : ""}
               </p>
             )}
           </div>
@@ -390,43 +419,20 @@ function ProductDetail({
           </button>
         </div>
 
-        {/* Body */}
+        {/* Body — order: Descrição → Opcionais → Modelo 3D → Tamanhos */}
         <div className="flex-1 px-6 py-6 space-y-7">
 
-          {/* Descrição */}
+          {/* 1. Descrição */}
           {produto.descricao && (
             <div>
               <SectionLabel>Descrição</SectionLabel>
-              <p className="text-sm text-white/65 leading-relaxed mt-2">{produto.descricao}</p>
+              <p className="text-sm text-white/65 leading-relaxed mt-2">
+                <HighlightedText text={produto.descricao} />
+              </p>
             </div>
           )}
 
-          {/* Tamanhos */}
-          {tamanhos.length > 0 && (
-            <div>
-              <SectionLabel>{tamanhos.length} Tamanho{tamanhos.length !== 1 ? "s" : ""} disponíve{tamanhos.length !== 1 ? "is" : "l"}</SectionLabel>
-              <div className="mt-3 grid grid-cols-1 gap-2">
-                {tamanhos.map((t, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-3 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 hover:bg-white/[0.07] transition-colors"
-                  >
-                    <div className="w-2 h-2 rounded-full bg-sky-400/60 shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-white/85 font-semibold text-sm leading-snug">
-                        {dimensaoLabel(t)}
-                      </p>
-                      {t.capacidade && (
-                        <p className="text-sky-400/70 text-[11px] font-semibold mt-0.5">{t.capacidade}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Opcionais */}
+          {/* 2. Opcionais */}
           {hasOps && (
             <div>
               <SectionLabel>Opcionais disponíveis</SectionLabel>
@@ -448,16 +454,63 @@ function ProductDetail({
               </div>
             </div>
           )}
+
+          {/* 3. Modelo 3D */}
+          {modeloUrl && (
+            <div>
+              <SectionLabel className="flex items-center gap-1.5">
+                <Box className="w-3 h-3 opacity-60" />
+                Modelo 3D
+              </SectionLabel>
+              <div className="mt-3 rounded-2xl overflow-hidden border border-white/[0.08] bg-[#000d1a]">
+                <img
+                  src={modeloUrl}
+                  alt={`${produto.nome} — modelo 3D`}
+                  className="w-full object-contain max-h-56"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).closest("div")!.style.display = "none";
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* 4. Tamanhos */}
+          {tamanhos.length > 0 && (
+            <div>
+              <SectionLabel>
+                {tamanhos.length} Tamanho{tamanhos.length !== 1 ? "s" : ""} disponíve{tamanhos.length !== 1 ? "is" : "l"}
+              </SectionLabel>
+              <div className="mt-3 grid grid-cols-1 gap-2">
+                {tamanhos.map((t, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-3 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 hover:bg-white/[0.07] transition-colors"
+                  >
+                    <div className="w-2 h-2 rounded-full bg-sky-400/60 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-white/85 font-semibold text-sm leading-snug">
+                        {dimensaoLabel(t)}
+                      </p>
+                      {t.capacidade && (
+                        <p className="text-sky-400/70 text-[11px] font-semibold mt-0.5">{t.capacidade}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Mobile nav footer */}
-        {fotos.length > 1 && (
+        {galleryFotos.length > 1 && (
           <div className="md:hidden flex items-center justify-between px-6 pb-8 pt-4 border-t border-white/[0.07] shrink-0">
             <Button onClick={onPrev} disabled={!hasPrev} variant="outline" size="sm"
               className="border-white/15 bg-white/5 text-white/70 disabled:opacity-25 text-xs">
               <ChevronLeft className="w-4 h-4 mr-1" /> Anterior
             </Button>
-            <span className="text-white/30 text-xs font-bold">{photoIdx + 1}/{fotos.length}</span>
+            <span className="text-white/30 text-xs font-bold">{photoIdx + 1}/{galleryFotos.length}</span>
             <Button onClick={onNext} disabled={!hasNext} variant="outline" size="sm"
               className="border-white/15 bg-white/5 text-white/70 disabled:opacity-25 text-xs">
               Próxima <ChevronRight className="w-4 h-4 ml-1" />
@@ -470,9 +523,9 @@ function ProductDetail({
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function SectionLabel({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <p className="text-[10px] font-black uppercase tracking-widest text-white/30">
+    <p className={cn("text-[10px] font-black uppercase tracking-widest text-white/30 flex items-center gap-1.5", className)}>
       {children}
     </p>
   );
