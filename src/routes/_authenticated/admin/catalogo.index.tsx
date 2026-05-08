@@ -5,7 +5,7 @@ import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import {
   ArrowLeft, ChevronLeft, ChevronRight, X,
   Settings2, Loader2, ImageOff, CheckCircle2, Layers, Box,
-  SlidersHorizontal, Circle,
+  SlidersHorizontal, Circle, ZoomIn, ZoomOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -498,56 +498,125 @@ function ProductDetail({
   const hasOps = porcelana || acrilico;
   const tamanhos = Array.isArray(produto.tamanhos) ? produto.tamanhos : [];
 
+  // ── Zoom state ──────────────────────────────────────────────────────────
+  const [zoomed, setZoomed] = useState(false);
+  const [zoomOrigin, setZoomOrigin] = useState({ x: 50, y: 50 });
+
+  useEffect(() => {
+    setZoomed(false);
+    setZoomOrigin({ x: 50, y: 50 });
+  }, [photoIdx]);
+
+  const handleImgClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    if (zoomed) {
+      setZoomed(false);
+      setZoomOrigin({ x: 50, y: 50 });
+    } else {
+      setZoomOrigin({ x, y });
+      setZoomed(true);
+    }
+  };
+
+  const handleImgMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!zoomed) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    setZoomOrigin({
+      x: ((e.clientX - rect.left) / rect.width) * 100,
+      y: ((e.clientY - rect.top) / rect.height) * 100,
+    });
+  };
+
   return (
     <div
-      className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-sm flex flex-col md:flex-row animate-in fade-in duration-200"
+      className="fixed inset-0 z-[60] bg-black/92 backdrop-blur-sm flex flex-col md:flex-row animate-in fade-in duration-200"
       style={{ top: 0 }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       {/* ── Photo Gallery Column ─────────────────────────────────────── */}
-      <div className="relative flex-1 flex flex-col bg-[#00060f] min-h-[45dvh] md:min-h-0">
+      <div className="relative flex-1 flex flex-col bg-[#00060f] min-h-[55dvh] md:min-h-0">
 
-        <div className="flex-1 flex items-center justify-center overflow-hidden">
+        {/* Main image */}
+        <div
+          className={cn(
+            "flex-1 relative overflow-hidden",
+            currentUrl ? (zoomed ? "cursor-zoom-out" : "cursor-zoom-in") : ""
+          )}
+          onClick={currentUrl ? handleImgClick : undefined}
+          onMouseMove={currentUrl ? handleImgMouseMove : undefined}
+        >
           {currentUrl ? (
             <img
               key={currentUrl}
               src={currentUrl}
               alt={`${produto.nome} — foto ${photoIdx + 1}`}
-              className="w-full h-full object-contain max-h-[55dvh] md:max-h-[calc(100dvh-140px)] animate-in fade-in duration-150"
+              draggable={false}
+              className="absolute inset-0 w-full h-full object-contain select-none animate-in fade-in duration-200"
+              style={{
+                transform: zoomed ? "scale(2.6)" : "scale(1)",
+                transformOrigin: `${zoomOrigin.x}% ${zoomOrigin.y}%`,
+                transition: zoomed
+                  ? "transform-origin 0s, transform 0.18s cubic-bezier(0.4,0,0.2,1)"
+                  : "transform 0.22s cubic-bezier(0.4,0,0.2,1)",
+              }}
             />
           ) : galleryFotos.length === 0 ? (
-            <div className="flex flex-col items-center gap-4 text-white/20">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-white/20">
               <ImageOff className="w-20 h-20" />
               <p className="text-sm font-semibold">Sem fotos na galeria</p>
             </div>
           ) : null}
+
+          {/* Zoom hint — shown when not zoomed */}
+          {currentUrl && !zoomed && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/55 backdrop-blur-md text-white/55 text-[10px] font-semibold px-3 py-1.5 rounded-full border border-white/[0.12] pointer-events-none select-none">
+              <ZoomIn className="w-3 h-3" />
+              Clique para ampliar
+            </div>
+          )}
+
+          {/* Zoom active indicator */}
+          {zoomed && (
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-sky-500/75 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1.5 rounded-full pointer-events-none select-none shadow-lg shadow-sky-900/30">
+              <ZoomOut className="w-3 h-3" />
+              ×2.6 · Mova o cursor para explorar · Clique para sair
+            </div>
+          )}
+
+          {/* Nav arrows — hidden when zoomed */}
+          {galleryFotos.length > 1 && !zoomed && (
+            <>
+              <button onClick={(e) => { e.stopPropagation(); onPrev(); }} disabled={!hasPrev}
+                aria-label="Foto anterior"
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/55 backdrop-blur-sm text-white flex items-center justify-center border border-white/10 disabled:opacity-0 hover:bg-black/80 hover:border-white/25 hover:scale-110 transition-all duration-150 z-10">
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); onNext(); }} disabled={!hasNext}
+                aria-label="Próxima foto"
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/55 backdrop-blur-sm text-white flex items-center justify-center border border-white/10 disabled:opacity-0 hover:bg-black/80 hover:border-white/25 hover:scale-110 transition-all duration-150 z-10">
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </>
+          )}
         </div>
 
+        {/* Thumbnail strip */}
         {galleryFotos.length > 1 && (
-          <>
-            <button onClick={onPrev} disabled={!hasPrev} aria-label="Foto anterior"
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm text-white flex items-center justify-center border border-white/10 disabled:opacity-20 hover:bg-black/80 hover:border-white/20 transition">
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button onClick={onNext} disabled={!hasNext} aria-label="Próxima foto"
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm text-white flex items-center justify-center border border-white/10 disabled:opacity-20 hover:bg-black/80 hover:border-white/20 transition">
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </>
-        )}
-
-        {galleryFotos.length > 1 && (
-          <div className="shrink-0 px-4 py-3 border-t border-white/[0.07] overflow-x-auto">
+          <div className="shrink-0 px-4 py-3 border-t border-white/[0.07] overflow-x-auto bg-black/25">
             <div className="flex gap-2 w-max mx-auto">
               {galleryFotos.map((url, i) => (
-                <button key={i} onClick={() => onSetPhoto(i)}
+                <button
+                  key={i}
+                  onClick={() => { onSetPhoto(i); setZoomed(false); }}
                   className={cn(
-                    "w-14 h-14 rounded-xl overflow-hidden border-2 transition-all duration-200 shrink-0",
+                    "relative w-16 h-16 rounded-xl overflow-hidden border-2 transition-all duration-200 shrink-0 group/thumb",
                     i === photoIdx
                       ? "border-sky-400 ring-2 ring-sky-400/30 scale-105"
-                      : "border-white/10 opacity-50 hover:opacity-90 hover:border-white/30"
+                      : "border-white/10 opacity-50 hover:opacity-95 hover:border-white/35 hover:scale-105"
                   )}>
-                  <img src={url} alt="" className="w-full h-full object-cover" />
+                  <img src={url} alt="" className="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-110" />
                 </button>
               ))}
             </div>
@@ -556,19 +625,18 @@ function ProductDetail({
       </div>
 
       {/* ── Info Panel ───────────────────────────────────────────────── */}
-      <div className="w-full md:w-[420px] md:max-w-[44%] bg-[#00111f] flex flex-col overflow-y-auto border-l border-white/[0.07]">
+      <div className="w-full md:w-[360px] md:max-w-[37%] bg-[#00111f] flex flex-col overflow-y-auto border-l border-white/[0.07]">
 
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 px-6 pt-6 pb-5 border-b border-white/[0.07] shrink-0">
+        <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-4 border-b border-white/[0.07] shrink-0">
           <div className="min-w-0">
-            <h2 className="text-2xl font-extrabold text-white leading-tight tracking-tight">{produto.nome}</h2>
+            <h2 className="text-xl font-extrabold text-white leading-tight tracking-tight">{produto.nome}</h2>
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-              {(produto.formato ?? "retangular") === "oval" && (
+              {(produto.formato ?? "retangular") === "oval" ? (
                 <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 border border-violet-400/20">
                   Oval
                 </span>
-              )}
-              {(produto.formato ?? "retangular") === "retangular" && (
+              ) : (
                 <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/8 text-white/40 border border-white/10">
                   Retangular
                 </span>
@@ -581,13 +649,13 @@ function ProductDetail({
             </div>
           </div>
           <button onClick={onClose} aria-label="Fechar"
-            className="w-9 h-9 rounded-full bg-white/8 hover:bg-white/15 text-white/60 hover:text-white flex items-center justify-center transition shrink-0 mt-0.5">
+            className="w-8 h-8 rounded-full bg-white/8 hover:bg-white/15 text-white/60 hover:text-white flex items-center justify-center transition shrink-0 mt-0.5">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Body — Modelo 3D → Descrição → Opcionais → Tamanhos */}
-        <div className="flex-1 px-6 py-6 space-y-7">
+        <div className="flex-1 px-5 py-5 space-y-6">
 
           {/* 1. Modelo 3D */}
           {modeloUrl && (
@@ -596,11 +664,11 @@ function ProductDetail({
                 <Box className="w-3 h-3 opacity-60" />
                 Modelo 3D
               </SectionLabel>
-              <div className="mt-3 rounded-2xl overflow-hidden border border-white/[0.08] bg-[#000d1a]">
+              <div className="mt-2.5 rounded-2xl overflow-hidden border border-white/[0.08] bg-[#000d1a]">
                 <img
                   src={modeloUrl}
                   alt={`${produto.nome} — modelo 3D`}
-                  className="w-full object-contain max-h-56"
+                  className="w-full object-contain max-h-48"
                   onError={(e) => {
                     const wrap = (e.currentTarget as HTMLImageElement).closest("div") as HTMLElement | null;
                     if (wrap) wrap.style.display = "none";
@@ -622,7 +690,7 @@ function ProductDetail({
           {hasOps && (
             <div>
               <SectionLabel>Opcionais disponíveis</SectionLabel>
-              <div className="mt-3 space-y-2">
+              <div className="mt-2.5 space-y-2">
                 {porcelana && (
                   <OpcionalCard color="amber" title="Pastilha de Porcelana Atlas"
                     subtitle="Revestimento premium em porcelana" />
@@ -723,20 +791,6 @@ function ProductDetail({
           )}
         </div>
 
-        {/* Mobile nav footer */}
-        {galleryFotos.length > 1 && (
-          <div className="md:hidden flex items-center justify-between px-6 pb-8 pt-4 border-t border-white/[0.07] shrink-0">
-            <Button onClick={onPrev} disabled={!hasPrev} variant="outline" size="sm"
-              className="border-white/15 bg-white/5 text-white/70 disabled:opacity-25 text-xs">
-              <ChevronLeft className="w-4 h-4 mr-1" /> Anterior
-            </Button>
-            <span className="text-white/30 text-xs font-bold">{photoIdx + 1}/{galleryFotos.length}</span>
-            <Button onClick={onNext} disabled={!hasNext} variant="outline" size="sm"
-              className="border-white/15 bg-white/5 text-white/70 disabled:opacity-25 text-xs">
-              Próxima <ChevronRight className="w-4 h-4 ml-1" />
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   );
