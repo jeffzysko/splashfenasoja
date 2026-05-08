@@ -110,7 +110,7 @@ function HighlightedLabel({ label }: { label: string }) {
     <>
       {tokens.map((token, i) =>
         /^(prainha|spa)$/i.test(token) ? (
-          <span key={i} className="text-sky-300 font-extrabold">{token}</span>
+          <span key={i} className="text-sky-600 font-extrabold">{token}</span>
         ) : (
           <span key={i}>{token}</span>
         )
@@ -129,18 +129,6 @@ function CatalogoPage() {
   const [photoIdx, setPhotoIdx] = useState(0);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
-
-  // Paint full page background while catalog is mounted
-  useEffect(() => {
-    const prevBg = document.body.style.backgroundColor;
-    const prevHtmlBg = document.documentElement.style.backgroundColor;
-    document.body.style.backgroundColor = "#00111f";
-    document.documentElement.style.backgroundColor = "#00111f";
-    return () => {
-      document.body.style.backgroundColor = prevBg;
-      document.documentElement.style.backgroundColor = prevHtmlBg;
-    };
-  }, []);
 
   // Master check
   useEffect(() => {
@@ -203,18 +191,17 @@ function CatalogoPage() {
   };
 
   return (
-    <div className="-mx-4 -my-5 sm:-my-6 min-h-[calc(100dvh-3.5rem)] bg-[#00111f] animate-in fade-in duration-300">
+    <div className="animate-in fade-in duration-300">
 
       {/* ── Page Header ───────────────────────────────────────────────── */}
-      <div className="px-4 sm:px-6 pt-5 pb-4 flex items-center justify-between gap-3 border-b border-white/[0.07]">
+      <div className="pb-4 flex items-center justify-between gap-3 border-b border-border/50">
         <div className="flex items-center gap-3 min-w-0">
-          <Button variant="ghost" size="icon" asChild
-            className="rounded-full shrink-0 text-white/50 hover:text-white hover:bg-white/10">
+          <Button variant="ghost" size="icon" asChild className="rounded-full shrink-0">
             <Link to="/admin"><ArrowLeft className="w-5 h-5" /></Link>
           </Button>
           <div>
-            <h1 className="text-xl font-extrabold text-white tracking-tight">Catálogo</h1>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">
+            <h1 className="text-xl font-extrabold tracking-tight">Catálogo</h1>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               Splash Piscinas · {loading ? "…" : `${filtered.length}${nFilters > 0 ? ` de ${produtos.length}` : ""} modelo${filtered.length !== 1 ? "s" : ""}`}
             </p>
           </div>
@@ -225,21 +212,20 @@ function CatalogoPage() {
             className={cn(
               "flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all",
               showFilters || nFilters > 0
-                ? "bg-sky-500/20 border-sky-400/40 text-sky-300"
-                : "border-white/15 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                ? "bg-sky-50 border-sky-300 text-sky-700"
+                : "border-border bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
             Filtros
             {nFilters > 0 && (
-              <span className="w-4 h-4 rounded-full bg-sky-400 text-[#00111f] text-[10px] font-black flex items-center justify-center">
+              <span className="w-4 h-4 rounded-full bg-sky-500 text-white text-[10px] font-black flex items-center justify-center">
                 {nFilters}
               </span>
             )}
           </button>
           {isMaster && (
-            <Button asChild size="sm" variant="outline"
-              className="border-white/15 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white font-semibold rounded-xl text-xs">
+            <Button asChild size="sm" variant="outline" className="font-semibold rounded-xl text-xs">
               <Link to="/admin/catalogo/gerenciar">
                 <Settings2 className="w-3.5 h-3.5 mr-1.5" />
                 Gerenciar
@@ -251,11 +237,11 @@ function CatalogoPage() {
 
       {/* ── Filter Panel ──────────────────────────────────────────────── */}
       {showFilters && (
-        <div className="px-4 sm:px-6 py-4 border-b border-white/[0.07] bg-white/[0.02] animate-in slide-in-from-top-2 duration-200">
+        <div className="py-4 border-b border-border/50 bg-muted/30 -mx-4 px-4 sm:-mx-6 sm:px-6 animate-in slide-in-from-top-2 duration-200">
           <div className="space-y-3">
             {/* Formato */}
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-2">Formato</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Formato</p>
               <div className="flex flex-wrap gap-2">
                 {(["retangular", "oval"] as const).map((fmt) => (
                   <FilterPill
@@ -269,7 +255,7 @@ function CatalogoPage() {
             </div>
             {/* Opcionais / características */}
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-2">Características</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Características</p>
               <div className="flex flex-wrap gap-2">
                 <FilterPill
                   active={filters.porcelana}
@@ -301,7 +287,7 @@ function CatalogoPage() {
             {nFilters > 0 && (
               <button
                 onClick={() => setFilters(DEFAULT_FILTERS)}
-                className="text-[11px] font-bold text-white/40 hover:text-white/70 transition mt-1"
+                className="text-[11px] font-bold text-muted-foreground hover:text-foreground transition mt-1"
               >
                 Limpar filtros
               </button>
@@ -314,12 +300,12 @@ function CatalogoPage() {
       {loading ? (
         <div className="flex items-center justify-center py-40">
           <div className="flex flex-col items-center gap-4">
-            <Loader2 className="w-9 h-9 animate-spin text-sky-400/60" />
-            <p className="text-white/30 text-xs font-semibold tracking-wider">Carregando catálogo…</p>
+            <Loader2 className="w-9 h-9 animate-spin text-sky-500/60" />
+            <p className="text-muted-foreground text-xs font-semibold tracking-wider">Carregando catálogo…</p>
           </div>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-40 gap-4 text-white/30">
+        <div className="flex flex-col items-center justify-center py-40 gap-4 text-muted-foreground">
           <ImageOff className="w-16 h-16 opacity-30" />
           <p className="text-base font-bold">
             {nFilters > 0 ? "Nenhum modelo com esses filtros" : "Nenhum produto cadastrado"}
@@ -327,20 +313,19 @@ function CatalogoPage() {
           {nFilters > 0 && (
             <button
               onClick={() => setFilters(DEFAULT_FILTERS)}
-              className="text-sm font-bold text-sky-400/70 hover:text-sky-300 transition mt-1"
+              className="text-sm font-bold text-sky-600 hover:text-sky-700 transition mt-1"
             >
               Limpar filtros
             </button>
           )}
           {nFilters === 0 && isMaster && (
-            <Button asChild variant="outline"
-              className="border-white/20 bg-white/5 text-white/70 hover:bg-white/10 mt-2 text-sm">
+            <Button asChild variant="outline" className="mt-2 text-sm">
               <Link to="/admin/catalogo/gerenciar">Adicionar primeiro produto</Link>
             </Button>
           )}
         </div>
       ) : (
-        <div className="px-4 sm:px-6 py-6 pb-24 sm:pb-10">
+        <div className="py-6 pb-24 sm:pb-10">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
             {filtered.map((p) => (
               <ProductCard key={p.id} produto={p} onClick={() => openDetail(p)} />
@@ -376,20 +361,20 @@ function FilterPill({
 }) {
   const colors = {
     default: active
-      ? "bg-white/15 border-white/40 text-white"
-      : "border-white/15 text-white/50 hover:border-white/30 hover:text-white/80",
+      ? "bg-foreground/10 border-foreground/30 text-foreground"
+      : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground",
     amber: active
-      ? "bg-amber-500/20 border-amber-400/50 text-amber-300"
-      : "border-white/15 text-white/50 hover:border-amber-400/30 hover:text-amber-300/70",
+      ? "bg-amber-100 border-amber-300 text-amber-700"
+      : "border-border text-muted-foreground hover:border-amber-300 hover:text-amber-700",
     sky: active
-      ? "bg-sky-500/20 border-sky-400/50 text-sky-300"
-      : "border-white/15 text-white/50 hover:border-sky-400/30 hover:text-sky-300/70",
+      ? "bg-sky-100 border-sky-300 text-sky-700"
+      : "border-border text-muted-foreground hover:border-sky-300 hover:text-sky-700",
     violet: active
-      ? "bg-violet-500/20 border-violet-400/50 text-violet-300"
-      : "border-white/15 text-white/50 hover:border-violet-400/30 hover:text-violet-300/70",
+      ? "bg-violet-100 border-violet-300 text-violet-700"
+      : "border-border text-muted-foreground hover:border-violet-300 hover:text-violet-700",
     emerald: active
-      ? "bg-emerald-500/20 border-emerald-400/50 text-emerald-300"
-      : "border-white/15 text-white/50 hover:border-emerald-400/30 hover:text-emerald-300/70",
+      ? "bg-emerald-100 border-emerald-300 text-emerald-700"
+      : "border-border text-muted-foreground hover:border-emerald-300 hover:text-emerald-700",
   }[color];
 
   return (
@@ -422,10 +407,10 @@ function ProductCard({ produto, onClick }: { produto: Produto; onClick: () => vo
   return (
     <button
       onClick={onClick}
-      className="group relative flex flex-col rounded-2xl overflow-hidden bg-white/[0.04] border border-white/[0.09] text-left transition-all duration-300 hover:border-sky-400/30 hover:shadow-lg hover:shadow-sky-900/20 hover:-translate-y-0.5 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
+      className="group relative flex flex-col rounded-2xl overflow-hidden bg-card border border-border text-left transition-all duration-300 hover:border-sky-400/40 hover:shadow-lg hover:shadow-sky-100 hover:-translate-y-0.5 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
     >
       {/* Photo */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-[#001830]">
+      <div className="relative aspect-[4/3] overflow-hidden bg-muted">
         {coverUrl ? (
           <img
             src={coverUrl}
@@ -438,11 +423,11 @@ function ProductCard({ produto, onClick }: { produto: Produto; onClick: () => vo
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
-            <ImageOff className="w-10 h-10 text-white/10" />
+            <ImageOff className="w-10 h-10 text-muted-foreground/30" />
           </div>
         )}
 
-        <div className="absolute inset-0 bg-gradient-to-t from-[#00111f]/90 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-300" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-300" />
 
         {/* Top badges */}
         <div className="absolute top-2 left-2 flex gap-1">
@@ -464,9 +449,9 @@ function ProductCard({ produto, onClick }: { produto: Produto; onClick: () => vo
       {/* Card footer */}
       <div className="p-3 space-y-2">
         <div>
-          <p className="text-white font-extrabold text-sm leading-snug">{produto.nome}</p>
+          <p className="text-foreground font-extrabold text-sm leading-snug">{produto.nome}</p>
           {tamanhoCount > 0 && (
-            <p className="text-white/35 text-[10px] font-semibold mt-0.5">
+            <p className="text-muted-foreground text-[10px] font-semibold mt-0.5">
               {tamanhoCount} tamanho{tamanhoCount !== 1 ? "s" : ""} disponíve{tamanhoCount !== 1 ? "is" : "l"}
             </p>
           )}
@@ -571,32 +556,32 @@ function ProductDetail({
       </div>
 
       {/* ── Info Panel ───────────────────────────────────────────────── */}
-      <div className="w-full md:w-[420px] md:max-w-[44%] bg-[#00111f] flex flex-col overflow-y-auto border-l border-white/[0.07]">
+      <div className="w-full md:w-[420px] md:max-w-[44%] bg-background flex flex-col overflow-y-auto border-l border-border/50">
 
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 px-6 pt-6 pb-5 border-b border-white/[0.07] shrink-0">
+        <div className="flex items-start justify-between gap-3 px-6 pt-6 pb-5 border-b border-border/50 shrink-0">
           <div className="min-w-0">
-            <h2 className="text-2xl font-extrabold text-white leading-tight tracking-tight">{produto.nome}</h2>
+            <h2 className="text-2xl font-extrabold leading-tight tracking-tight">{produto.nome}</h2>
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               {(produto.formato ?? "retangular") === "oval" && (
-                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 border border-violet-400/20">
+                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 border border-violet-200">
                   Oval
                 </span>
               )}
               {(produto.formato ?? "retangular") === "retangular" && (
-                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/8 text-white/40 border border-white/10">
+                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border">
                   Retangular
                 </span>
               )}
               {galleryFotos.length > 0 && (
-                <p className="text-[11px] text-white/30 font-semibold">
+                <p className="text-[11px] text-muted-foreground font-semibold">
                   {photoIdx + 1} / {galleryFotos.length} foto{galleryFotos.length !== 1 ? "s" : ""}
                 </p>
               )}
             </div>
           </div>
           <button onClick={onClose} aria-label="Fechar"
-            className="w-9 h-9 rounded-full bg-white/8 hover:bg-white/15 text-white/60 hover:text-white flex items-center justify-center transition shrink-0 mt-0.5">
+            className="w-9 h-9 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground flex items-center justify-center transition shrink-0 mt-0.5">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -611,7 +596,7 @@ function ProductDetail({
                 <Box className="w-3 h-3 opacity-60" />
                 Modelo 3D
               </SectionLabel>
-              <div className="mt-3 rounded-2xl overflow-hidden border border-white/[0.08] bg-[#000d1a]">
+              <div className="mt-3 rounded-2xl overflow-hidden border border-border bg-muted">
                 <img
                   src={modeloUrl}
                   alt={`${produto.nome} — modelo 3D`}
@@ -629,7 +614,7 @@ function ProductDetail({
           {produto.descricao && (
             <div>
               <SectionLabel>Descrição</SectionLabel>
-              <p className="text-sm text-white/65 leading-relaxed mt-2">{produto.descricao}</p>
+              <p className="text-sm text-muted-foreground leading-relaxed mt-2">{produto.descricao}</p>
             </div>
           )}
 
@@ -661,20 +646,20 @@ function ProductDetail({
                   const dims = [t.comprimento, t.largura, t.profundidade].filter(Boolean).join(" × ");
                   return (
                     <div key={i}
-                      className="flex items-start gap-3 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 hover:bg-white/[0.07] transition-colors">
-                      <div className="w-2 h-2 rounded-full bg-sky-400/60 shrink-0 mt-1.5" />
+                      className="flex items-start gap-3 bg-muted/40 border border-border/60 rounded-xl px-4 py-3 hover:bg-muted/70 transition-colors">
+                      <div className="w-2 h-2 rounded-full bg-sky-500/70 shrink-0 mt-1.5" />
                       <div className="min-w-0 flex-1">
-                        <p className="text-white/85 font-semibold text-sm leading-snug">
+                        <p className="text-foreground font-semibold text-sm leading-snug">
                           {t.label ? (
                             <>
                               <HighlightedLabel label={t.label} />
                               {" — "}
-                              <span className="text-white/50 font-normal">{dims}</span>
+                              <span className="text-muted-foreground font-normal">{dims}</span>
                             </>
                           ) : dims}
                         </p>
                         {t.capacidade && (
-                          <p className="text-sky-400/70 text-[11px] font-semibold mt-0.5">{t.capacidade}</p>
+                          <p className="text-sky-600 text-[11px] font-semibold mt-0.5">{t.capacidade}</p>
                         )}
                       </div>
                       {/* Porcelana Atlas badge por tamanho */}
@@ -689,8 +674,8 @@ function ProductDetail({
               </div>
               {/* Legenda se houver mix */}
               {tamanhos.some(t => t.porcelana_atlas) && tamanhos.some(t => !t.porcelana_atlas) && (
-                <p className="text-[10px] text-white/25 mt-2 font-semibold">
-                  * Tamanhos marcados com <span className="text-amber-400/60">Porcelana</span> aceitam Pastilha de Porcelana Atlas
+                <p className="text-[10px] text-muted-foreground mt-2 font-semibold">
+                  * Tamanhos marcados com <span className="text-amber-600 font-bold">Porcelana</span> aceitam Pastilha de Porcelana Atlas
                 </p>
               )}
             </div>
@@ -699,14 +684,14 @@ function ProductDetail({
 
         {/* Mobile nav footer */}
         {galleryFotos.length > 1 && (
-          <div className="md:hidden flex items-center justify-between px-6 pb-8 pt-4 border-t border-white/[0.07] shrink-0">
+          <div className="md:hidden flex items-center justify-between px-6 pb-8 pt-4 border-t border-border/50 shrink-0">
             <Button onClick={onPrev} disabled={!hasPrev} variant="outline" size="sm"
-              className="border-white/15 bg-white/5 text-white/70 disabled:opacity-25 text-xs">
+              className="disabled:opacity-25 text-xs">
               <ChevronLeft className="w-4 h-4 mr-1" /> Anterior
             </Button>
-            <span className="text-white/30 text-xs font-bold">{photoIdx + 1}/{galleryFotos.length}</span>
+            <span className="text-muted-foreground text-xs font-bold">{photoIdx + 1}/{galleryFotos.length}</span>
             <Button onClick={onNext} disabled={!hasNext} variant="outline" size="sm"
-              className="border-white/15 bg-white/5 text-white/70 disabled:opacity-25 text-xs">
+              className="disabled:opacity-25 text-xs">
               Próxima <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
@@ -719,7 +704,7 @@ function ProductDetail({
 // ── Sub-components ────────────────────────────────────────────────────────────
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[10px] font-black uppercase tracking-widest text-white/30 flex items-center gap-1.5">
+    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
       {children}
     </p>
   );
@@ -729,8 +714,8 @@ function OpcionalCard({ color, title, subtitle }: {
   color: "amber" | "sky"; title: string; subtitle: string;
 }) {
   const s = {
-    amber: { wrap: "bg-amber-500/8 border-amber-400/15", icon: "bg-amber-400/15", svg: "text-amber-400", title: "text-amber-200", sub: "text-amber-400/55" },
-    sky: { wrap: "bg-sky-500/8 border-sky-400/15", icon: "bg-sky-400/15", svg: "text-sky-400", title: "text-sky-200", sub: "text-sky-400/55" },
+    amber: { wrap: "bg-amber-50 border-amber-200", icon: "bg-amber-100", svg: "text-amber-600", title: "text-amber-900", sub: "text-amber-600/70" },
+    sky: { wrap: "bg-sky-50 border-sky-200", icon: "bg-sky-100", svg: "text-sky-600", title: "text-sky-900", sub: "text-sky-600/70" },
   }[color];
   return (
     <div className={cn("flex items-center gap-3 border rounded-xl p-3.5", s.wrap)}>
