@@ -4,8 +4,8 @@
 -- 1. Nova coluna formato
 ALTER TABLE produtos ADD COLUMN IF NOT EXISTS formato text NOT NULL DEFAULT 'retangular';
 
--- 2. Italiana é oval; todos os outros são retangulares
-UPDATE produtos SET formato = 'oval' WHERE nome = 'Splash Italiana';
+-- 2. Oval: Italiana, Farol da Barra e Tradicional
+UPDATE produtos SET formato = 'oval' WHERE nome IN ('Splash Italiana', 'Splash Farol da Barra', 'Splash Tradicional');
 
 -- ─────────────────────────────────────────────────────────────────
 -- 3. Tamanhos com porcelana_atlas: true/false por modelo
