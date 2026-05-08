@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import {
-  ArrowLeft, ChevronLeft, ChevronRight, ChevronUp, X,
+  ArrowLeft, ChevronLeft, ChevronRight, X,
   Settings2, Loader2, ImageOff, CheckCircle2, Layers, Box,
   SlidersHorizontal, Circle, ZoomIn, ZoomOut,
 } from "lucide-react";
@@ -504,18 +504,10 @@ function ProductDetail({
   const [zoomed, setZoomed] = useState(false);
   const [zoomOrigin, setZoomOrigin] = useState({ x: 50, y: 50 });
 
-  // ── Bottom sheet state (mobile only) ────────────────────────────────────
-  const [sheetExpanded, setSheetExpanded] = useState(false);
-
   useEffect(() => {
     setZoomed(false);
     setZoomOrigin({ x: 50, y: 50 });
   }, [photoIdx]);
-
-  // Collapse sheet when zoom activates
-  useEffect(() => {
-    if (zoomed) setSheetExpanded(false);
-  }, [zoomed]);
 
   const handleImgClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -656,9 +648,9 @@ function ProductDetail({
     </div>
   );
 
-  // ── Thumbnail strip renderer ──────────────────────────────────────────────
+  // ── Thumbnail strip ───────────────────────────────────────────────────────
   const thumbStrip = (extraClass = "") => galleryFotos.length > 1 ? (
-    <div className={cn("overflow-x-auto px-4 py-3", extraClass)}>
+    <div className={cn("shrink-0 overflow-x-auto px-4 py-3", extraClass)}>
       <div className="flex gap-2 w-max mx-auto">
         {galleryFotos.map((url, i) => (
           <button
@@ -683,8 +675,12 @@ function ProductDetail({
       style={{ top: 0 }}
     >
 
-      {/* ── Photo Gallery (full screen on mobile, left column on desktop) ── */}
-      <div className="relative flex-1 flex flex-col bg-[#00060f] min-h-0">
+      {/* ── Photo area ── fixed height on mobile / flex-1 on desktop ────── */}
+      <div className={cn(
+        "relative flex flex-col bg-[#00060f]",
+        "h-[45dvh] shrink-0",          // mobile: fixed top slice
+        "md:h-auto md:flex-1 md:shrink" // desktop: fills remaining width
+      )}>
 
         {/* Main image */}
         <div
@@ -719,7 +715,7 @@ function ProductDetail({
 
           {/* Zoom hint */}
           {currentUrl && !zoomed && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/55 backdrop-blur-md text-white/55 text-[10px] font-semibold px-3 py-1.5 rounded-full border border-white/[0.12] pointer-events-none select-none md:bottom-4 bottom-40">
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/55 backdrop-blur-md text-white/55 text-[10px] font-semibold px-3 py-1.5 rounded-full border border-white/[0.12] pointer-events-none select-none">
               <ZoomIn className="w-3 h-3" />
               Clique para ampliar
             </div>
@@ -738,33 +734,29 @@ function ProductDetail({
             <>
               <button onClick={(e) => { e.stopPropagation(); onPrev(); }} disabled={!hasPrev}
                 aria-label="Foto anterior"
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/55 backdrop-blur-sm text-white flex items-center justify-center border border-white/10 disabled:opacity-0 hover:bg-black/80 hover:border-white/25 hover:scale-110 transition-all duration-150 z-10">
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/55 backdrop-blur-sm text-white flex items-center justify-center border border-white/10 disabled:opacity-0 hover:bg-black/80 hover:border-white/25 hover:scale-110 transition-all duration-150 z-10">
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <button onClick={(e) => { e.stopPropagation(); onNext(); }} disabled={!hasNext}
                 aria-label="Próxima foto"
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/55 backdrop-blur-sm text-white flex items-center justify-center border border-white/10 disabled:opacity-0 hover:bg-black/80 hover:border-white/25 hover:scale-110 transition-all duration-150 z-10">
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/55 backdrop-blur-sm text-white flex items-center justify-center border border-white/10 disabled:opacity-0 hover:bg-black/80 hover:border-white/25 hover:scale-110 transition-all duration-150 z-10">
                 <ChevronRight className="w-5 h-5" />
               </button>
             </>
           )}
-
-          {/* Mobile close button — floating over image */}
-          <button onClick={onClose} aria-label="Fechar"
-            className="md:hidden absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm text-white/70 hover:text-white flex items-center justify-center border border-white/10 transition">
-            <X className="w-4 h-4" />
-          </button>
         </div>
 
-        {/* Thumbnail strip — desktop only (mobile has it in the bottom sheet) */}
-        {thumbStrip("hidden md:block shrink-0 border-t border-white/[0.07] bg-black/25")}
+        {/* Thumbnail strip — desktop only */}
+        {thumbStrip("hidden md:block border-t border-white/[0.07] bg-black/25")}
       </div>
 
-      {/* ── Desktop Info Panel ────────────────────────────────────────────── */}
-      <div className="hidden md:flex md:flex-col w-[360px] max-w-[37%] bg-[#00111f] overflow-y-auto border-l border-white/[0.07]">
-        <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-4 border-b border-white/[0.07] shrink-0">
+      {/* ── Info panel ── scrollable on mobile / fixed column on desktop ─── */}
+      <div className="flex-1 overflow-y-auto bg-[#00111f] flex flex-col border-t border-white/[0.07] md:border-t-0 md:border-l md:flex-none md:w-[360px] md:max-w-[37%]">
+
+        {/* Header — name + format + close */}
+        <div className="flex items-start justify-between gap-3 px-5 pt-4 pb-3 border-b border-white/[0.07] shrink-0">
           <div className="min-w-0">
-            <h2 className="text-xl font-extrabold text-white leading-tight tracking-tight">{produto.nome}</h2>
+            <h2 className="text-lg font-extrabold text-white leading-tight tracking-tight md:text-xl">{produto.nome}</h2>
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               {(produto.formato ?? "retangular") === "oval" ? (
                 <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 border border-violet-400/20">Oval</span>
@@ -781,60 +773,12 @@ function ProductDetail({
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Thumbnail strip — mobile only (inside scrollable info) */}
+        {thumbStrip("md:hidden border-b border-white/[0.06] bg-black/15")}
+
+        {/* Body */}
         {infoBody}
-      </div>
-
-      {/* ── Mobile Bottom Sheet ───────────────────────────────────────────── */}
-      <div
-        className={cn(
-          "md:hidden fixed bottom-0 left-0 right-0 z-10",
-          "bg-[#00111f] rounded-t-[28px] border-t border-white/[0.10]",
-          "shadow-[0_-20px_60px_rgba(0,0,0,0.75)]",
-          "transition-transform duration-[380ms] ease-[cubic-bezier(0.32,0.72,0,1)]",
-        )}
-        style={{ transform: sheetExpanded ? "translateY(0)" : "translateY(calc(100% - 138px))" }}
-      >
-        {/* Handle + peek row — tappable to toggle */}
-        <button
-          className="w-full pt-3 pb-0 flex flex-col items-center focus:outline-none active:opacity-80"
-          onClick={() => setSheetExpanded(v => !v)}
-          aria-label={sheetExpanded ? "Recolher detalhes" : "Ver detalhes"}
-        >
-          {/* Drag handle */}
-          <div className="w-10 h-[3px] rounded-full bg-white/20 mb-3" />
-
-          {/* Name + format + counter + chevron */}
-          <div className="w-full px-5 pb-3 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <h2 className="text-white font-extrabold text-[17px] leading-tight truncate">{produto.nome}</h2>
-              {(produto.formato ?? "retangular") === "oval" ? (
-                <span className="shrink-0 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 border border-violet-400/20">Oval</span>
-              ) : (
-                <span className="shrink-0 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/8 text-white/40 border border-white/10">Retangular</span>
-              )}
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {galleryFotos.length > 0 && (
-                <span className="text-[11px] text-white/30 font-semibold">{photoIdx + 1}/{galleryFotos.length}</span>
-              )}
-              <ChevronUp className={cn(
-                "w-4 h-4 text-white/35 transition-transform duration-300",
-                sheetExpanded ? "rotate-180" : ""
-              )} />
-            </div>
-          </div>
-        </button>
-
-        {/* Thumbnail strip — always visible in peek state */}
-        {thumbStrip("border-t border-white/[0.06]")}
-
-        {/* Expanded body — full product info */}
-        <div
-          className="overflow-y-auto"
-          style={{ maxHeight: sheetExpanded ? "calc(80dvh - 138px)" : 0, transition: "max-height 380ms cubic-bezier(0.32,0.72,0,1)" }}
-        >
-          {infoBody}
-        </div>
       </div>
 
     </div>
