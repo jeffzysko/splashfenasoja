@@ -130,6 +130,18 @@ function CatalogoPage() {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
 
+  // Paint full page background while catalog is mounted
+  useEffect(() => {
+    const prevBg = document.body.style.backgroundColor;
+    const prevHtmlBg = document.documentElement.style.backgroundColor;
+    document.body.style.backgroundColor = "#00111f";
+    document.documentElement.style.backgroundColor = "#00111f";
+    return () => {
+      document.body.style.backgroundColor = prevBg;
+      document.documentElement.style.backgroundColor = prevHtmlBg;
+    };
+  }, []);
+
   // Master check
   useEffect(() => {
     if (!user?.id) return;
