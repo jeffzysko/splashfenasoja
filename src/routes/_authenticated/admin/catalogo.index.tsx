@@ -102,19 +102,19 @@ function activeFilterCount(f: Filters): number {
   return n;
 }
 
-// Highlights "Prainha" and "SPA" keywords in tamanho labels
+// Highlights "Prainha", "SPA" and "Acrílico RETO / L" keywords in tamanho labels
 function HighlightedLabel({ label }: { label: string }) {
   if (!label) return null;
-  const tokens = label.split(/(\bPrainha\b|\bSPA\b)/gi);
+  const tokens = label.split(/(Acrílico\s+(?:RETO|L)\b|\bPrainha\b|\bSPA\b)/gi);
   return (
     <>
-      {tokens.map((token, i) =>
-        /^(prainha|spa)$/i.test(token) ? (
-          <span key={i} className="text-sky-300 font-extrabold">{token}</span>
-        ) : (
-          <span key={i}>{token}</span>
-        )
-      )}
+      {tokens.map((token, i) => {
+        if (/^(prainha|spa)$/i.test(token))
+          return <span key={i} className="text-sky-300 font-extrabold">{token}</span>;
+        if (/^acrílico\s+(reto|l)$/i.test(token))
+          return <span key={i} className="text-cyan-300 font-extrabold">{token}</span>;
+        return <span key={i}>{token}</span>;
+      })}
     </>
   );
 }
@@ -711,8 +711,9 @@ function ProductDetail({
               </SectionLabel>
               <div className="mt-3 grid grid-cols-2 gap-2">
                 {tamanhos.map((t, i) => {
-                  const isSPA     = /\bspa\b/i.test(t.label ?? "");
-                  const isPrainha = /prainha/i.test(t.label ?? "");
+                  const isSPA      = /\bspa\b/i.test(t.label ?? "");
+                  const isPrainha  = /prainha/i.test(t.label ?? "");
+                  const isAcrilico = /acrílico/i.test(t.label ?? "");
                   const isOvalShape = (produto.formato ?? "retangular") === "oval";
 
                   // Parse dims for proportional pool shape
@@ -729,7 +730,9 @@ function ProductDetail({
                         ? "bg-violet-500/8 border-violet-400/20 hover:bg-violet-500/12 hover:border-violet-400/35"
                         : isPrainha
                           ? "bg-emerald-500/8 border-emerald-400/20 hover:bg-emerald-500/12 hover:border-emerald-400/35"
-                          : "bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.14]"
+                          : isAcrilico
+                            ? "bg-cyan-500/8 border-cyan-400/20 hover:bg-cyan-500/12 hover:border-cyan-400/35"
+                            : "bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.14]"
                     )}>
 
                       {/* Porcelana badge — top right */}
@@ -759,7 +762,9 @@ function ProductDetail({
                             ? "bg-violet-500/20 text-violet-300 border-violet-400/25"
                             : isPrainha
                               ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/25"
-                              : "bg-white/8 text-white/45 border-white/10"
+                              : isAcrilico
+                                ? "bg-cyan-500/20 text-cyan-300 border-cyan-400/25"
+                                : "bg-white/8 text-white/45 border-white/10"
                         )}>
                           <HighlightedLabel label={t.label} />
                         </span>
