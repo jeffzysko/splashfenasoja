@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import {
-  ArrowLeft, ChevronLeft, ChevronRight, X,
+  ArrowLeft, ChevronLeft, ChevronRight, ChevronUp, X,
   Settings2, Loader2, ImageOff, CheckCircle2, Layers, Box,
   SlidersHorizontal, Circle, ZoomIn, ZoomOut,
 } from "lucide-react";
@@ -504,10 +504,18 @@ function ProductDetail({
   const [zoomed, setZoomed] = useState(false);
   const [zoomOrigin, setZoomOrigin] = useState({ x: 50, y: 50 });
 
+  // ── Bottom sheet state (mobile only) ────────────────────────────────────
+  const [sheetExpanded, setSheetExpanded] = useState(false);
+
   useEffect(() => {
     setZoomed(false);
     setZoomOrigin({ x: 50, y: 50 });
   }, [photoIdx]);
+
+  // Collapse sheet when zoom activates
+  useEffect(() => {
+    if (zoomed) setSheetExpanded(false);
+  }, [zoomed]);
 
   const handleImgClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -531,14 +539,152 @@ function ProductDetail({
     });
   };
 
+  // ── Tamanho card renderer (shared desktop + mobile) ──────────────────────
+  const renderTamanhoCard = (t: Tamanho, i: number) => {
+    const isSPA          = /\bspa\b/i.test(t.label ?? "");
+    const isPrainha      = /prainha/i.test(t.label ?? "");
+    const isAcrelicoReto = /acrílico\s+reto/i.test(t.label ?? "");
+    const isAcrelicoL    = /acrílico\s+l\b/i.test(t.label ?? "");
+    const isOvalShape    = (produto.formato ?? "retangular") === "oval";
+    const comp  = parseFloat((t.comprimento ?? "").replace(",", "."));
+    const larg  = parseFloat((t.largura ?? "").replace(",", "."));
+    const ratio = comp && larg ? comp / larg : 1.6;
+    const poolW = Math.round(Math.min(60, Math.max(22, 28 * ratio)));
+    const poolH = Math.round(Math.min(28, Math.max(10, poolW / ratio)));
+    return (
+      <div key={i} className={cn(
+        "relative flex flex-col gap-2.5 rounded-2xl p-3.5 border transition-all duration-200 group overflow-hidden",
+        isSPA
+          ? "bg-violet-500/8 border-violet-400/20 hover:bg-violet-500/12 hover:border-violet-400/35"
+          : isPrainha
+            ? "bg-emerald-500/8 border-emerald-400/20 hover:bg-emerald-500/12 hover:border-emerald-400/35"
+            : isAcrelicoReto
+              ? "bg-cyan-500/8 border-cyan-400/20 hover:bg-cyan-500/12 hover:border-cyan-400/35"
+              : isAcrelicoL
+                ? "bg-teal-500/8 border-teal-400/20 hover:bg-teal-500/12 hover:border-teal-400/35"
+                : "bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.14]"
+      )}>
+        {t.porcelana_atlas && (
+          <span className="absolute top-2.5 right-2.5 text-[7px] font-black uppercase tracking-wider px-1.5 py-[3px] rounded-full bg-amber-500/15 text-amber-300/80 border border-amber-400/20 whitespace-nowrap leading-none">
+            ✦ Porcelana
+          </span>
+        )}
+        <div className="h-7 flex items-center">
+          <div
+            style={{ width: poolW, height: poolH }}
+            className={cn(
+              "border-2 border-sky-400/35 bg-sky-400/10 transition-all duration-200",
+              "group-hover:border-sky-400/60 group-hover:bg-sky-400/18",
+              isOvalShape ? "rounded-full" : "rounded-[3px]"
+            )}
+          />
+        </div>
+        {t.label && (
+          <span className={cn(
+            "text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full self-start border leading-none",
+            isSPA
+              ? "bg-violet-500/20 text-violet-300 border-violet-400/25"
+              : isPrainha
+                ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/25"
+                : isAcrelicoReto
+                  ? "bg-cyan-500/20 text-cyan-300 border-cyan-400/25"
+                  : isAcrelicoL
+                    ? "bg-teal-500/20 text-teal-300 border-teal-400/25"
+                    : "bg-white/8 text-white/45 border-white/10"
+          )}>
+            <HighlightedLabel label={t.label} />
+          </span>
+        )}
+        <div>
+          <p className="text-white font-black text-base leading-none tracking-tight">{t.comprimento}</p>
+          <p className="text-white/40 text-[11px] font-medium mt-1 tracking-wide">{t.largura} × {t.profundidade}</p>
+          {t.capacidade && <p className="text-sky-400/60 text-[10px] font-semibold mt-0.5">{t.capacidade}</p>}
+        </div>
+      </div>
+    );
+  };
+
+  // ── Shared info body (desktop panel + mobile sheet expanded) ──────────────
+  const infoBody = (
+    <div className="flex-1 px-5 py-5 space-y-6">
+      {modeloUrl && (
+        <div>
+          <SectionLabel><Box className="w-3 h-3 opacity-60" />Modelo 3D</SectionLabel>
+          <div className="mt-2.5 rounded-2xl overflow-hidden border border-white/[0.08] bg-[#000d1a]">
+            <img
+              src={modeloUrl}
+              alt={`${produto.nome} — modelo 3D`}
+              className="w-full object-contain max-h-48"
+              onError={(e) => {
+                const wrap = (e.currentTarget as HTMLImageElement).closest("div") as HTMLElement | null;
+                if (wrap) wrap.style.display = "none";
+              }}
+            />
+          </div>
+        </div>
+      )}
+      {produto.descricao && (
+        <div>
+          <SectionLabel>Descrição</SectionLabel>
+          <p className="text-sm text-white/65 leading-relaxed mt-2">{produto.descricao}</p>
+        </div>
+      )}
+      {hasOps && (
+        <div>
+          <SectionLabel>Opcionais disponíveis</SectionLabel>
+          <div className="mt-2.5 space-y-2">
+            {porcelana && <OpcionalCard color="amber" title="Pastilha de Porcelana Atlas" subtitle="Revestimento nas bordas em porcelana" />}
+            {acrilico  && <OpcionalCard color="sky"   title="Acrílico" subtitle='Acabamento em acrílico reto ou em "L"' />}
+          </div>
+        </div>
+      )}
+      {tamanhos.length > 0 && (
+        <div>
+          <SectionLabel>
+            {tamanhos.length} Tamanho{tamanhos.length !== 1 ? "s" : ""} disponíve{tamanhos.length !== 1 ? "is" : "l"}
+          </SectionLabel>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {tamanhos.map(renderTamanhoCard)}
+          </div>
+          {tamanhos.some(t => t.porcelana_atlas) && tamanhos.some(t => !t.porcelana_atlas) && (
+            <p className="text-[10px] text-white/25 mt-3 font-semibold">
+              * Tamanhos com <span className="text-amber-400/60">✦ Porcelana</span> aceitam Pastilha de Porcelana Atlas
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  // ── Thumbnail strip renderer ──────────────────────────────────────────────
+  const thumbStrip = (extraClass = "") => galleryFotos.length > 1 ? (
+    <div className={cn("overflow-x-auto px-4 py-3", extraClass)}>
+      <div className="flex gap-2 w-max mx-auto">
+        {galleryFotos.map((url, i) => (
+          <button
+            key={i}
+            onClick={(e) => { e.stopPropagation(); onSetPhoto(i); setZoomed(false); }}
+            className={cn(
+              "relative w-14 h-14 rounded-xl overflow-hidden border-2 transition-all duration-200 shrink-0 group/thumb",
+              i === photoIdx
+                ? "border-sky-400 ring-2 ring-sky-400/30 scale-105"
+                : "border-white/10 opacity-50 hover:opacity-95 hover:border-white/35 hover:scale-105"
+            )}>
+            <img src={url} alt="" className="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-110" />
+          </button>
+        ))}
+      </div>
+    </div>
+  ) : null;
+
   return (
     <div
-      className="fixed inset-0 z-[60] bg-black/92 backdrop-blur-sm flex flex-col md:flex-row animate-in fade-in duration-200"
+      className="fixed inset-0 z-[60] bg-[#00060f] animate-in fade-in duration-200 flex flex-col md:flex-row"
       style={{ top: 0 }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      {/* ── Photo Gallery Column ─────────────────────────────────────── */}
-      <div className="relative flex-1 flex flex-col bg-[#00060f] min-h-[55dvh] md:min-h-0">
+
+      {/* ── Photo Gallery (full screen on mobile, left column on desktop) ── */}
+      <div className="relative flex-1 flex flex-col bg-[#00060f] min-h-0">
 
         {/* Main image */}
         <div
@@ -571,9 +717,9 @@ function ProductDetail({
             </div>
           ) : null}
 
-          {/* Zoom hint — shown when not zoomed */}
+          {/* Zoom hint */}
           {currentUrl && !zoomed && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/55 backdrop-blur-md text-white/55 text-[10px] font-semibold px-3 py-1.5 rounded-full border border-white/[0.12] pointer-events-none select-none">
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/55 backdrop-blur-md text-white/55 text-[10px] font-semibold px-3 py-1.5 rounded-full border border-white/[0.12] pointer-events-none select-none md:bottom-4 bottom-40">
               <ZoomIn className="w-3 h-3" />
               Clique para ampliar
             </div>
@@ -583,7 +729,7 @@ function ProductDetail({
           {zoomed && (
             <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-sky-500/75 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1.5 rounded-full pointer-events-none select-none shadow-lg shadow-sky-900/30">
               <ZoomOut className="w-3 h-3" />
-              ×2.6 · Mova o cursor para explorar · Clique para sair
+              ×2.6 · Mova o cursor · Clique para sair
             </div>
           )}
 
@@ -602,51 +748,31 @@ function ProductDetail({
               </button>
             </>
           )}
+
+          {/* Mobile close button — floating over image */}
+          <button onClick={onClose} aria-label="Fechar"
+            className="md:hidden absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm text-white/70 hover:text-white flex items-center justify-center border border-white/10 transition">
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
-        {/* Thumbnail strip */}
-        {galleryFotos.length > 1 && (
-          <div className="shrink-0 px-4 py-3 border-t border-white/[0.07] overflow-x-auto bg-black/25">
-            <div className="flex gap-2 w-max mx-auto">
-              {galleryFotos.map((url, i) => (
-                <button
-                  key={i}
-                  onClick={() => { onSetPhoto(i); setZoomed(false); }}
-                  className={cn(
-                    "relative w-16 h-16 rounded-xl overflow-hidden border-2 transition-all duration-200 shrink-0 group/thumb",
-                    i === photoIdx
-                      ? "border-sky-400 ring-2 ring-sky-400/30 scale-105"
-                      : "border-white/10 opacity-50 hover:opacity-95 hover:border-white/35 hover:scale-105"
-                  )}>
-                  <img src={url} alt="" className="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-110" />
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Thumbnail strip — desktop only (mobile has it in the bottom sheet) */}
+        {thumbStrip("hidden md:block shrink-0 border-t border-white/[0.07] bg-black/25")}
       </div>
 
-      {/* ── Info Panel ───────────────────────────────────────────────── */}
-      <div className="w-full md:w-[360px] md:max-w-[37%] bg-[#00111f] flex flex-col overflow-y-auto border-l border-white/[0.07]">
-
-        {/* Header */}
+      {/* ── Desktop Info Panel ────────────────────────────────────────────── */}
+      <div className="hidden md:flex md:flex-col w-[360px] max-w-[37%] bg-[#00111f] overflow-y-auto border-l border-white/[0.07]">
         <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-4 border-b border-white/[0.07] shrink-0">
           <div className="min-w-0">
             <h2 className="text-xl font-extrabold text-white leading-tight tracking-tight">{produto.nome}</h2>
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               {(produto.formato ?? "retangular") === "oval" ? (
-                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 border border-violet-400/20">
-                  Oval
-                </span>
+                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 border border-violet-400/20">Oval</span>
               ) : (
-                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/8 text-white/40 border border-white/10">
-                  Retangular
-                </span>
+                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/8 text-white/40 border border-white/10">Retangular</span>
               )}
               {galleryFotos.length > 0 && (
-                <p className="text-[11px] text-white/30 font-semibold">
-                  {photoIdx + 1} / {galleryFotos.length} foto{galleryFotos.length !== 1 ? "s" : ""}
-                </p>
+                <p className="text-[11px] text-white/30 font-semibold">{photoIdx + 1} / {galleryFotos.length} foto{galleryFotos.length !== 1 ? "s" : ""}</p>
               )}
             </div>
           </div>
@@ -655,156 +781,62 @@ function ProductDetail({
             <X className="w-4 h-4" />
           </button>
         </div>
+        {infoBody}
+      </div>
 
-        {/* Body — Modelo 3D → Descrição → Opcionais → Tamanhos */}
-        <div className="flex-1 px-5 py-5 space-y-6">
+      {/* ── Mobile Bottom Sheet ───────────────────────────────────────────── */}
+      <div
+        className={cn(
+          "md:hidden fixed bottom-0 left-0 right-0 z-10",
+          "bg-[#00111f] rounded-t-[28px] border-t border-white/[0.10]",
+          "shadow-[0_-20px_60px_rgba(0,0,0,0.75)]",
+          "transition-transform duration-[380ms] ease-[cubic-bezier(0.32,0.72,0,1)]",
+        )}
+        style={{ transform: sheetExpanded ? "translateY(0)" : "translateY(calc(100% - 138px))" }}
+      >
+        {/* Handle + peek row — tappable to toggle */}
+        <button
+          className="w-full pt-3 pb-0 flex flex-col items-center focus:outline-none active:opacity-80"
+          onClick={() => setSheetExpanded(v => !v)}
+          aria-label={sheetExpanded ? "Recolher detalhes" : "Ver detalhes"}
+        >
+          {/* Drag handle */}
+          <div className="w-10 h-[3px] rounded-full bg-white/20 mb-3" />
 
-          {/* 1. Modelo 3D */}
-          {modeloUrl && (
-            <div>
-              <SectionLabel>
-                <Box className="w-3 h-3 opacity-60" />
-                Modelo 3D
-              </SectionLabel>
-              <div className="mt-2.5 rounded-2xl overflow-hidden border border-white/[0.08] bg-[#000d1a]">
-                <img
-                  src={modeloUrl}
-                  alt={`${produto.nome} — modelo 3D`}
-                  className="w-full object-contain max-h-48"
-                  onError={(e) => {
-                    const wrap = (e.currentTarget as HTMLImageElement).closest("div") as HTMLElement | null;
-                    if (wrap) wrap.style.display = "none";
-                  }}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* 2. Descrição */}
-          {produto.descricao && (
-            <div>
-              <SectionLabel>Descrição</SectionLabel>
-              <p className="text-sm text-white/65 leading-relaxed mt-2">{produto.descricao}</p>
-            </div>
-          )}
-
-          {/* 3. Opcionais */}
-          {hasOps && (
-            <div>
-              <SectionLabel>Opcionais disponíveis</SectionLabel>
-              <div className="mt-2.5 space-y-2">
-                {porcelana && (
-                  <OpcionalCard color="amber" title="Pastilha de Porcelana Atlas"
-                    subtitle="Revestimento nas bordas em porcelana" />
-                )}
-                {acrilico && (
-                  <OpcionalCard color="sky" title="Acrílico"
-                    subtitle='Acabamento em acrílico reto ou em "L"' />
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* 4. Tamanhos */}
-          {tamanhos.length > 0 && (
-            <div>
-              <SectionLabel>
-                {tamanhos.length} Tamanho{tamanhos.length !== 1 ? "s" : ""} disponíve{tamanhos.length !== 1 ? "is" : "l"}
-              </SectionLabel>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                {tamanhos.map((t, i) => {
-                  const isSPA          = /\bspa\b/i.test(t.label ?? "");
-                  const isPrainha      = /prainha/i.test(t.label ?? "");
-                  const isAcrelicoReto = /acrílico\s+reto/i.test(t.label ?? "");
-                  const isAcrelicoL    = /acrílico\s+l\b/i.test(t.label ?? "");
-                  const isAcrilico     = isAcrelicoReto || isAcrelicoL;
-                  const isOvalShape = (produto.formato ?? "retangular") === "oval";
-
-                  // Parse dims for proportional pool shape
-                  const comp = parseFloat((t.comprimento ?? "").replace(",", "."));
-                  const larg = parseFloat((t.largura ?? "").replace(",", "."));
-                  const ratio = comp && larg ? comp / larg : 1.6;
-                  const poolW = Math.round(Math.min(60, Math.max(22, 28 * ratio)));
-                  const poolH = Math.round(Math.min(28, Math.max(10, poolW / ratio)));
-
-                  return (
-                    <div key={i} className={cn(
-                      "relative flex flex-col gap-2.5 rounded-2xl p-3.5 border transition-all duration-200 group overflow-hidden",
-                      isSPA
-                        ? "bg-violet-500/8 border-violet-400/20 hover:bg-violet-500/12 hover:border-violet-400/35"
-                        : isPrainha
-                          ? "bg-emerald-500/8 border-emerald-400/20 hover:bg-emerald-500/12 hover:border-emerald-400/35"
-                          : isAcrelicoReto
-                            ? "bg-cyan-500/8 border-cyan-400/20 hover:bg-cyan-500/12 hover:border-cyan-400/35"
-                            : isAcrelicoL
-                              ? "bg-teal-500/8 border-teal-400/20 hover:bg-teal-500/12 hover:border-teal-400/35"
-                              : "bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.14]"
-                    )}>
-
-                      {/* Porcelana badge — top right */}
-                      {t.porcelana_atlas && (
-                        <span className="absolute top-2.5 right-2.5 text-[7px] font-black uppercase tracking-wider px-1.5 py-[3px] rounded-full bg-amber-500/15 text-amber-300/80 border border-amber-400/20 whitespace-nowrap leading-none">
-                          ✦ Porcelana
-                        </span>
-                      )}
-
-                      {/* Mini pool shape */}
-                      <div className="h-7 flex items-center">
-                        <div
-                          style={{ width: poolW, height: poolH }}
-                          className={cn(
-                            "border-2 border-sky-400/35 bg-sky-400/10 transition-all duration-200",
-                            "group-hover:border-sky-400/60 group-hover:bg-sky-400/18",
-                            isOvalShape ? "rounded-full" : "rounded-[3px]"
-                          )}
-                        />
-                      </div>
-
-                      {/* Label badge */}
-                      {t.label && (
-                        <span className={cn(
-                          "text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full self-start border leading-none",
-                          isSPA
-                            ? "bg-violet-500/20 text-violet-300 border-violet-400/25"
-                            : isPrainha
-                              ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/25"
-                              : isAcrelicoReto
-                                ? "bg-cyan-500/20 text-cyan-300 border-cyan-400/25"
-                                : isAcrelicoL
-                                  ? "bg-teal-500/20 text-teal-300 border-teal-400/25"
-                                  : "bg-white/8 text-white/45 border-white/10"
-                        )}>
-                          <HighlightedLabel label={t.label} />
-                        </span>
-                      )}
-
-                      {/* Dimensions */}
-                      <div>
-                        <p className="text-white font-black text-base leading-none tracking-tight">
-                          {t.comprimento}
-                        </p>
-                        <p className="text-white/40 text-[11px] font-medium mt-1 tracking-wide">
-                          {t.largura} × {t.profundidade}
-                        </p>
-                        {t.capacidade && (
-                          <p className="text-sky-400/60 text-[10px] font-semibold mt-0.5">{t.capacidade}</p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              {/* Legenda se houver mix */}
-              {tamanhos.some(t => t.porcelana_atlas) && tamanhos.some(t => !t.porcelana_atlas) && (
-                <p className="text-[10px] text-white/25 mt-3 font-semibold">
-                  * Tamanhos com <span className="text-amber-400/60">✦ Porcelana</span> aceitam Pastilha de Porcelana Atlas
-                </p>
+          {/* Name + format + counter + chevron */}
+          <div className="w-full px-5 pb-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <h2 className="text-white font-extrabold text-[17px] leading-tight truncate">{produto.nome}</h2>
+              {(produto.formato ?? "retangular") === "oval" ? (
+                <span className="shrink-0 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 border border-violet-400/20">Oval</span>
+              ) : (
+                <span className="shrink-0 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/8 text-white/40 border border-white/10">Retangular</span>
               )}
             </div>
-          )}
-        </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {galleryFotos.length > 0 && (
+                <span className="text-[11px] text-white/30 font-semibold">{photoIdx + 1}/{galleryFotos.length}</span>
+              )}
+              <ChevronUp className={cn(
+                "w-4 h-4 text-white/35 transition-transform duration-300",
+                sheetExpanded ? "rotate-180" : ""
+              )} />
+            </div>
+          </div>
+        </button>
 
+        {/* Thumbnail strip — always visible in peek state */}
+        {thumbStrip("border-t border-white/[0.06]")}
+
+        {/* Expanded body — full product info */}
+        <div
+          className="overflow-y-auto"
+          style={{ maxHeight: sheetExpanded ? "calc(80dvh - 138px)" : 0, transition: "max-height 380ms cubic-bezier(0.32,0.72,0,1)" }}
+        >
+          {infoBody}
+        </div>
       </div>
+
     </div>
   );
 }
