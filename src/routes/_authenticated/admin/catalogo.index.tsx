@@ -693,11 +693,11 @@ function ProductDetail({
               <div className="mt-2.5 space-y-2">
                 {porcelana && (
                   <OpcionalCard color="amber" title="Pastilha de Porcelana Atlas"
-                    subtitle="Revestimento premium em porcelana" />
+                    subtitle="Revestimento nas bordas em porcelana" />
                 )}
                 {acrilico && (
                   <OpcionalCard color="sky" title="Acrílico"
-                    subtitle="Tampa e acabamento em acrílico" />
+                    subtitle='Acabamento em acrílico reto ou em "L"' />
                 )}
               </div>
             </div>
