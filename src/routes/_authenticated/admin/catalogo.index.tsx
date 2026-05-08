@@ -56,19 +56,15 @@ function dimensaoLabel(t: Tamanho) {
   return t.label ? `${t.label} — ${dims}` : dims;
 }
 
-// Highlights "prainha" and "spa" in description text
-function HighlightedText({ text }: { text: string }) {
-  const tokens = text.split(/(\bprainha\b|\bspa\b)/gi);
+// Highlights "Prainha" and "SPA" keywords in tamanho label text
+function HighlightedLabel({ label }: { label: string }) {
+  if (!label) return null;
+  const tokens = label.split(/(\bPrainha\b|\bSPA\b)/gi);
   return (
     <>
       {tokens.map((token, i) =>
         /^(prainha|spa)$/i.test(token) ? (
-          <span
-            key={i}
-            className="text-sky-300 font-bold"
-          >
-            {token}
-          </span>
+          <span key={i} className="text-sky-300 font-extrabold">{token}</span>
         ) : (
           <span key={i}>{token}</span>
         )
@@ -419,20 +415,39 @@ function ProductDetail({
           </button>
         </div>
 
-        {/* Body — order: Descrição → Opcionais → Modelo 3D → Tamanhos */}
+        {/* Body — order: Modelo 3D → Descrição → Opcionais → Tamanhos */}
         <div className="flex-1 px-6 py-6 space-y-7">
 
-          {/* 1. Descrição */}
-          {produto.descricao && (
+          {/* 1. Modelo 3D */}
+          {modeloUrl && (
             <div>
-              <SectionLabel>Descrição</SectionLabel>
-              <p className="text-sm text-white/65 leading-relaxed mt-2">
-                <HighlightedText text={produto.descricao} />
-              </p>
+              <SectionLabel className="flex items-center gap-1.5">
+                <Box className="w-3 h-3 opacity-60" />
+                Modelo 3D
+              </SectionLabel>
+              <div className="mt-3 rounded-2xl overflow-hidden border border-white/[0.08] bg-[#000d1a]">
+                <img
+                  src={modeloUrl}
+                  alt={`${produto.nome} — modelo 3D`}
+                  className="w-full object-contain max-h-56"
+                  onError={(e) => {
+                    const wrap = (e.currentTarget as HTMLImageElement).closest("div") as HTMLElement | null;
+                    if (wrap) wrap.style.display = "none";
+                  }}
+                />
+              </div>
             </div>
           )}
 
-          {/* 2. Opcionais */}
+          {/* 2. Descrição */}
+          {produto.descricao && (
+            <div>
+              <SectionLabel>Descrição</SectionLabel>
+              <p className="text-sm text-white/65 leading-relaxed mt-2">{produto.descricao}</p>
+            </div>
+          )}
+
+          {/* 3. Opcionais */}
           {hasOps && (
             <div>
               <SectionLabel>Opcionais disponíveis</SectionLabel>
@@ -455,26 +470,6 @@ function ProductDetail({
             </div>
           )}
 
-          {/* 3. Modelo 3D */}
-          {modeloUrl && (
-            <div>
-              <SectionLabel className="flex items-center gap-1.5">
-                <Box className="w-3 h-3 opacity-60" />
-                Modelo 3D
-              </SectionLabel>
-              <div className="mt-3 rounded-2xl overflow-hidden border border-white/[0.08] bg-[#000d1a]">
-                <img
-                  src={modeloUrl}
-                  alt={`${produto.nome} — modelo 3D`}
-                  className="w-full object-contain max-h-56"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).closest("div")!.style.display = "none";
-                  }}
-                />
-              </div>
-            </div>
-          )}
-
           {/* 4. Tamanhos */}
           {tamanhos.length > 0 && (
             <div>
@@ -482,22 +477,34 @@ function ProductDetail({
                 {tamanhos.length} Tamanho{tamanhos.length !== 1 ? "s" : ""} disponíve{tamanhos.length !== 1 ? "is" : "l"}
               </SectionLabel>
               <div className="mt-3 grid grid-cols-1 gap-2">
-                {tamanhos.map((t, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-3 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 hover:bg-white/[0.07] transition-colors"
-                  >
-                    <div className="w-2 h-2 rounded-full bg-sky-400/60 shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-white/85 font-semibold text-sm leading-snug">
-                        {dimensaoLabel(t)}
-                      </p>
-                      {t.capacidade && (
-                        <p className="text-sky-400/70 text-[11px] font-semibold mt-0.5">{t.capacidade}</p>
-                      )}
+                {tamanhos.map((t, i) => {
+                  const parts = [t.comprimento, t.largura, t.profundidade].filter(Boolean);
+                  const dims = parts.join(" × ");
+                  return (
+                    <div
+                      key={i}
+                      className="flex items-center gap-3 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 hover:bg-white/[0.07] transition-colors"
+                    >
+                      <div className="w-2 h-2 rounded-full bg-sky-400/60 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-white/85 font-semibold text-sm leading-snug">
+                          {t.label ? (
+                            <>
+                              <HighlightedLabel label={t.label} />
+                              {" — "}
+                              <span className="text-white/50 font-normal">{dims}</span>
+                            </>
+                          ) : (
+                            dims
+                          )}
+                        </p>
+                        {t.capacidade && (
+                          <p className="text-sky-400/70 text-[11px] font-semibold mt-0.5">{t.capacidade}</p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
