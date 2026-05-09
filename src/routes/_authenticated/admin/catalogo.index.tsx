@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import {
   ArrowLeft, ChevronLeft, ChevronRight, X,
   Settings2, Loader2, ImageOff, CheckCircle2, Layers, Box,
   SlidersHorizontal, Circle, ZoomIn, ZoomOut,
+  Share2, Copy, Check, Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -121,6 +122,26 @@ function HighlightedLabel({ label }: { label: string }) {
   );
 }
 
+// ── Pool shape preview dims helper ───────────────────────────────────────────
+function poolPreviewDims(t: Tamanho, base = 26) {
+  const comp = parseFloat((t.comprimento ?? "").replace(",", "."));
+  const larg = parseFloat((t.largura ?? "").replace(",", "."));
+  const ratio = comp && larg ? comp / larg : 1.6;
+  const w = Math.round(Math.min(58, Math.max(20, base * ratio)));
+  const h = Math.round(Math.min(26, Math.max(9, w / ratio)));
+  return { w, h };
+}
+
+// ── Share URL helper ──────────────────────────────────────────────────────────
+function buildShareUrl(nome: string) {
+  const slug = nome
+    .toLowerCase()
+    .replace(/^splash\s+/i, "")
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/\s+/g, "-");
+  return `https://splashpiscinas.com/piscinas/${slug}`;
+}
+
 // ── Catalog Page ──────────────────────────────────────────────────────────────
 function CatalogoPage() {
   const { user } = useSupabaseAuth();
@@ -131,6 +152,7 @@ function CatalogoPage() {
   const [photoIdx, setPhotoIdx] = useState(0);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
+  const [cardOrigin, setCardOrigin] = useState({ x: 50, y: 50 });
 
   // Master check
   useEffect(() => {
@@ -163,7 +185,15 @@ function CatalogoPage() {
   const filtered = produtos.filter((p) => matchesFilters(p, filters));
   const nFilters = activeFilterCount(filters);
 
-  const openDetail = (p: Produto) => { setSelected(p); setPhotoIdx(0); };
+  const openDetail = (p: Produto, e: React.MouseEvent<HTMLButtonElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setCardOrigin({
+      x: ((rect.left + rect.width / 2) / window.innerWidth) * 100,
+      y: ((rect.top + rect.height / 2) / window.innerHeight) * 100,
+    });
+    setSelected(p);
+    setPhotoIdx(0);
+  };
   const closeDetail = () => setSelected(null);
 
   const prevPhoto = () => setPhotoIdx((i) => Math.max(0, i - 1));
@@ -330,7 +360,7 @@ function CatalogoPage() {
         <div className="py-6 pb-24 sm:pb-10">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
             {filtered.map((p) => (
-              <ProductCard key={p.id} produto={p} onClick={() => openDetail(p)} />
+              <ProductCard key={p.id} produto={p} onClick={(e) => openDetail(p, e)} />
             ))}
           </div>
         </div>
@@ -345,6 +375,7 @@ function CatalogoPage() {
           onPrev={prevPhoto}
           onNext={nextPhoto}
           onClose={closeDetail}
+          cardOrigin={cardOrigin}
         />
       )}
     </div>
@@ -394,17 +425,21 @@ function FilterPill({
 }
 
 // ── Product Card ──────────────────────────────────────────────────────────────
-function ProductCard({ produto, onClick }: { produto: Produto; onClick: () => void }) {
+function ProductCard({ produto, onClick }: {
+  produto: Produto;
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
+}) {
   const allFotos = Array.isArray(produto.fotos) ? produto.fotos : [];
-  // fotos[0] = modelo 3D; fotos[1] = primeira foto real da galeria → capa do card
   const coverUrl = allFotos[1] ?? allFotos[0] ?? null;
-
   const porcelana = hasPorcelanaEmAlgumTamanho(produto.tamanhos ?? []);
   const acrilico = hasAcrilico(produto.opcionais ?? []);
   const hasOps = porcelana || acrilico;
   const galleryCount = Math.max(0, allFotos.length - 1);
   const tamanhoCount = Array.isArray(produto.tamanhos) ? produto.tamanhos.length : 0;
   const isOval = (produto.formato ?? "retangular") === "oval";
+  const tamanhos = Array.isArray(produto.tamanhos) ? produto.tamanhos : [];
+  const firstT = tamanhos[0] ?? null;
+  const preview = firstT ? poolPreviewDims(firstT) : null;
 
   return (
     <button
@@ -417,11 +452,9 @@ function ProductCard({ produto, onClick }: { produto: Produto; onClick: () => vo
           <img
             src={coverUrl}
             alt={produto.nome}
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
             loading="lazy"
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.display = "none";
-            }}
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
@@ -446,6 +479,24 @@ function ProductCard({ produto, onClick }: { produto: Produto; onClick: () => vo
             {galleryCount}
           </div>
         )}
+
+        {/* Hover overlay — pool shape preview */}
+        {preview && firstT && (
+          <div className="absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out bg-[#00111f]/96 backdrop-blur-sm px-3 py-2.5 flex items-center gap-2.5">
+            <div
+              style={{ width: preview.w, height: preview.h }}
+              className={cn(
+                "shrink-0 border-2 border-sky-400/50 bg-sky-400/10",
+                isOval ? "rounded-full" : "rounded-[2px]"
+              )}
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-white font-black text-[11px] leading-none">{firstT.comprimento} × {firstT.largura}</p>
+              <p className="text-white/40 text-[9px] mt-1 font-semibold uppercase tracking-wide">a partir de</p>
+            </div>
+            <ChevronRight className="w-3.5 h-3.5 text-sky-400/60 shrink-0" />
+          </div>
+        )}
       </div>
 
       {/* Card footer */}
@@ -458,7 +509,6 @@ function ProductCard({ produto, onClick }: { produto: Produto; onClick: () => vo
             </p>
           )}
         </div>
-
         {hasOps && (
           <div className="flex flex-wrap gap-1">
             {porcelana && (
@@ -480,7 +530,7 @@ function ProductCard({ produto, onClick }: { produto: Produto; onClick: () => vo
 
 // ── Product Detail Modal ──────────────────────────────────────────────────────
 function ProductDetail({
-  produto, photoIdx, onSetPhoto, onPrev, onNext, onClose,
+  produto, photoIdx, onSetPhoto, onPrev, onNext, onClose, cardOrigin,
 }: {
   produto: Produto;
   photoIdx: number;
@@ -488,6 +538,7 @@ function ProductDetail({
   onPrev: () => void;
   onNext: () => void;
   onClose: () => void;
+  cardOrigin: { x: number; y: number };
 }) {
   const allFotos = Array.isArray(produto.fotos) ? produto.fotos : [];
   const modeloUrl = allFotos[0] ?? null;
@@ -503,6 +554,45 @@ function ProductDetail({
   // ── Zoom state ──────────────────────────────────────────────────────────
   const [zoomed, setZoomed] = useState(false);
   const [zoomOrigin, setZoomOrigin] = useState({ x: 50, y: 50 });
+
+  // ── Share state ──────────────────────────────────────────────────────────
+  const [showShare, setShowShare] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const shareUrl = buildShareUrl(produto.nome);
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(shareUrl)}&size=180x180&margin=1&bgcolor=00111f&color=e2e8f0&format=png`;
+
+  const handleCopy = async () => {
+    try { await navigator.clipboard.writeText(shareUrl); } catch { /**/ }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleNativeShare = () => {
+    if (navigator.share) {
+      navigator.share({ title: produto.nome, url: shareUrl }).catch(() => {/**/ });
+    }
+  };
+
+  // ── Touch / swipe state ──────────────────────────────────────────────────
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || zoomed) return;
+    const dx = touchStartX.current - e.changedTouches[0].clientX;
+    const dy = Math.abs((touchStartY.current ?? 0) - e.changedTouches[0].clientY);
+    // Only trigger if horizontal swipe is dominant
+    if (Math.abs(dx) > 45 && Math.abs(dx) > dy * 1.5) {
+      dx > 0 ? onNext() : onPrev();
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
 
   useEffect(() => {
     setZoomed(false);
@@ -671,8 +761,8 @@ function ProductDetail({
 
   return (
     <div
-      className="fixed inset-0 z-[60] bg-[#00060f] animate-in fade-in duration-200 flex flex-col lg:flex-row"
-      style={{ top: 0 }}
+      className="fixed inset-0 z-[60] bg-[#00060f] animate-in fade-in zoom-in-95 duration-300 flex flex-col lg:flex-row"
+      style={{ top: 0, transformOrigin: `${cardOrigin.x}% ${cardOrigin.y}%` }}
     >
 
       {/* ── Photo area ── fixed height on mobile / flex-1 on desktop ────── */}
@@ -690,6 +780,8 @@ function ProductDetail({
           )}
           onClick={currentUrl ? handleImgClick : undefined}
           onMouseMove={currentUrl ? handleImgMouseMove : undefined}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
         >
           {currentUrl ? (
             <img
@@ -751,9 +843,9 @@ function ProductDetail({
       </div>
 
       {/* ── Info panel ── scrollable on mobile / fixed column on desktop ─── */}
-      <div className="flex-1 overflow-y-auto bg-[#00111f] flex flex-col border-t border-white/[0.07] lg:border-t-0 lg:border-l lg:flex-none lg:w-[380px]">
+      <div className="relative flex-1 overflow-y-auto bg-[#00111f] flex flex-col border-t border-white/[0.07] lg:border-t-0 lg:border-l lg:flex-none lg:w-[380px]">
 
-        {/* Header — name + format + close */}
+        {/* Header — name + format + share + close */}
         <div className="flex items-start justify-between gap-3 px-5 pt-4 pb-3 border-b border-white/[0.07] shrink-0">
           <div className="min-w-0">
             <h2 className="text-lg font-extrabold text-white leading-tight tracking-tight lg:text-xl">{produto.nome}</h2>
@@ -768,10 +860,16 @@ function ProductDetail({
               )}
             </div>
           </div>
-          <button onClick={onClose} aria-label="Fechar"
-            className="w-8 h-8 rounded-full bg-white/8 hover:bg-white/15 text-white/60 hover:text-white flex items-center justify-center transition shrink-0 mt-0.5">
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
+            <button onClick={() => setShowShare(true)} aria-label="Compartilhar"
+              className="w-8 h-8 rounded-full bg-white/8 hover:bg-sky-500/20 text-white/50 hover:text-sky-300 flex items-center justify-center transition">
+              <Share2 className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={onClose} aria-label="Fechar"
+              className="w-8 h-8 rounded-full bg-white/8 hover:bg-white/15 text-white/60 hover:text-white flex items-center justify-center transition">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Thumbnail strip — mobile only (inside scrollable info) */}
@@ -779,6 +877,68 @@ function ProductDetail({
 
         {/* Body */}
         {infoBody}
+
+        {/* ── Share / QR Panel ── */}
+        {showShare && (
+          <div className="absolute inset-0 z-20 bg-[#00111f] flex flex-col animate-in fade-in duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/[0.07] shrink-0">
+              <p className="text-white font-extrabold text-sm">Compartilhar modelo</p>
+              <button onClick={() => setShowShare(false)} aria-label="Fechar"
+                className="w-8 h-8 rounded-full bg-white/8 hover:bg-white/15 text-white/60 hover:text-white flex items-center justify-center transition">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* QR + info */}
+            <div className="flex-1 flex flex-col items-center justify-center gap-5 px-6 py-6">
+              <p className="text-white/50 text-xs font-semibold text-center">
+                Escaneie para ver <span className="text-white font-bold">{produto.nome}</span> no site Splash
+              </p>
+
+              {/* QR Code */}
+              <div className="rounded-2xl overflow-hidden border border-white/10 p-3 bg-[#060f1a]">
+                <img
+                  src={qrSrc}
+                  alt={`QR Code — ${produto.nome}`}
+                  className="w-44 h-44 block"
+                  loading="lazy"
+                />
+              </div>
+
+              {/* URL row */}
+              <div className="w-full flex gap-2 items-center">
+                <div className="flex-1 flex items-center gap-2 bg-white/[0.06] border border-white/10 rounded-xl px-3 py-2.5 min-w-0">
+                  <Link2 className="w-3.5 h-3.5 text-white/30 shrink-0" />
+                  <p className="text-white/50 text-[11px] font-medium truncate">{shareUrl}</p>
+                </div>
+                <button
+                  onClick={handleCopy}
+                  className={cn(
+                    "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition border",
+                    copied
+                      ? "bg-emerald-500/15 border-emerald-400/25 text-emerald-400"
+                      : "bg-white/[0.06] border-white/10 text-white/50 hover:text-white hover:bg-white/10"
+                  )}
+                  aria-label="Copiar link"
+                >
+                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+
+              {/* Native share (mobile) */}
+              {typeof navigator !== "undefined" && "share" in navigator && (
+                <button
+                  onClick={handleNativeShare}
+                  className="w-full flex items-center justify-center gap-2 bg-sky-500/15 border border-sky-400/25 text-sky-300 font-bold text-sm rounded-2xl py-3 hover:bg-sky-500/25 transition"
+                >
+                  <Share2 className="w-4 h-4" />
+                  Compartilhar via…
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
     </div>
