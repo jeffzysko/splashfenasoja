@@ -671,15 +671,15 @@ function ProductDetail({
 
   return (
     <div
-      className="fixed inset-0 z-[60] bg-[#00060f] animate-in fade-in duration-200 flex flex-col md:flex-row"
+      className="fixed inset-0 z-[60] bg-[#00060f] animate-in fade-in duration-200 flex flex-col lg:flex-row"
       style={{ top: 0 }}
     >
 
       {/* ── Photo area ── fixed height on mobile / flex-1 on desktop ────── */}
       <div className={cn(
         "relative flex flex-col bg-[#00060f]",
-        "h-[45dvh] shrink-0",          // mobile: fixed top slice
-        "md:h-auto md:flex-1 md:shrink" // desktop: fills remaining width
+        "h-[45dvh] shrink-0",               // mobile/tablet: fixed top slice
+        "lg:h-auto lg:flex-1 lg:min-w-0"   // desktop: fills remaining width
       )}>
 
         {/* Main image */}
@@ -747,16 +747,16 @@ function ProductDetail({
         </div>
 
         {/* Thumbnail strip — desktop only */}
-        {thumbStrip("hidden md:block border-t border-white/[0.07] bg-black/25")}
+        {thumbStrip("hidden lg:block border-t border-white/[0.07] bg-black/25")}
       </div>
 
       {/* ── Info panel ── scrollable on mobile / fixed column on desktop ─── */}
-      <div className="flex-1 overflow-y-auto bg-[#00111f] flex flex-col border-t border-white/[0.07] md:border-t-0 md:border-l md:flex-none md:w-[360px] md:max-w-[37%]">
+      <div className="flex-1 overflow-y-auto bg-[#00111f] flex flex-col border-t border-white/[0.07] lg:border-t-0 lg:border-l lg:flex-none lg:w-[380px]">
 
         {/* Header — name + format + close */}
         <div className="flex items-start justify-between gap-3 px-5 pt-4 pb-3 border-b border-white/[0.07] shrink-0">
           <div className="min-w-0">
-            <h2 className="text-lg font-extrabold text-white leading-tight tracking-tight md:text-xl">{produto.nome}</h2>
+            <h2 className="text-lg font-extrabold text-white leading-tight tracking-tight lg:text-xl">{produto.nome}</h2>
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               {(produto.formato ?? "retangular") === "oval" ? (
                 <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 border border-violet-400/20">Oval</span>
@@ -775,7 +775,7 @@ function ProductDetail({
         </div>
 
         {/* Thumbnail strip — mobile only (inside scrollable info) */}
-        {thumbStrip("md:hidden border-b border-white/[0.06] bg-black/15")}
+        {thumbStrip("lg:hidden border-b border-white/[0.06] bg-black/15")}
 
         {/* Body */}
         {infoBody}
