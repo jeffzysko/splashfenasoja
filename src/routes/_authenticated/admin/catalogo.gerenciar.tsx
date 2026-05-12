@@ -30,6 +30,7 @@ export const Route = createFileRoute("/_authenticated/admin/catalogo/gerenciar")
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Foto = { url: string; path: string; ordem: number };
+type Modelo3D = { url: string; path: string; label: string };
 type Tamanho = { label: string; comprimento: string; largura: string; profundidade: string; capacidade: string };
 type Opcional = { porcelana_atlas: boolean; acrilico: boolean };
 
@@ -40,6 +41,7 @@ type Produto = {
   tamanhos: Tamanho[];
   opcionais: Opcional;
   fotos: Foto[];
+  modelos_3d: Modelo3D[];
   ativo: boolean;
   ordem: number;
 };
@@ -51,6 +53,7 @@ const EMPTY_FORM = {
   tamanhos: [{ ...EMPTY_TAMANHO }] as Tamanho[],
   opcionais: { porcelana_atlas: false, acrilico: false } as Opcional,
   fotos: [] as Foto[],
+  modelos_3d: [] as Modelo3D[],
   ativo: true,
 };
 
