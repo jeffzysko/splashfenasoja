@@ -29,8 +29,17 @@ export const Route = createFileRoute("/_authenticated/admin/catalogo/gerenciar")
 });
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type Foto = { url: string; path: string; ordem: number };
+// Fotos são salvas como string[] (URLs públicas) — formato compatível com o catálogo.
+type Foto = string;
 type Modelo3D = { url: string; path: string; label: string };
+
+// Extrai o storage path (dentro do bucket "produto-fotos") de uma URL pública,
+// para permitir deletar do storage. Retorna null se a URL não pertencer ao bucket.
+const extractStoragePath = (url: string): string | null => {
+  const marker = "/storage/v1/object/public/produto-fotos/";
+  const i = url.indexOf(marker);
+  return i >= 0 ? url.slice(i + marker.length) : null;
+};
 type TamanhoOpcionais = { porcelana_atlas?: boolean; acrilico?: boolean };
 type Tamanho = {
   label: string;
