@@ -682,10 +682,19 @@ function ProductDetail({
                 ? "bg-teal-500/8 border-teal-400/20 hover:bg-teal-500/12 hover:border-teal-400/35"
                 : "bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.14]"
       )}>
-        {t.porcelana_atlas && (
-          <span className="absolute top-2.5 right-2.5 text-[7px] font-black uppercase tracking-wider px-1.5 py-[3px] rounded-full bg-amber-500/15 text-amber-300/80 border border-amber-400/20 whitespace-nowrap leading-none">
-            ✦ Porcelana
-          </span>
+        {(tamanhoAceitaPorcelana(t) || tamanhoAceitaAcrilico(t)) && (
+          <div className="absolute top-2.5 right-2.5 flex flex-col gap-1 items-end">
+            {tamanhoAceitaPorcelana(t) && (
+              <span className="text-[7px] font-black uppercase tracking-wider px-1.5 py-[3px] rounded-full bg-amber-500/15 text-amber-300/80 border border-amber-400/20 whitespace-nowrap leading-none">
+                ✦ Porcelana
+              </span>
+            )}
+            {tamanhoAceitaAcrilico(t) && (
+              <span className="text-[7px] font-black uppercase tracking-wider px-1.5 py-[3px] rounded-full bg-cyan-500/15 text-cyan-300/80 border border-cyan-400/20 whitespace-nowrap leading-none">
+                ✦ Acrílico
+              </span>
+            )}
+          </div>
         )}
         <div className="h-7 flex items-center">
           <div
