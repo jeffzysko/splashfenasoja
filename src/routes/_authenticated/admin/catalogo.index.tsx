@@ -461,7 +461,6 @@ function ProductCard({ produto, onClick }: {
   const coverUrl = allFotos[1] ?? modelos3d[0]?.url ?? allFotos[0] ?? null;
   const porcelana = hasPorcelanaOpcional(produto.opcionais);
   const acrilico = hasAcrilico(produto.opcionais ?? []);
-  const hasOps = porcelana || acrilico;
   const galleryCount = Math.max(0, allFotos.length - 1);
   const tamanhoCount = Array.isArray(produto.tamanhos) ? produto.tamanhos.length : 0;
   const isOval = (produto.formato ?? "retangular") === "oval";
