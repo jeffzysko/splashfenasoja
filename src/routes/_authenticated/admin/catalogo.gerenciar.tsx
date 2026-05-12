@@ -590,6 +590,43 @@ function CatalogoGerenciarPage() {
                         </p>
                       </div>
                     )}
+                    {(form.opcionais.porcelana_atlas || form.opcionais.acrilico) && (
+                      <div className="pt-1.5 border-t border-border/60">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                          Opcionais aceitos neste tamanho
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {form.opcionais.porcelana_atlas && (
+                            <button
+                              type="button"
+                              onClick={() => toggleTamanhoOpcional(i, "porcelana_atlas")}
+                              className={cn(
+                                "text-[10px] font-bold px-2 py-1 rounded-full border transition",
+                                t.opcionais?.porcelana_atlas
+                                  ? "bg-amber-500/15 text-amber-700 border-amber-500/40"
+                                  : "bg-muted text-muted-foreground border-border hover:border-amber-500/30",
+                              )}
+                            >
+                              {t.opcionais?.porcelana_atlas ? "✓ " : ""}Porcelana Atlas
+                            </button>
+                          )}
+                          {form.opcionais.acrilico && (
+                            <button
+                              type="button"
+                              onClick={() => toggleTamanhoOpcional(i, "acrilico")}
+                              className={cn(
+                                "text-[10px] font-bold px-2 py-1 rounded-full border transition",
+                                t.opcionais?.acrilico
+                                  ? "bg-cyan-500/15 text-cyan-700 border-cyan-500/40"
+                                  : "bg-muted text-muted-foreground border-border hover:border-cyan-500/30",
+                              )}
+                            >
+                              {t.opcionais?.acrilico ? "✓ " : ""}Acrílico
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
