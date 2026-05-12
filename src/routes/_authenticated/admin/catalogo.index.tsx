@@ -452,7 +452,7 @@ function ProductCard({ produto, onClick }: {
   const allFotos = Array.isArray(produto.fotos) ? produto.fotos : [];
   const modelos3d = Array.isArray(produto.modelos_3d) ? produto.modelos_3d : [];
   const coverUrl = allFotos[1] ?? modelos3d[0]?.url ?? allFotos[0] ?? null;
-  const porcelana = hasPorcelanaEmAlgumTamanho(produto.tamanhos ?? []);
+  const porcelana = hasPorcelanaOpcional(produto.opcionais);
   const acrilico = hasAcrilico(produto.opcionais ?? []);
   const hasOps = porcelana || acrilico;
   const galleryCount = Math.max(0, allFotos.length - 1);
