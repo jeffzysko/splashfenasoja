@@ -61,20 +61,20 @@ const DEFAULT_FILTERS: Filters = {
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function hasPorcelanaOpcional(opcionais: string[]) {
-  return Array.isArray(opcionais) && opcionais.some((o) =>
-    typeof o === "string" && o.toLowerCase().includes("porcelana")
-  );
+function hasPorcelanaOpcional(opcionais: OpcionaisObj | string[] | null | undefined) {
+  if (!opcionais) return false;
+  if (Array.isArray(opcionais)) {
+    return opcionais.some((o) => typeof o === "string" && o.toLowerCase().includes("porcelana"));
+  }
+  return !!opcionais.porcelana_atlas;
 }
 
-function hasAcrilico(opcionais: string[]) {
-  return Array.isArray(opcionais) && opcionais.some((o) =>
-    typeof o === "string" && o.toLowerCase().includes("acr")
-  );
-}
-
-function hasPorcelanaEmAlgumTamanho(tamanhos: Tamanho[]) {
-  return Array.isArray(tamanhos) && tamanhos.some((t) => t.porcelana_atlas);
+function hasAcrilico(opcionais: OpcionaisObj | string[] | null | undefined) {
+  if (!opcionais) return false;
+  if (Array.isArray(opcionais)) {
+    return opcionais.some((o) => typeof o === "string" && o.toLowerCase().includes("acr"));
+  }
+  return !!opcionais.acrilico;
 }
 
 function hasSPA(tamanhos: Tamanho[]) {
@@ -91,11 +91,26 @@ function hasPrainha(tamanhos: Tamanho[]) {
 
 function matchesFilters(p: Produto, f: Filters): boolean {
   if (f.formato !== "todos" && (p.formato ?? "retangular") !== f.formato) return false;
-  if (f.porcelana && !hasPorcelanaEmAlgumTamanho(p.tamanhos ?? [])) return false;
-  if (f.acrilico && !hasAcrilico(p.opcionais ?? [])) return false;
+  if (f.porcelana && !hasPorcelanaOpcional(p.opcionais)) return false;
+  if (f.acrilico && !hasAcrilico(p.opcionais)) return false;
   if (f.spa && !hasSPA(p.tamanhos ?? [])) return false;
   if (f.prainha && !hasPrainha(p.tamanhos ?? [])) return false;
   return true;
+}
+
+// Filter tamanhos by selected 3D model variation
+function tamanhosForModelo(tamanhos: Tamanho[], modeloLabel: string | null | undefined): Tamanho[] {
+  if (!modeloLabel) return tamanhos;
+  const lbl = modeloLabel.toLowerCase();
+  const wantsSPA = /\bspa\b/.test(lbl);
+  const wantsPrainha = /prainha/.test(lbl);
+  if (wantsSPA) return tamanhos.filter((t) => /\bspa\b/i.test(t.label ?? ""));
+  if (wantsPrainha) return tamanhos.filter((t) => /prainha/i.test(t.label ?? ""));
+  // Base / "Tradicional" → exclude variants
+  return tamanhos.filter((t) => {
+    const l = t.label ?? "";
+    return !/\bspa\b/i.test(l) && !/prainha/i.test(l);
+  });
 }
 
 function activeFilterCount(f: Filters): number {
