@@ -791,8 +791,8 @@ function CatalogoGerenciarPage() {
               ) : (
                 <div className="grid grid-cols-3 gap-2">
                   {form.fotos.map((foto, i) => (
-                    <div key={foto.path} className="relative group aspect-square rounded-xl overflow-hidden bg-muted border border-border">
-                      <img src={foto.url} alt="" className="w-full h-full object-cover" />
+                    <div key={`${foto}-${i}`} className="relative group aspect-square rounded-xl overflow-hidden bg-muted border border-border">
+                      <img src={foto} alt="" className="w-full h-full object-cover" />
                       {i === 0 && (
                         <span className="absolute top-1 left-1 text-[8px] font-black px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground">CAPA</span>
                       )}
