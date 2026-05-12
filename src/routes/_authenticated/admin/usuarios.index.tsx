@@ -124,9 +124,9 @@ function UsuariosPage() {
     try {
       const { data, error } = await supabase.functions.invoke("create-user", {
         body: {
+          nome: newNome.trim(),
           email: newEmail.trim().toLowerCase(),
-          password: newSenha,
-          full_name: newNome.trim(),
+          senha: newSenha,
           role: newRole,
           feira_ids: newFeiras,
         },
