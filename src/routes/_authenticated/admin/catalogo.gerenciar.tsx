@@ -124,8 +124,9 @@ function CatalogoGerenciarPage() {
             largura: String(t.largura ?? ""),
             profundidade: String(t.profundidade ?? ""),
             capacidade: t.capacidade ?? "",
+            modelos: Array.isArray(t.modelos) ? [...t.modelos] : [],
           }))
-        : [{ ...EMPTY_TAMANHO }],
+        : [{ ...EMPTY_TAMANHO, modelos: [] }],
       opcionais: { porcelana_atlas: !!p.opcionais?.porcelana_atlas, acrilico: !!p.opcionais?.acrilico },
       fotos: p.fotos.slice().sort((a, b) => a.ordem - b.ordem),
       modelos_3d: Array.isArray(p.modelos_3d) ? p.modelos_3d.map((m) => ({ url: m.url, path: m.path, label: m.label ?? "" })) : [],
