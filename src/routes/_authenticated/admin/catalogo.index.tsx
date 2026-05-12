@@ -801,7 +801,7 @@ function ProductDetail({
       )}
       {(() => {
         const filteredTamanhos = modelos3d.length > 1 && currentModelo
-          ? tamanhosForModelo(tamanhos, currentModelo.label)
+          ? tamanhosForModelo(tamanhos, currentModelo)
           : tamanhos;
         const isFiltered = modelos3d.length > 1 && filteredTamanhos.length !== tamanhos.length;
         if (filteredTamanhos.length === 0 && tamanhos.length === 0) return null;
