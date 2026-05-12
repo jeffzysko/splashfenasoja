@@ -200,6 +200,7 @@ export type Database = {
           formato: string
           fotos: Json
           id: string
+          modelos_3d: Json
           nome: string
           opcionais: Json
           ordem: number
@@ -213,6 +214,7 @@ export type Database = {
           formato?: string
           fotos?: Json
           id?: string
+          modelos_3d?: Json
           nome: string
           opcionais?: Json
           ordem?: number
@@ -226,6 +228,7 @@ export type Database = {
           formato?: string
           fotos?: Json
           id?: string
+          modelos_3d?: Json
           nome?: string
           opcionais?: Json
           ordem?: number
