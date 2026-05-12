@@ -119,6 +119,7 @@ function CatalogoGerenciarPage() {
         : [{ ...EMPTY_TAMANHO }],
       opcionais: { porcelana_atlas: !!p.opcionais?.porcelana_atlas, acrilico: !!p.opcionais?.acrilico },
       fotos: p.fotos.slice().sort((a, b) => a.ordem - b.ordem),
+      modelos_3d: Array.isArray(p.modelos_3d) ? p.modelos_3d.map((m) => ({ url: m.url, path: m.path, label: m.label ?? "" })) : [],
       ativo: p.ativo,
     });
     setSheetOpen(true);
