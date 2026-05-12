@@ -731,7 +731,7 @@ function ProductDetail({
 
   // ── Shared info body (desktop panel + mobile sheet expanded) ──────────────
   const infoBody = (
-    <div className="flex-1 px-5 py-5 space-y-6">
+    <div className="flex-1 px-4 sm:px-5 py-4 sm:py-5 pb-safe space-y-5 sm:space-y-6">
       {modelos3d.length > 0 && currentModelo && (
         <div>
           <SectionLabel>
