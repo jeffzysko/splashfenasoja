@@ -433,7 +433,8 @@ function ProductCard({ produto, onClick }: {
   onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }) {
   const allFotos = Array.isArray(produto.fotos) ? produto.fotos : [];
-  const coverUrl = allFotos[1] ?? allFotos[0] ?? null;
+  const modelos3d = Array.isArray(produto.modelos_3d) ? produto.modelos_3d : [];
+  const coverUrl = allFotos[1] ?? modelos3d[0]?.url ?? allFotos[0] ?? null;
   const porcelana = hasPorcelanaEmAlgumTamanho(produto.tamanhos ?? []);
   const acrilico = hasAcrilico(produto.opcionais ?? []);
   const hasOps = porcelana || acrilico;
