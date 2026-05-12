@@ -232,6 +232,7 @@ function CatalogoGerenciarPage() {
       tamanhos: form.tamanhos.filter((t) => t.label.trim()),
       opcionais: form.opcionais,
       fotos: form.fotos,
+      modelos_3d: form.modelos_3d.map((m) => ({ url: m.url, path: m.path, label: m.label.trim() })),
       ativo: form.ativo,
       ordem: editing?.ordem ?? produtos.length,
     };
