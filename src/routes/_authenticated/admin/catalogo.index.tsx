@@ -80,6 +80,15 @@ function hasAcrilico(opcionais: OpcionaisObj | string[] | null | undefined) {
   return !!opcionais.acrilico;
 }
 
+// Opcionais aceitos por TAMANHO (com fallback ao formato legado)
+function tamanhoAceitaPorcelana(t: Tamanho): boolean {
+  if (t.opcionais && typeof t.opcionais.porcelana_atlas === "boolean") return !!t.opcionais.porcelana_atlas;
+  return !!t.porcelana_atlas; // legado
+}
+function tamanhoAceitaAcrilico(t: Tamanho): boolean {
+  return !!t.opcionais?.acrilico;
+}
+
 function hasSPA(tamanhos: Tamanho[]) {
   return Array.isArray(tamanhos) && tamanhos.some((t) =>
     /\bspa\b/i.test(t.label ?? "")
