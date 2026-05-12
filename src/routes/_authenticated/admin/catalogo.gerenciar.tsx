@@ -209,8 +209,7 @@ function CatalogoGerenciarPage() {
       const { error } = await supabase.storage.from("produto-fotos").upload(path, file, { upsert: false });
       if (error) throw error;
       const { data: { publicUrl } } = supabase.storage.from("produto-fotos").getPublicUrl(path);
-      const novaFoto: Foto = { url: publicUrl, path, ordem: form.fotos.length };
-      setForm((f) => ({ ...f, fotos: [...f.fotos, novaFoto] }));
+      setForm((f) => ({ ...f, fotos: [...f.fotos, publicUrl] }));
       toast.success("Foto adicionada!");
     } catch (e) {
       toast.error("Erro ao fazer upload da foto.");
@@ -221,13 +220,11 @@ function CatalogoGerenciarPage() {
   };
 
   const removeFoto = async (foto: Foto, i: number) => {
-    try {
-      await supabase.storage.from("produto-fotos").remove([foto.path]);
-    } catch { /**/ }
-    setForm((f) => ({
-      ...f,
-      fotos: f.fotos.filter((_, idx) => idx !== i).map((ft, idx) => ({ ...ft, ordem: idx })),
-    }));
+    const path = extractStoragePath(foto);
+    if (path) {
+      try { await supabase.storage.from("produto-fotos").remove([path]); } catch { /**/ }
+    }
+    setForm((f) => ({ ...f, fotos: f.fotos.filter((_, idx) => idx !== i) }));
   };
 
   const moveFoto = (i: number, dir: -1 | 1) => {
@@ -236,7 +233,7 @@ function CatalogoGerenciarPage() {
     setForm((f) => {
       const fotos = [...f.fotos];
       [fotos[i], fotos[ni]] = [fotos[ni], fotos[i]];
-      return { ...f, fotos: fotos.map((ft, idx) => ({ ...ft, ordem: idx })) };
+      return { ...f, fotos };
     });
   };
 
