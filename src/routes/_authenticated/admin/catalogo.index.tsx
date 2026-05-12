@@ -99,23 +99,14 @@ function matchesFilters(p: Produto, f: Filters): boolean {
   return true;
 }
 
-// Filter tamanhos by selected 3D model.
-// Priority 1: explicit vinculação via `tamanho.modelos` (array de paths).
-// Priority 2 (fallback legado): heurística por texto do label.
+// Filter tamanhos by selected 3D model using explicit vinculação (`tamanho.modelos`).
+// Quando nenhum tamanho tem vinculação, todos aparecem em todas as variações.
 function tamanhosForModelo(tamanhos: Tamanho[], modelo: Modelo3D | null | undefined): Tamanho[] {
   if (!modelo) return tamanhos;
-  const modeloId = modelo.path ?? modelo.url;
   const hasExplicit = tamanhos.some((t) => Array.isArray(t.modelos) && t.modelos.length > 0);
-  if (hasExplicit) {
-    return tamanhos.filter((t) => !Array.isArray(t.modelos) || t.modelos.length === 0 || t.modelos.includes(modeloId));
-  }
-  // Legacy: filter by label text only when SPA/Prainha is explicit
-  const lbl = (modelo.label ?? "").toLowerCase();
-  const wantsSPA = /\bspa\b/.test(lbl);
-  const wantsPrainha = /prainha/.test(lbl);
-  if (wantsSPA) return tamanhos.filter((t) => /\bspa\b/i.test(t.label ?? ""));
-  if (wantsPrainha) return tamanhos.filter((t) => /prainha/i.test(t.label ?? ""));
-  return tamanhos;
+  if (!hasExplicit) return tamanhos;
+  const modeloId = modelo.path ?? modelo.url;
+  return tamanhos.filter((t) => !Array.isArray(t.modelos) || t.modelos.length === 0 || t.modelos.includes(modeloId));
 }
 
 function activeFilterCount(f: Filters): number {
