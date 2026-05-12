@@ -849,14 +849,15 @@ function ProductDetail({
 
   // ── Thumbnail strip ───────────────────────────────────────────────────────
   const thumbStrip = (extraClass = "") => galleryFotos.length > 1 ? (
-    <div className={cn("shrink-0 overflow-x-auto px-4 py-3", extraClass)}>
+    <div className={cn("shrink-0 overflow-x-auto px-3 sm:px-4 py-2.5 sm:py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden", extraClass)}>
       <div className="flex gap-2 w-max mx-auto">
         {galleryFotos.map((url, i) => (
           <button
             key={i}
             onClick={(e) => { e.stopPropagation(); onSetPhoto(i); setZoomed(false); }}
+            aria-label={`Foto ${i + 1}`}
             className={cn(
-              "relative w-14 h-14 rounded-xl overflow-hidden border-2 transition-all duration-200 shrink-0 group/thumb",
+              "relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden border-2 transition-all duration-200 shrink-0 group/thumb",
               i === photoIdx
                 ? "border-sky-400 ring-2 ring-sky-400/30 scale-105"
                 : "border-white/10 opacity-50 hover:opacity-95 hover:border-white/35 hover:scale-105"
