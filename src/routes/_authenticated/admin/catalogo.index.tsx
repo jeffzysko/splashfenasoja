@@ -28,12 +28,14 @@ type Tamanho = {
 
 type Modelo3D = { url: string; label: string };
 
+type OpcionaisObj = { porcelana_atlas?: boolean; acrilico?: boolean };
+
 type Produto = {
   id: string;
   nome: string;
   descricao: string | null;
   tamanhos: Tamanho[];
-  opcionais: string[];
+  opcionais: OpcionaisObj | string[]; // legacy supports array
   fotos: string[];
   modelos_3d: Modelo3D[];
   ativo: boolean;
