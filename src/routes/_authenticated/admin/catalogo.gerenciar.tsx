@@ -31,7 +31,14 @@ export const Route = createFileRoute("/_authenticated/admin/catalogo/gerenciar")
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Foto = { url: string; path: string; ordem: number };
 type Modelo3D = { url: string; path: string; label: string };
-type Tamanho = { label: string; comprimento: string; largura: string; profundidade: string; capacidade: string };
+type Tamanho = {
+  label: string;
+  comprimento: string;
+  largura: string;
+  profundidade: string;
+  capacidade: string;
+  modelos?: string[]; // paths dos Modelo3D em que este tamanho aparece. Vazio = todos.
+};
 type Opcional = { porcelana_atlas: boolean; acrilico: boolean };
 
 type Produto = {
@@ -46,7 +53,7 @@ type Produto = {
   ordem: number;
 };
 
-const EMPTY_TAMANHO: Tamanho = { label: "", comprimento: "", largura: "", profundidade: "", capacidade: "" };
+const EMPTY_TAMANHO: Tamanho = { label: "", comprimento: "", largura: "", profundidade: "", capacidade: "", modelos: [] };
 const EMPTY_FORM = {
   nome: "",
   descricao: "",
@@ -117,8 +124,9 @@ function CatalogoGerenciarPage() {
             largura: String(t.largura ?? ""),
             profundidade: String(t.profundidade ?? ""),
             capacidade: t.capacidade ?? "",
+            modelos: Array.isArray(t.modelos) ? [...t.modelos] : [],
           }))
-        : [{ ...EMPTY_TAMANHO }],
+        : [{ ...EMPTY_TAMANHO, modelos: [] }],
       opcionais: { porcelana_atlas: !!p.opcionais?.porcelana_atlas, acrilico: !!p.opcionais?.acrilico },
       fotos: p.fotos.slice().sort((a, b) => a.ordem - b.ordem),
       modelos_3d: Array.isArray(p.modelos_3d) ? p.modelos_3d.map((m) => ({ url: m.url, path: m.path, label: m.label ?? "" })) : [],
@@ -138,6 +146,16 @@ function CatalogoGerenciarPage() {
     setForm((f) => ({
       ...f,
       tamanhos: f.tamanhos.map((t, idx) => idx === i ? { ...t, [field]: value } : t),
+    }));
+
+  const toggleTamanhoModelo = (i: number, modeloPath: string) =>
+    setForm((f) => ({
+      ...f,
+      tamanhos: f.tamanhos.map((t, idx) => {
+        if (idx !== i) return t;
+        const cur = Array.isArray(t.modelos) ? t.modelos : [];
+        return { ...t, modelos: cur.includes(modeloPath) ? cur.filter((p) => p !== modeloPath) : [...cur, modeloPath] };
+      }),
     }));
 
   // ── Photos ────────────────────────────────────────────────────────────────
@@ -206,7 +224,14 @@ function CatalogoGerenciarPage() {
 
   const removeModelo = async (m: Modelo3D, i: number) => {
     try { await supabase.storage.from("produto-fotos").remove([m.path]); } catch { /**/ }
-    setForm((f) => ({ ...f, modelos_3d: f.modelos_3d.filter((_, idx) => idx !== i) }));
+    setForm((f) => ({
+      ...f,
+      modelos_3d: f.modelos_3d.filter((_, idx) => idx !== i),
+      tamanhos: f.tamanhos.map((t) => ({
+        ...t,
+        modelos: Array.isArray(t.modelos) ? t.modelos.filter((p) => p !== m.path) : [],
+      })),
+    }));
   };
 
   const moveModelo = (i: number, dir: -1 | 1) => {
@@ -229,7 +254,9 @@ function CatalogoGerenciarPage() {
     const payload = {
       nome: form.nome.trim(),
       descricao: form.descricao.trim() || null,
-      tamanhos: form.tamanhos.filter((t) => t.label.trim()),
+      tamanhos: form.tamanhos
+        .filter((t) => t.label.trim())
+        .map((t) => ({ ...t, modelos: Array.isArray(t.modelos) ? t.modelos : [] })),
       opcionais: form.opcionais,
       fotos: form.fotos,
       modelos_3d: form.modelos_3d.map((m) => ({ url: m.url, path: m.path, label: m.label.trim() })),
@@ -485,10 +512,52 @@ function CatalogoGerenciarPage() {
                       <Input value={t.capacidade} onChange={(e) => setTamanho(i, "capacidade", e.target.value)}
                         placeholder="Capacidade (ex: 7.800L)" className="rounded-lg h-9 text-sm" />
                     </div>
+                    {form.modelos_3d.length > 1 && (
+                      <div className="pt-1.5 border-t border-border/60">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                          Disponível em
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {form.modelos_3d.map((m) => {
+                            const sel = (t.modelos ?? []).includes(m.path);
+                            const allSelected = (t.modelos ?? []).length === 0;
+                            const active = sel || allSelected;
+                            return (
+                              <button
+                                key={m.path}
+                                type="button"
+                                onClick={() => toggleTamanhoModelo(i, m.path)}
+                                className={cn(
+                                  "text-[10px] font-bold px-2 py-1 rounded-full border transition",
+                                  active
+                                    ? "bg-primary/15 text-primary border-primary/40"
+                                    : "bg-muted text-muted-foreground border-border hover:border-primary/30"
+                                )}
+                              >
+                                {m.label || "(sem nome)"}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <p className="text-[9px] text-muted-foreground mt-1">
+                          {(t.modelos ?? []).length === 0
+                            ? "Aparece em todos os modelos 3D"
+                            : `Aparece em ${(t.modelos ?? []).length} de ${form.modelos_3d.length} modelos`}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             </div>
+
+            {/* Preview do catálogo (sincronizado com o que o cliente vê) */}
+            {form.modelos_3d.length > 0 && (
+              <CatalogPreview
+                modelos={form.modelos_3d}
+                tamanhos={form.tamanhos.filter((t) => t.label.trim())}
+              />
+            )}
 
             {/* Opcionais */}
             <div className="space-y-3">
@@ -689,6 +758,92 @@ function CatalogoGerenciarPage() {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+    </div>
+  );
+}
+
+// ── Catalog Preview (mirrors what the client sees) ──────────────────────────
+function CatalogPreview({ modelos, tamanhos }: { modelos: Modelo3D[]; tamanhos: Tamanho[] }) {
+  const [idx, setIdx] = useState(0);
+  const safe = Math.min(idx, Math.max(0, modelos.length - 1));
+  const current = modelos[safe];
+  const modeloId = current?.path;
+
+  const filtered = (() => {
+    if (!current || modelos.length <= 1) return tamanhos;
+    const hasExplicit = tamanhos.some((t) => Array.isArray(t.modelos) && t.modelos.length > 0);
+    if (hasExplicit) {
+      return tamanhos.filter((t) => !Array.isArray(t.modelos) || t.modelos.length === 0 || (modeloId ? t.modelos.includes(modeloId) : true));
+    }
+    return tamanhos;
+  })();
+
+  return (
+    <div className="space-y-3 rounded-2xl border border-dashed border-primary/30 bg-primary/[0.04] p-3">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs font-bold uppercase tracking-widest text-primary/80">
+          Pré-visualização do catálogo
+        </Label>
+        <span className="text-[10px] font-bold text-muted-foreground">
+          {filtered.length} de {tamanhos.length} tamanho{tamanhos.length !== 1 ? "s" : ""}
+        </span>
+      </div>
+
+      {current && (
+        <div className="relative rounded-xl overflow-hidden bg-[#000d1a] border border-border">
+          <img src={current.url} alt="" className="w-full max-h-40 object-contain" />
+          {modelos.length > 1 && (
+            <>
+              <button type="button"
+                onClick={() => setIdx((i) => (i - 1 + modelos.length) % modelos.length)}
+                className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center">
+                <ChevronUp className="w-3.5 h-3.5 -rotate-90" />
+              </button>
+              <button type="button"
+                onClick={() => setIdx((i) => (i + 1) % modelos.length)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center">
+                <ChevronUp className="w-3.5 h-3.5 rotate-90" />
+              </button>
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-black/65 text-white text-[10px] font-black uppercase tracking-wider">
+                {current.label || `Variação ${safe + 1}`}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {modelos.length > 1 && (
+        <div className="flex flex-wrap gap-1.5">
+          {modelos.map((m, i) => (
+            <button
+              key={m.path}
+              type="button"
+              onClick={() => setIdx(i)}
+              className={cn(
+                "text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border transition",
+                i === safe
+                  ? "bg-primary/20 text-primary border-primary/40"
+                  : "bg-muted text-muted-foreground border-border hover:border-primary/30"
+              )}
+            >
+              {m.label || `Variação ${i + 1}`}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {filtered.length === 0 ? (
+        <p className="text-xs text-muted-foreground">Nenhum tamanho aparece nesta variação.</p>
+      ) : (
+        <div className="grid grid-cols-3 gap-1.5">
+          {filtered.map((t, i) => (
+            <div key={i} className="bg-background rounded-lg border border-border px-2 py-1.5">
+              <p className="text-[10px] font-black text-secondary truncate">{t.label}</p>
+              <p className="text-[9px] text-muted-foreground">{t.comprimento}×{t.largura}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
