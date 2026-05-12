@@ -30,6 +30,7 @@ export const Route = createFileRoute("/_authenticated/admin/catalogo/gerenciar")
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Foto = { url: string; path: string; ordem: number };
+type Modelo3D = { url: string; path: string; label: string };
 type Tamanho = { label: string; comprimento: string; largura: string; profundidade: string; capacidade: string };
 type Opcional = { porcelana_atlas: boolean; acrilico: boolean };
 
@@ -40,6 +41,7 @@ type Produto = {
   tamanhos: Tamanho[];
   opcionais: Opcional;
   fotos: Foto[];
+  modelos_3d: Modelo3D[];
   ativo: boolean;
   ordem: number;
 };
@@ -51,6 +53,7 @@ const EMPTY_FORM = {
   tamanhos: [{ ...EMPTY_TAMANHO }] as Tamanho[],
   opcionais: { porcelana_atlas: false, acrilico: false } as Opcional,
   fotos: [] as Foto[],
+  modelos_3d: [] as Modelo3D[],
   ativo: true,
 };
 
@@ -66,7 +69,9 @@ function CatalogoGerenciarPage() {
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [saving, setSaving] = useState(false);
   const [uploadingFoto, setUploadingFoto] = useState(false);
+  const [uploadingModelo, setUploadingModelo] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const modeloRef = useRef<HTMLInputElement>(null);
 
   // Master guard
   useEffect(() => {
@@ -116,6 +121,7 @@ function CatalogoGerenciarPage() {
         : [{ ...EMPTY_TAMANHO }],
       opcionais: { porcelana_atlas: !!p.opcionais?.porcelana_atlas, acrilico: !!p.opcionais?.acrilico },
       fotos: p.fotos.slice().sort((a, b) => a.ordem - b.ordem),
+      modelos_3d: Array.isArray(p.modelos_3d) ? p.modelos_3d.map((m) => ({ url: m.url, path: m.path, label: m.label ?? "" })) : [],
       ativo: p.ativo,
     });
     setSheetOpen(true);
@@ -176,6 +182,46 @@ function CatalogoGerenciarPage() {
     });
   };
 
+  // ── Modelos 3D ────────────────────────────────────────────────────────────
+  const uploadModelo = async (file: File) => {
+    if (!file.type.startsWith("image/")) { toast.error("Apenas imagens são aceitas."); return; }
+    setUploadingModelo(true);
+    try {
+      const ext = file.name.split(".").pop() ?? "png";
+      const prodId = editing?.id ?? "temp";
+      const path = `produtos/${prodId}/modelos/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("produto-fotos").upload(path, file, { upsert: false });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabase.storage.from("produto-fotos").getPublicUrl(path);
+      const novo: Modelo3D = { url: publicUrl, path, label: "" };
+      setForm((f) => ({ ...f, modelos_3d: [...f.modelos_3d, novo] }));
+      toast.success("Modelo 3D adicionado!");
+    } catch {
+      toast.error("Erro ao fazer upload do modelo 3D.");
+    } finally {
+      setUploadingModelo(false);
+      if (modeloRef.current) modeloRef.current.value = "";
+    }
+  };
+
+  const removeModelo = async (m: Modelo3D, i: number) => {
+    try { await supabase.storage.from("produto-fotos").remove([m.path]); } catch { /**/ }
+    setForm((f) => ({ ...f, modelos_3d: f.modelos_3d.filter((_, idx) => idx !== i) }));
+  };
+
+  const moveModelo = (i: number, dir: -1 | 1) => {
+    const ni = i + dir;
+    if (ni < 0 || ni >= form.modelos_3d.length) return;
+    setForm((f) => {
+      const arr = [...f.modelos_3d];
+      [arr[i], arr[ni]] = [arr[ni], arr[i]];
+      return { ...f, modelos_3d: arr };
+    });
+  };
+
+  const setModeloLabel = (i: number, label: string) =>
+    setForm((f) => ({ ...f, modelos_3d: f.modelos_3d.map((m, idx) => idx === i ? { ...m, label } : m) }));
+
   // ── Save ──────────────────────────────────────────────────────────────────
   const save = async () => {
     if (!form.nome.trim()) { toast.error("Nome é obrigatório."); return; }
@@ -186,6 +232,7 @@ function CatalogoGerenciarPage() {
       tamanhos: form.tamanhos.filter((t) => t.label.trim()),
       opcionais: form.opcionais,
       fotos: form.fotos,
+      modelos_3d: form.modelos_3d.map((m) => ({ url: m.url, path: m.path, label: m.label.trim() })),
       ativo: form.ativo,
       ordem: editing?.ordem ?? produtos.length,
     };
@@ -230,9 +277,13 @@ function CatalogoGerenciarPage() {
 
   // ── Delete ────────────────────────────────────────────────────────────────
   const deleteProduto = async (p: Produto) => {
-    // Delete photos from storage
-    if (p.fotos.length) {
-      await supabase.storage.from("produto-fotos").remove(p.fotos.map((f) => f.path));
+    // Delete photos and 3D models from storage
+    const paths = [
+      ...p.fotos.map((f) => f.path),
+      ...(Array.isArray(p.modelos_3d) ? p.modelos_3d.map((m) => m.path) : []),
+    ].filter(Boolean);
+    if (paths.length) {
+      await supabase.storage.from("produto-fotos").remove(paths);
     }
     await supabase.from("produtos").delete().eq("id", p.id);
     toast.success("Produto removido.");
@@ -474,6 +525,76 @@ function CatalogoGerenciarPage() {
                   <span className="font-bold text-sm">Acrílico</span>
                 </button>
               </div>
+            </div>
+
+            {/* Modelos 3D */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  Modelos 3D ({form.modelos_3d.length})
+                </Label>
+                <button
+                  onClick={() => modeloRef.current?.click()}
+                  disabled={uploadingModelo}
+                  className="text-xs font-bold text-primary hover:text-primary/80 flex items-center gap-1 transition disabled:opacity-50"
+                >
+                  {uploadingModelo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                  {uploadingModelo ? "Enviando…" : "Adicionar variação"}
+                </button>
+                <input
+                  ref={modeloRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    Array.from(e.target.files ?? []).forEach((f) => uploadModelo(f));
+                  }}
+                />
+              </div>
+
+              {form.modelos_3d.length === 0 ? (
+                <button
+                  onClick={() => modeloRef.current?.click()}
+                  className="w-full h-24 rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-1.5 text-muted-foreground hover:border-primary/50 hover:text-primary transition"
+                >
+                  <Upload className="w-5 h-5" />
+                  <span className="text-xs font-semibold">Adicionar imagens 3D do modelo</span>
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  {form.modelos_3d.map((m, i) => (
+                    <div key={m.path} className="flex items-center gap-2 bg-muted/50 rounded-xl p-2">
+                      <div className="w-14 h-14 rounded-lg overflow-hidden bg-background border border-border shrink-0">
+                        <img src={m.url} alt="" className="w-full h-full object-contain" />
+                      </div>
+                      <Input
+                        value={m.label}
+                        onChange={(e) => setModeloLabel(i, e.target.value)}
+                        placeholder="Ex: Tradicional, Com SPA, Com Prainha"
+                        className="rounded-lg h-9 flex-1 text-sm"
+                      />
+                      <div className="flex flex-col gap-0.5 shrink-0">
+                        <button onClick={() => moveModelo(i, -1)} disabled={i === 0}
+                          className="w-6 h-5 flex items-center justify-center rounded text-muted-foreground hover:text-secondary disabled:opacity-20 transition">
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => moveModelo(i, 1)} disabled={i === form.modelos_3d.length - 1}
+                          className="w-6 h-5 flex items-center justify-center rounded text-muted-foreground hover:text-secondary disabled:opacity-20 transition">
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <button onClick={() => removeModelo(m, i)}
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive transition shrink-0">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-[10px] text-muted-foreground">
+                Imagens 3D do produto (renderizações). Adicione um rótulo para cada variação — o catálogo mostrará um carrossel quando houver mais de uma.
+              </p>
             </div>
 
             {/* Fotos */}

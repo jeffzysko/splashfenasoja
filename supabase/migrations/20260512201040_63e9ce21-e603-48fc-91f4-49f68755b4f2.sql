@@ -1,0 +1,1 @@
+ALTER TABLE public.produtos ADD COLUMN IF NOT EXISTS modelos_3d jsonb NOT NULL DEFAULT '[]'::jsonb;
