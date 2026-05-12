@@ -277,9 +277,13 @@ function CatalogoGerenciarPage() {
 
   // ── Delete ────────────────────────────────────────────────────────────────
   const deleteProduto = async (p: Produto) => {
-    // Delete photos from storage
-    if (p.fotos.length) {
-      await supabase.storage.from("produto-fotos").remove(p.fotos.map((f) => f.path));
+    // Delete photos and 3D models from storage
+    const paths = [
+      ...p.fotos.map((f) => f.path),
+      ...(Array.isArray(p.modelos_3d) ? p.modelos_3d.map((m) => m.path) : []),
+    ].filter(Boolean);
+    if (paths.length) {
+      await supabase.storage.from("produto-fotos").remove(paths);
     }
     await supabase.from("produtos").delete().eq("id", p.id);
     toast.success("Produto removido.");
