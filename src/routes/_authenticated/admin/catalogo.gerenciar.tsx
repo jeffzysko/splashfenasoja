@@ -254,7 +254,9 @@ function CatalogoGerenciarPage() {
     const payload = {
       nome: form.nome.trim(),
       descricao: form.descricao.trim() || null,
-      tamanhos: form.tamanhos.filter((t) => t.label.trim()),
+      tamanhos: form.tamanhos
+        .filter((t) => t.label.trim())
+        .map((t) => ({ ...t, modelos: Array.isArray(t.modelos) ? t.modelos : [] })),
       opcionais: form.opcionais,
       fotos: form.fotos,
       modelos_3d: form.modelos_3d.map((m) => ({ url: m.url, path: m.path, label: m.label.trim() })),
