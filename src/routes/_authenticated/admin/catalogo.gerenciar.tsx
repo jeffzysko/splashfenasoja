@@ -761,3 +761,89 @@ function CatalogoGerenciarPage() {
     </div>
   );
 }
+
+// ── Catalog Preview (mirrors what the client sees) ──────────────────────────
+function CatalogPreview({ modelos, tamanhos }: { modelos: Modelo3D[]; tamanhos: Tamanho[] }) {
+  const [idx, setIdx] = useState(0);
+  const safe = Math.min(idx, Math.max(0, modelos.length - 1));
+  const current = modelos[safe];
+  const modeloId = current?.path;
+
+  const filtered = (() => {
+    if (!current || modelos.length <= 1) return tamanhos;
+    const hasExplicit = tamanhos.some((t) => Array.isArray(t.modelos) && t.modelos.length > 0);
+    if (hasExplicit) {
+      return tamanhos.filter((t) => !Array.isArray(t.modelos) || t.modelos.length === 0 || (modeloId ? t.modelos.includes(modeloId) : true));
+    }
+    return tamanhos;
+  })();
+
+  return (
+    <div className="space-y-3 rounded-2xl border border-dashed border-primary/30 bg-primary/[0.04] p-3">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs font-bold uppercase tracking-widest text-primary/80">
+          Pré-visualização do catálogo
+        </Label>
+        <span className="text-[10px] font-bold text-muted-foreground">
+          {filtered.length} de {tamanhos.length} tamanho{tamanhos.length !== 1 ? "s" : ""}
+        </span>
+      </div>
+
+      {current && (
+        <div className="relative rounded-xl overflow-hidden bg-[#000d1a] border border-border">
+          <img src={current.url} alt="" className="w-full max-h-40 object-contain" />
+          {modelos.length > 1 && (
+            <>
+              <button type="button"
+                onClick={() => setIdx((i) => (i - 1 + modelos.length) % modelos.length)}
+                className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center">
+                <ChevronUp className="w-3.5 h-3.5 -rotate-90" />
+              </button>
+              <button type="button"
+                onClick={() => setIdx((i) => (i + 1) % modelos.length)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center">
+                <ChevronUp className="w-3.5 h-3.5 rotate-90" />
+              </button>
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-black/65 text-white text-[10px] font-black uppercase tracking-wider">
+                {current.label || `Variação ${safe + 1}`}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {modelos.length > 1 && (
+        <div className="flex flex-wrap gap-1.5">
+          {modelos.map((m, i) => (
+            <button
+              key={m.path}
+              type="button"
+              onClick={() => setIdx(i)}
+              className={cn(
+                "text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border transition",
+                i === safe
+                  ? "bg-primary/20 text-primary border-primary/40"
+                  : "bg-muted text-muted-foreground border-border hover:border-primary/30"
+              )}
+            >
+              {m.label || `Variação ${i + 1}`}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {filtered.length === 0 ? (
+        <p className="text-xs text-muted-foreground">Nenhum tamanho aparece nesta variação.</p>
+      ) : (
+        <div className="grid grid-cols-3 gap-1.5">
+          {filtered.map((t, i) => (
+            <div key={i} className="bg-background rounded-lg border border-border px-2 py-1.5">
+              <p className="text-[10px] font-black text-secondary truncate">{t.label}</p>
+              <p className="text-[9px] text-muted-foreground">{t.comprimento}×{t.largura}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
