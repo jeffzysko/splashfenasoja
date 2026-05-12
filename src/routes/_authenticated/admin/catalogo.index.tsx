@@ -26,6 +26,8 @@ type Tamanho = {
   porcelana_atlas: boolean;
 };
 
+type Modelo3D = { url: string; label: string };
+
 type Produto = {
   id: string;
   nome: string;
@@ -33,6 +35,7 @@ type Produto = {
   tamanhos: Tamanho[];
   opcionais: string[];
   fotos: string[];
+  modelos_3d: Modelo3D[];
   ativo: boolean;
   ordem: number;
   formato: string; // "retangular" | "oval"
