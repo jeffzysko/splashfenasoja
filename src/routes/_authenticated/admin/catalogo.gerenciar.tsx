@@ -921,6 +921,16 @@ function CatalogPreview({ modelos, tamanhos }: { modelos: Modelo3D[]; tamanhos: 
             <div key={i} className="bg-background rounded-lg border border-border px-2 py-1.5">
               <p className="text-[10px] font-black text-secondary truncate">{t.label}</p>
               <p className="text-[9px] text-muted-foreground">{t.comprimento}×{t.largura}</p>
+              {(t.opcionais?.porcelana_atlas || t.opcionais?.acrilico) && (
+                <div className="flex flex-wrap gap-0.5 mt-1">
+                  {t.opcionais?.porcelana_atlas && (
+                    <span className="text-[8px] font-black px-1 rounded-sm bg-amber-500/15 text-amber-700 border border-amber-500/30 leading-tight">P</span>
+                  )}
+                  {t.opcionais?.acrilico && (
+                    <span className="text-[8px] font-black px-1 rounded-sm bg-cyan-500/15 text-cyan-700 border border-cyan-500/30 leading-tight">A</span>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
