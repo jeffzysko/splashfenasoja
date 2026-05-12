@@ -357,7 +357,7 @@ function CatalogoGerenciarPage() {
   const deleteProduto = async (p: Produto) => {
     // Delete photos and 3D models from storage
     const paths = [
-      ...p.fotos.map((f) => f.path),
+      ...(Array.isArray(p.fotos) ? p.fotos.map((f) => extractStoragePath(f)).filter((x): x is string => !!x) : []),
       ...(Array.isArray(p.modelos_3d) ? p.modelos_3d.map((m) => m.path) : []),
     ].filter(Boolean);
     if (paths.length) {
