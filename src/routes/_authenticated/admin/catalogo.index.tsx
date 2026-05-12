@@ -829,10 +829,19 @@ function ProductDetail({
                 {filteredTamanhos.map(renderTamanhoCard)}
               </div>
             )}
-            {filteredTamanhos.some(t => t.porcelana_atlas) && (
-              <p className="text-[10px] text-white/25 mt-3 font-semibold">
-                * Tamanhos com <span className="text-amber-400/60">✦ Porcelana</span> aceitam Pastilha de Porcelana Atlas
-              </p>
+            {(filteredTamanhos.some(tamanhoAceitaPorcelana) || filteredTamanhos.some(tamanhoAceitaAcrilico)) && (
+              <div className="mt-3 space-y-1">
+                {filteredTamanhos.some(tamanhoAceitaPorcelana) && (
+                  <p className="text-[10px] text-white/25 font-semibold">
+                    * Tamanhos com <span className="text-amber-400/60">✦ Porcelana</span> aceitam Pastilha de Porcelana Atlas
+                  </p>
+                )}
+                {filteredTamanhos.some(tamanhoAceitaAcrilico) && (
+                  <p className="text-[10px] text-white/25 font-semibold">
+                    * Tamanhos com <span className="text-cyan-400/60">✦ Acrílico</span> aceitam acabamento em acrílico
+                  </p>
+                )}
+              </div>
             )}
           </div>
         );
