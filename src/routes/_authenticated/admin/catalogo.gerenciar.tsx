@@ -178,6 +178,16 @@ function CatalogoGerenciarPage() {
       }),
     }));
 
+  const toggleTamanhoOpcional = (i: number, key: OpcionalKey) =>
+    setForm((f) => ({
+      ...f,
+      tamanhos: f.tamanhos.map((t, idx) => {
+        if (idx !== i) return t;
+        const cur = t.opcionais ?? {};
+        return { ...t, opcionais: { ...cur, [key]: !cur[key] } };
+      }),
+    }));
+
   // ── Photos ────────────────────────────────────────────────────────────────
   const uploadFoto = async (file: File) => {
     if (!file.type.startsWith("image/")) { toast.error("Apenas imagens são aceitas."); return; }
