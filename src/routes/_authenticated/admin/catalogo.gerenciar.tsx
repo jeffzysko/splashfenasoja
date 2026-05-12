@@ -141,7 +141,8 @@ function CatalogoGerenciarPage() {
             profundidade: String(t.profundidade ?? ""),
             capacidade: t.capacidade ?? "",
             opcionais: {
-              porcelana_atlas: !!t.opcionais?.porcelana_atlas,
+              // fallback do formato legado (t.porcelana_atlas) caso ainda não exista t.opcionais
+              porcelana_atlas: t.opcionais?.porcelana_atlas ?? !!t.porcelana_atlas,
               acrilico: !!t.opcionais?.acrilico,
             },
             modelos: Array.isArray(t.modelos) ? [...t.modelos] : [],
