@@ -22,9 +22,11 @@ import { Route as AuthenticatedAdminAdminsRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAdminUsuariosIndexRouteImport } from './routes/_authenticated/admin/usuarios.index'
 import { Route as AuthenticatedAdminLeadsIndexRouteImport } from './routes/_authenticated/admin/leads.index'
 import { Route as AuthenticatedAdminFeirasIndexRouteImport } from './routes/_authenticated/admin/feiras.index'
+import { Route as AuthenticatedAdminCatalogoIndexRouteImport } from './routes/_authenticated/admin/catalogo.index'
 import { Route as AuthenticatedAdminSettingsNotificationsRouteImport } from './routes/_authenticated/admin/settings.notifications'
 import { Route as AuthenticatedAdminLeadsIdRouteImport } from './routes/_authenticated/admin/leads.$id'
 import { Route as AuthenticatedAdminFeirasFeiraIdRouteImport } from './routes/_authenticated/admin/feiras.$feiraId'
+import { Route as AuthenticatedAdminCatalogoGerenciarRouteImport } from './routes/_authenticated/admin/catalogo.gerenciar'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -96,6 +98,12 @@ const AuthenticatedAdminFeirasIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedAdminFeirasRoute,
   } as any)
+const AuthenticatedAdminCatalogoIndexRoute =
+  AuthenticatedAdminCatalogoIndexRouteImport.update({
+    id: '/catalogo/',
+    path: '/catalogo/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminSettingsNotificationsRoute =
   AuthenticatedAdminSettingsNotificationsRouteImport.update({
     id: '/settings/notifications',
@@ -114,6 +122,12 @@ const AuthenticatedAdminFeirasFeiraIdRoute =
     path: '/$feiraId',
     getParentRoute: () => AuthenticatedAdminFeirasRoute,
   } as any)
+const AuthenticatedAdminCatalogoGerenciarRoute =
+  AuthenticatedAdminCatalogoGerenciarRouteImport.update({
+    id: '/catalogo/gerenciar',
+    path: '/catalogo/gerenciar',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -125,9 +139,11 @@ export interface FileRoutesByFullPath {
   '/admin/feiras': typeof AuthenticatedAdminFeirasRouteWithChildren
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRouteWithChildren
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/admin/catalogo/gerenciar': typeof AuthenticatedAdminCatalogoGerenciarRoute
   '/admin/feiras/$feiraId': typeof AuthenticatedAdminFeirasFeiraIdRoute
   '/admin/leads/$id': typeof AuthenticatedAdminLeadsIdRoute
   '/admin/settings/notifications': typeof AuthenticatedAdminSettingsNotificationsRoute
+  '/admin/catalogo/': typeof AuthenticatedAdminCatalogoIndexRoute
   '/admin/feiras/': typeof AuthenticatedAdminFeirasIndexRoute
   '/admin/leads/': typeof AuthenticatedAdminLeadsIndexRoute
   '/admin/usuarios/': typeof AuthenticatedAdminUsuariosIndexRoute
@@ -139,9 +155,11 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/admin/admins': typeof AuthenticatedAdminAdminsRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/admin/catalogo/gerenciar': typeof AuthenticatedAdminCatalogoGerenciarRoute
   '/admin/feiras/$feiraId': typeof AuthenticatedAdminFeirasFeiraIdRoute
   '/admin/leads/$id': typeof AuthenticatedAdminLeadsIdRoute
   '/admin/settings/notifications': typeof AuthenticatedAdminSettingsNotificationsRoute
+  '/admin/catalogo': typeof AuthenticatedAdminCatalogoIndexRoute
   '/admin/feiras': typeof AuthenticatedAdminFeirasIndexRoute
   '/admin/leads': typeof AuthenticatedAdminLeadsIndexRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosIndexRoute
@@ -158,9 +176,11 @@ export interface FileRoutesById {
   '/_authenticated/admin/feiras': typeof AuthenticatedAdminFeirasRouteWithChildren
   '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRouteWithChildren
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/admin/catalogo/gerenciar': typeof AuthenticatedAdminCatalogoGerenciarRoute
   '/_authenticated/admin/feiras/$feiraId': typeof AuthenticatedAdminFeirasFeiraIdRoute
   '/_authenticated/admin/leads/$id': typeof AuthenticatedAdminLeadsIdRoute
   '/_authenticated/admin/settings/notifications': typeof AuthenticatedAdminSettingsNotificationsRoute
+  '/_authenticated/admin/catalogo/': typeof AuthenticatedAdminCatalogoIndexRoute
   '/_authenticated/admin/feiras/': typeof AuthenticatedAdminFeirasIndexRoute
   '/_authenticated/admin/leads/': typeof AuthenticatedAdminLeadsIndexRoute
   '/_authenticated/admin/usuarios/': typeof AuthenticatedAdminUsuariosIndexRoute
@@ -177,9 +197,11 @@ export interface FileRouteTypes {
     | '/admin/feiras'
     | '/admin/usuarios'
     | '/admin/'
+    | '/admin/catalogo/gerenciar'
     | '/admin/feiras/$feiraId'
     | '/admin/leads/$id'
     | '/admin/settings/notifications'
+    | '/admin/catalogo/'
     | '/admin/feiras/'
     | '/admin/leads/'
     | '/admin/usuarios/'
@@ -191,9 +213,11 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/admin/admins'
     | '/admin'
+    | '/admin/catalogo/gerenciar'
     | '/admin/feiras/$feiraId'
     | '/admin/leads/$id'
     | '/admin/settings/notifications'
+    | '/admin/catalogo'
     | '/admin/feiras'
     | '/admin/leads'
     | '/admin/usuarios'
@@ -209,9 +233,11 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/feiras'
     | '/_authenticated/admin/usuarios'
     | '/_authenticated/admin/'
+    | '/_authenticated/admin/catalogo/gerenciar'
     | '/_authenticated/admin/feiras/$feiraId'
     | '/_authenticated/admin/leads/$id'
     | '/_authenticated/admin/settings/notifications'
+    | '/_authenticated/admin/catalogo/'
     | '/_authenticated/admin/feiras/'
     | '/_authenticated/admin/leads/'
     | '/_authenticated/admin/usuarios/'
@@ -318,6 +344,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminFeirasIndexRouteImport
       parentRoute: typeof AuthenticatedAdminFeirasRoute
     }
+    '/_authenticated/admin/catalogo/': {
+      id: '/_authenticated/admin/catalogo/'
+      path: '/catalogo'
+      fullPath: '/admin/catalogo/'
+      preLoaderRoute: typeof AuthenticatedAdminCatalogoIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/settings/notifications': {
       id: '/_authenticated/admin/settings/notifications'
       path: '/settings/notifications'
@@ -338,6 +371,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/feiras/$feiraId'
       preLoaderRoute: typeof AuthenticatedAdminFeirasFeiraIdRouteImport
       parentRoute: typeof AuthenticatedAdminFeirasRoute
+    }
+    '/_authenticated/admin/catalogo/gerenciar': {
+      id: '/_authenticated/admin/catalogo/gerenciar'
+      path: '/catalogo/gerenciar'
+      fullPath: '/admin/catalogo/gerenciar'
+      preLoaderRoute: typeof AuthenticatedAdminCatalogoGerenciarRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
     }
   }
 }
@@ -377,8 +417,10 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminFeirasRoute: typeof AuthenticatedAdminFeirasRouteWithChildren
   AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRouteWithChildren
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+  AuthenticatedAdminCatalogoGerenciarRoute: typeof AuthenticatedAdminCatalogoGerenciarRoute
   AuthenticatedAdminLeadsIdRoute: typeof AuthenticatedAdminLeadsIdRoute
   AuthenticatedAdminSettingsNotificationsRoute: typeof AuthenticatedAdminSettingsNotificationsRoute
+  AuthenticatedAdminCatalogoIndexRoute: typeof AuthenticatedAdminCatalogoIndexRoute
   AuthenticatedAdminLeadsIndexRoute: typeof AuthenticatedAdminLeadsIndexRoute
 }
 
@@ -387,9 +429,12 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminFeirasRoute: AuthenticatedAdminFeirasRouteWithChildren,
   AuthenticatedAdminUsuariosRoute: AuthenticatedAdminUsuariosRouteWithChildren,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+  AuthenticatedAdminCatalogoGerenciarRoute:
+    AuthenticatedAdminCatalogoGerenciarRoute,
   AuthenticatedAdminLeadsIdRoute: AuthenticatedAdminLeadsIdRoute,
   AuthenticatedAdminSettingsNotificationsRoute:
     AuthenticatedAdminSettingsNotificationsRoute,
+  AuthenticatedAdminCatalogoIndexRoute: AuthenticatedAdminCatalogoIndexRoute,
   AuthenticatedAdminLeadsIndexRoute: AuthenticatedAdminLeadsIndexRoute,
 }
 
@@ -418,3 +463,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
