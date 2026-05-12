@@ -461,7 +461,6 @@ function ProductCard({ produto, onClick }: {
   const coverUrl = allFotos[1] ?? modelos3d[0]?.url ?? allFotos[0] ?? null;
   const porcelana = hasPorcelanaOpcional(produto.opcionais);
   const acrilico = hasAcrilico(produto.opcionais ?? []);
-  const hasOps = porcelana || acrilico;
   const galleryCount = Math.max(0, allFotos.length - 1);
   const tamanhoCount = Array.isArray(produto.tamanhos) ? produto.tamanhos.length : 0;
   const isOval = (produto.formato ?? "retangular") === "oval";
@@ -528,29 +527,27 @@ function ProductCard({ produto, onClick }: {
       </div>
 
       {/* Card footer */}
-      <div className="p-3 space-y-2">
-        <div>
-          <p className="text-foreground font-extrabold text-sm leading-snug">{produto.nome}</p>
+      <div className="p-3 flex-1 flex flex-col gap-2">
+        <div className="min-h-[2.5rem]">
+          <p className="text-foreground font-extrabold text-sm leading-snug line-clamp-2">{produto.nome}</p>
           {tamanhoCount > 0 && (
             <p className="text-muted-foreground text-[10px] font-semibold mt-0.5">
               {tamanhoCount} tamanho{tamanhoCount !== 1 ? "s" : ""} disponíve{tamanhoCount !== 1 ? "is" : "l"}
             </p>
           )}
         </div>
-        {hasOps && (
-          <div className="flex flex-wrap gap-1">
-            {porcelana && (
-              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
-                Porcelana Atlas
-              </span>
-            )}
-            {acrilico && (
-              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-700 border border-sky-200">
-                Acrílico
-              </span>
-            )}
-          </div>
-        )}
+        <div className="flex flex-wrap gap-1 mt-auto min-h-[1.25rem]">
+          {porcelana && (
+            <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+              Porcelana Atlas
+            </span>
+          )}
+          {acrilico && (
+            <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-700 border border-sky-200">
+              Acrílico
+            </span>
+          )}
+        </div>
       </div>
     </button>
   );
