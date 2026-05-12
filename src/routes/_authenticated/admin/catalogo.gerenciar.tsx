@@ -224,7 +224,14 @@ function CatalogoGerenciarPage() {
 
   const removeModelo = async (m: Modelo3D, i: number) => {
     try { await supabase.storage.from("produto-fotos").remove([m.path]); } catch { /**/ }
-    setForm((f) => ({ ...f, modelos_3d: f.modelos_3d.filter((_, idx) => idx !== i) }));
+    setForm((f) => ({
+      ...f,
+      modelos_3d: f.modelos_3d.filter((_, idx) => idx !== i),
+      tamanhos: f.tamanhos.map((t) => ({
+        ...t,
+        modelos: Array.isArray(t.modelos) ? t.modelos.filter((p) => p !== m.path) : [],
+      })),
+    }));
   };
 
   const moveModelo = (i: number, dir: -1 | 1) => {
