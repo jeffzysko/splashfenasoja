@@ -512,10 +512,52 @@ function CatalogoGerenciarPage() {
                       <Input value={t.capacidade} onChange={(e) => setTamanho(i, "capacidade", e.target.value)}
                         placeholder="Capacidade (ex: 7.800L)" className="rounded-lg h-9 text-sm" />
                     </div>
+                    {form.modelos_3d.length > 1 && (
+                      <div className="pt-1.5 border-t border-border/60">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                          Disponível em
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {form.modelos_3d.map((m) => {
+                            const sel = (t.modelos ?? []).includes(m.path);
+                            const allSelected = (t.modelos ?? []).length === 0;
+                            const active = sel || allSelected;
+                            return (
+                              <button
+                                key={m.path}
+                                type="button"
+                                onClick={() => toggleTamanhoModelo(i, m.path)}
+                                className={cn(
+                                  "text-[10px] font-bold px-2 py-1 rounded-full border transition",
+                                  active
+                                    ? "bg-primary/15 text-primary border-primary/40"
+                                    : "bg-muted text-muted-foreground border-border hover:border-primary/30"
+                                )}
+                              >
+                                {m.label || "(sem nome)"}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <p className="text-[9px] text-muted-foreground mt-1">
+                          {(t.modelos ?? []).length === 0
+                            ? "Aparece em todos os modelos 3D"
+                            : `Aparece em ${(t.modelos ?? []).length} de ${form.modelos_3d.length} modelos`}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             </div>
+
+            {/* Preview do catálogo (sincronizado com o que o cliente vê) */}
+            {form.modelos_3d.length > 0 && (
+              <CatalogPreview
+                modelos={form.modelos_3d}
+                tamanhos={form.tamanhos.filter((t) => t.label.trim())}
+              />
+            )}
 
             {/* Opcionais */}
             <div className="space-y-3">
