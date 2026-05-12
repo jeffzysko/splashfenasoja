@@ -544,7 +544,9 @@ function ProductDetail({
   cardOrigin: { x: number; y: number };
 }) {
   const allFotos = Array.isArray(produto.fotos) ? produto.fotos : [];
-  const modeloUrl = allFotos[0] ?? null;
+  const modelos3d: Modelo3D[] = Array.isArray(produto.modelos_3d) && produto.modelos_3d.length > 0
+    ? produto.modelos_3d
+    : (allFotos[0] ? [{ url: allFotos[0], label: "" }] : []);
   const galleryFotos = allFotos.slice(1);
   const currentUrl = galleryFotos[photoIdx] ?? null;
   const hasPrev = photoIdx > 0;
@@ -553,6 +555,12 @@ function ProductDetail({
   const acrilico = hasAcrilico(produto.opcionais ?? []);
   const hasOps = porcelana || acrilico;
   const tamanhos = Array.isArray(produto.tamanhos) ? produto.tamanhos : [];
+
+  // ── Modelo 3D carousel state ────────────────────────────────────────────
+  const [modeloIdx, setModeloIdx] = useState(0);
+  useEffect(() => { setModeloIdx(0); }, [produto.id]);
+  const safeModeloIdx = Math.min(modeloIdx, Math.max(0, modelos3d.length - 1));
+  const currentModelo = modelos3d[safeModeloIdx] ?? null;
 
   // ── Zoom state ──────────────────────────────────────────────────────────
   const [zoomed, setZoomed] = useState(false);
