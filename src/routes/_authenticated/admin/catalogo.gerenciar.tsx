@@ -148,6 +148,16 @@ function CatalogoGerenciarPage() {
       tamanhos: f.tamanhos.map((t, idx) => idx === i ? { ...t, [field]: value } : t),
     }));
 
+  const toggleTamanhoModelo = (i: number, modeloPath: string) =>
+    setForm((f) => ({
+      ...f,
+      tamanhos: f.tamanhos.map((t, idx) => {
+        if (idx !== i) return t;
+        const cur = Array.isArray(t.modelos) ? t.modelos : [];
+        return { ...t, modelos: cur.includes(modeloPath) ? cur.filter((p) => p !== modeloPath) : [...cur, modeloPath] };
+      }),
+    }));
+
   // ── Photos ────────────────────────────────────────────────────────────────
   const uploadFoto = async (file: File) => {
     if (!file.type.startsWith("image/")) { toast.error("Apenas imagens são aceitas."); return; }
