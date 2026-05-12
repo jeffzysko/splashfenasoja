@@ -411,7 +411,7 @@ function CatalogoGerenciarPage() {
       ) : (
         <div className="space-y-3">
           {[...produtos].sort((a, b) => a.ordem - b.ordem).map((p, idx, arr) => {
-            const cover = p.fotos.find((f) => f.ordem === 0) ?? p.fotos[0];
+            const cover = Array.isArray(p.fotos) ? p.fotos.find((f) => typeof f === "string" && !!f) : null;
             return (
               <div
                 key={p.id}
@@ -423,7 +423,7 @@ function CatalogoGerenciarPage() {
                 {/* Cover thumb */}
                 <div className="w-14 h-14 rounded-xl overflow-hidden bg-muted shrink-0">
                   {cover
-                    ? <img src={cover.url} alt={p.nome} className="w-full h-full object-cover" />
+                    ? <img src={cover} alt={p.nome} className="w-full h-full object-cover" />
                     : <div className="w-full h-full flex items-center justify-center"><ImageOff className="w-5 h-5 text-muted-foreground/40" /></div>
                   }
                 </div>
