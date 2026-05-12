@@ -823,7 +823,7 @@ function ProductDetail({
             {filteredTamanhos.length === 0 ? (
               <p className="text-xs text-white/40 mt-3">Nenhum tamanho cadastrado para esta variação.</p>
             ) : (
-              <div className="mt-3 grid grid-cols-2 gap-2">
+              <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2">
                 {filteredTamanhos.map(renderTamanhoCard)}
               </div>
             )}
