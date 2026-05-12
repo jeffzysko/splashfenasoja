@@ -29,8 +29,17 @@ export const Route = createFileRoute("/_authenticated/admin/catalogo/gerenciar")
 });
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type Foto = { url: string; path: string; ordem: number };
+// Fotos são salvas como string[] (URLs públicas) — formato compatível com o catálogo.
+type Foto = string;
 type Modelo3D = { url: string; path: string; label: string };
+
+// Extrai o storage path (dentro do bucket "produto-fotos") de uma URL pública,
+// para permitir deletar do storage. Retorna null se a URL não pertencer ao bucket.
+const extractStoragePath = (url: string): string | null => {
+  const marker = "/storage/v1/object/public/produto-fotos/";
+  const i = url.indexOf(marker);
+  return i >= 0 ? url.slice(i + marker.length) : null;
+};
 type TamanhoOpcionais = { porcelana_atlas?: boolean; acrilico?: boolean };
 type Tamanho = {
   label: string;
@@ -149,7 +158,7 @@ function CatalogoGerenciarPage() {
           }))
         : [{ ...EMPTY_TAMANHO, modelos: [] }],
       opcionais: { porcelana_atlas: !!p.opcionais?.porcelana_atlas, acrilico: !!p.opcionais?.acrilico },
-      fotos: p.fotos.slice().sort((a, b) => a.ordem - b.ordem),
+      fotos: Array.isArray(p.fotos) ? p.fotos.filter((f): f is string => typeof f === "string" && !!f) : [],
       modelos_3d: Array.isArray(p.modelos_3d) ? p.modelos_3d.map((m) => ({ url: m.url, path: m.path, label: m.label ?? "" })) : [],
       ativo: p.ativo,
     });
@@ -200,8 +209,7 @@ function CatalogoGerenciarPage() {
       const { error } = await supabase.storage.from("produto-fotos").upload(path, file, { upsert: false });
       if (error) throw error;
       const { data: { publicUrl } } = supabase.storage.from("produto-fotos").getPublicUrl(path);
-      const novaFoto: Foto = { url: publicUrl, path, ordem: form.fotos.length };
-      setForm((f) => ({ ...f, fotos: [...f.fotos, novaFoto] }));
+      setForm((f) => ({ ...f, fotos: [...f.fotos, publicUrl] }));
       toast.success("Foto adicionada!");
     } catch (e) {
       toast.error("Erro ao fazer upload da foto.");
@@ -212,13 +220,11 @@ function CatalogoGerenciarPage() {
   };
 
   const removeFoto = async (foto: Foto, i: number) => {
-    try {
-      await supabase.storage.from("produto-fotos").remove([foto.path]);
-    } catch { /**/ }
-    setForm((f) => ({
-      ...f,
-      fotos: f.fotos.filter((_, idx) => idx !== i).map((ft, idx) => ({ ...ft, ordem: idx })),
-    }));
+    const path = extractStoragePath(foto);
+    if (path) {
+      try { await supabase.storage.from("produto-fotos").remove([path]); } catch { /**/ }
+    }
+    setForm((f) => ({ ...f, fotos: f.fotos.filter((_, idx) => idx !== i) }));
   };
 
   const moveFoto = (i: number, dir: -1 | 1) => {
@@ -227,7 +233,7 @@ function CatalogoGerenciarPage() {
     setForm((f) => {
       const fotos = [...f.fotos];
       [fotos[i], fotos[ni]] = [fotos[ni], fotos[i]];
-      return { ...f, fotos: fotos.map((ft, idx) => ({ ...ft, ordem: idx })) };
+      return { ...f, fotos };
     });
   };
 
@@ -351,7 +357,7 @@ function CatalogoGerenciarPage() {
   const deleteProduto = async (p: Produto) => {
     // Delete photos and 3D models from storage
     const paths = [
-      ...p.fotos.map((f) => f.path),
+      ...(Array.isArray(p.fotos) ? p.fotos.map((f) => extractStoragePath(f)).filter((x): x is string => !!x) : []),
       ...(Array.isArray(p.modelos_3d) ? p.modelos_3d.map((m) => m.path) : []),
     ].filter(Boolean);
     if (paths.length) {
@@ -405,7 +411,7 @@ function CatalogoGerenciarPage() {
       ) : (
         <div className="space-y-3">
           {[...produtos].sort((a, b) => a.ordem - b.ordem).map((p, idx, arr) => {
-            const cover = p.fotos.find((f) => f.ordem === 0) ?? p.fotos[0];
+            const cover = Array.isArray(p.fotos) ? p.fotos.find((f) => typeof f === "string" && !!f) : null;
             return (
               <div
                 key={p.id}
@@ -417,7 +423,7 @@ function CatalogoGerenciarPage() {
                 {/* Cover thumb */}
                 <div className="w-14 h-14 rounded-xl overflow-hidden bg-muted shrink-0">
                   {cover
-                    ? <img src={cover.url} alt={p.nome} className="w-full h-full object-cover" />
+                    ? <img src={cover} alt={p.nome} className="w-full h-full object-cover" />
                     : <div className="w-full h-full flex items-center justify-center"><ImageOff className="w-5 h-5 text-muted-foreground/40" /></div>
                   }
                 </div>
@@ -785,8 +791,8 @@ function CatalogoGerenciarPage() {
               ) : (
                 <div className="grid grid-cols-3 gap-2">
                   {form.fotos.map((foto, i) => (
-                    <div key={foto.path} className="relative group aspect-square rounded-xl overflow-hidden bg-muted border border-border">
-                      <img src={foto.url} alt="" className="w-full h-full object-cover" />
+                    <div key={`${foto}-${i}`} className="relative group aspect-square rounded-xl overflow-hidden bg-muted border border-border">
+                      <img src={foto} alt="" className="w-full h-full object-cover" />
                       {i === 0 && (
                         <span className="absolute top-1 left-1 text-[8px] font-black px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground">CAPA</span>
                       )}
