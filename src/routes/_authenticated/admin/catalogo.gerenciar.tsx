@@ -140,7 +140,10 @@ function CatalogoGerenciarPage() {
             largura: String(t.largura ?? ""),
             profundidade: String(t.profundidade ?? ""),
             capacidade: t.capacidade ?? "",
-            porcelana_atlas: !!t.porcelana_atlas,
+            opcionais: {
+              porcelana_atlas: !!t.opcionais?.porcelana_atlas,
+              acrilico: !!t.opcionais?.acrilico,
+            },
             modelos: Array.isArray(t.modelos) ? [...t.modelos] : [],
           }))
         : [{ ...EMPTY_TAMANHO, modelos: [] }],
