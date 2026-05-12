@@ -69,7 +69,9 @@ function CatalogoGerenciarPage() {
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [saving, setSaving] = useState(false);
   const [uploadingFoto, setUploadingFoto] = useState(false);
+  const [uploadingModelo, setUploadingModelo] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const modeloRef = useRef<HTMLInputElement>(null);
 
   // Master guard
   useEffect(() => {
