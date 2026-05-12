@@ -182,6 +182,46 @@ function CatalogoGerenciarPage() {
     });
   };
 
+  // ── Modelos 3D ────────────────────────────────────────────────────────────
+  const uploadModelo = async (file: File) => {
+    if (!file.type.startsWith("image/")) { toast.error("Apenas imagens são aceitas."); return; }
+    setUploadingModelo(true);
+    try {
+      const ext = file.name.split(".").pop() ?? "png";
+      const prodId = editing?.id ?? "temp";
+      const path = `produtos/${prodId}/modelos/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("produto-fotos").upload(path, file, { upsert: false });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabase.storage.from("produto-fotos").getPublicUrl(path);
+      const novo: Modelo3D = { url: publicUrl, path, label: "" };
+      setForm((f) => ({ ...f, modelos_3d: [...f.modelos_3d, novo] }));
+      toast.success("Modelo 3D adicionado!");
+    } catch {
+      toast.error("Erro ao fazer upload do modelo 3D.");
+    } finally {
+      setUploadingModelo(false);
+      if (modeloRef.current) modeloRef.current.value = "";
+    }
+  };
+
+  const removeModelo = async (m: Modelo3D, i: number) => {
+    try { await supabase.storage.from("produto-fotos").remove([m.path]); } catch { /**/ }
+    setForm((f) => ({ ...f, modelos_3d: f.modelos_3d.filter((_, idx) => idx !== i) }));
+  };
+
+  const moveModelo = (i: number, dir: -1 | 1) => {
+    const ni = i + dir;
+    if (ni < 0 || ni >= form.modelos_3d.length) return;
+    setForm((f) => {
+      const arr = [...f.modelos_3d];
+      [arr[i], arr[ni]] = [arr[ni], arr[i]];
+      return { ...f, modelos_3d: arr };
+    });
+  };
+
+  const setModeloLabel = (i: number, label: string) =>
+    setForm((f) => ({ ...f, modelos_3d: f.modelos_3d.map((m, idx) => idx === i ? { ...m, label } : m) }));
+
   // ── Save ──────────────────────────────────────────────────────────────────
   const save = async () => {
     if (!form.nome.trim()) { toast.error("Nome é obrigatório."); return; }
