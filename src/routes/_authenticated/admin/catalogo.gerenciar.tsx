@@ -63,10 +63,13 @@ const EMPTY_TAMANHO: Tamanho = {
   largura: "",
   profundidade: "",
   capacidade: "",
-  porcelana_atlas: false,
+  opcionais: {},
   modelos: [],
 };
 const hasTamanhoData = (t: Tamanho) =>
+  [t.label, t.comprimento, t.largura, t.profundidade, t.capacidade].some(
+    (value) => String(value ?? "").trim().length > 0,
+  );
   [t.label, t.comprimento, t.largura, t.profundidade, t.capacidade].some(
     (value) => String(value ?? "").trim().length > 0,
   );
