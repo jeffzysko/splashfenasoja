@@ -794,21 +794,33 @@ function ProductDetail({
           </div>
         </div>
       )}
-      {tamanhos.length > 0 && (
-        <div>
-          <SectionLabel>
-            {tamanhos.length} Tamanho{tamanhos.length !== 1 ? "s" : ""} disponíve{tamanhos.length !== 1 ? "is" : "l"}
-          </SectionLabel>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            {tamanhos.map(renderTamanhoCard)}
+      {(() => {
+        const filteredTamanhos = modelos3d.length > 1 && currentModelo
+          ? tamanhosForModelo(tamanhos, currentModelo.label)
+          : tamanhos;
+        const isFiltered = modelos3d.length > 1 && filteredTamanhos.length !== tamanhos.length;
+        if (filteredTamanhos.length === 0 && tamanhos.length === 0) return null;
+        return (
+          <div>
+            <SectionLabel>
+              {filteredTamanhos.length} Tamanho{filteredTamanhos.length !== 1 ? "s" : ""} disponíve{filteredTamanhos.length !== 1 ? "is" : "l"}
+              {isFiltered && currentModelo?.label ? ` · ${currentModelo.label}` : ""}
+            </SectionLabel>
+            {filteredTamanhos.length === 0 ? (
+              <p className="text-xs text-white/40 mt-3">Nenhum tamanho cadastrado para esta variação.</p>
+            ) : (
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {filteredTamanhos.map(renderTamanhoCard)}
+              </div>
+            )}
+            {filteredTamanhos.some(t => t.porcelana_atlas) && (
+              <p className="text-[10px] text-white/25 mt-3 font-semibold">
+                * Tamanhos com <span className="text-amber-400/60">✦ Porcelana</span> aceitam Pastilha de Porcelana Atlas
+              </p>
+            )}
           </div>
-          {tamanhos.some(t => t.porcelana_atlas) && (
-            <p className="text-[10px] text-white/25 mt-3 font-semibold">
-              * Tamanhos com <span className="text-amber-400/60">✦ Porcelana</span> aceitam Pastilha de Porcelana Atlas
-            </p>
-          )}
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 
