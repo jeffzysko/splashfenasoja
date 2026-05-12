@@ -17,14 +17,16 @@ export const Route = createFileRoute("/_authenticated/admin/catalogo/")({
 });
 
 // ── Types ─────────────────────────────────────────────────────────────────────
+type TamanhoOpcionais = { porcelana_atlas?: boolean; acrilico?: boolean };
 type Tamanho = {
   label: string;
   comprimento: string;
   largura: string;
   profundidade: string;
   capacidade?: string;
-  porcelana_atlas: boolean;
-  modelos?: string[]; // ids (paths) dos Modelo3D em que este tamanho está disponível. Vazio/ausente = todos.
+  porcelana_atlas?: boolean; // legacy
+  opcionais?: TamanhoOpcionais; // novo
+  modelos?: string[];
 };
 
 type Modelo3D = { url: string; label: string; path?: string };
@@ -76,6 +78,15 @@ function hasAcrilico(opcionais: OpcionaisObj | string[] | null | undefined) {
     return opcionais.some((o) => typeof o === "string" && o.toLowerCase().includes("acr"));
   }
   return !!opcionais.acrilico;
+}
+
+// Opcionais aceitos por TAMANHO (com fallback ao formato legado)
+function tamanhoAceitaPorcelana(t: Tamanho): boolean {
+  if (t.opcionais && typeof t.opcionais.porcelana_atlas === "boolean") return !!t.opcionais.porcelana_atlas;
+  return !!t.porcelana_atlas; // legado
+}
+function tamanhoAceitaAcrilico(t: Tamanho): boolean {
+  return !!t.opcionais?.acrilico;
 }
 
 function hasSPA(tamanhos: Tamanho[]) {
@@ -671,10 +682,19 @@ function ProductDetail({
                 ? "bg-teal-500/8 border-teal-400/20 hover:bg-teal-500/12 hover:border-teal-400/35"
                 : "bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.14]"
       )}>
-        {t.porcelana_atlas && (
-          <span className="absolute top-2.5 right-2.5 text-[7px] font-black uppercase tracking-wider px-1.5 py-[3px] rounded-full bg-amber-500/15 text-amber-300/80 border border-amber-400/20 whitespace-nowrap leading-none">
-            ✦ Porcelana
-          </span>
+        {(tamanhoAceitaPorcelana(t) || tamanhoAceitaAcrilico(t)) && (
+          <div className="absolute top-2.5 right-2.5 flex flex-col gap-1 items-end">
+            {tamanhoAceitaPorcelana(t) && (
+              <span className="text-[7px] font-black uppercase tracking-wider px-1.5 py-[3px] rounded-full bg-amber-500/15 text-amber-300/80 border border-amber-400/20 whitespace-nowrap leading-none">
+                ✦ Porcelana
+              </span>
+            )}
+            {tamanhoAceitaAcrilico(t) && (
+              <span className="text-[7px] font-black uppercase tracking-wider px-1.5 py-[3px] rounded-full bg-cyan-500/15 text-cyan-300/80 border border-cyan-400/20 whitespace-nowrap leading-none">
+                ✦ Acrílico
+              </span>
+            )}
+          </div>
         )}
         <div className="h-7 flex items-center">
           <div
@@ -809,10 +829,19 @@ function ProductDetail({
                 {filteredTamanhos.map(renderTamanhoCard)}
               </div>
             )}
-            {filteredTamanhos.some(t => t.porcelana_atlas) && (
-              <p className="text-[10px] text-white/25 mt-3 font-semibold">
-                * Tamanhos com <span className="text-amber-400/60">✦ Porcelana</span> aceitam Pastilha de Porcelana Atlas
-              </p>
+            {(filteredTamanhos.some(tamanhoAceitaPorcelana) || filteredTamanhos.some(tamanhoAceitaAcrilico)) && (
+              <div className="mt-3 space-y-1">
+                {filteredTamanhos.some(tamanhoAceitaPorcelana) && (
+                  <p className="text-[10px] text-white/25 font-semibold">
+                    * Tamanhos com <span className="text-amber-400/60">✦ Porcelana</span> aceitam Pastilha de Porcelana Atlas
+                  </p>
+                )}
+                {filteredTamanhos.some(tamanhoAceitaAcrilico) && (
+                  <p className="text-[10px] text-white/25 font-semibold">
+                    * Tamanhos com <span className="text-cyan-400/60">✦ Acrílico</span> aceitam acabamento em acrílico
+                  </p>
+                )}
+              </div>
             )}
           </div>
         );

@@ -31,16 +31,19 @@ export const Route = createFileRoute("/_authenticated/admin/catalogo/gerenciar")
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Foto = { url: string; path: string; ordem: number };
 type Modelo3D = { url: string; path: string; label: string };
+type TamanhoOpcionais = { porcelana_atlas?: boolean; acrilico?: boolean };
 type Tamanho = {
   label: string;
   comprimento: string;
   largura: string;
   profundidade: string;
   capacidade: string;
-  porcelana_atlas?: boolean;
+  porcelana_atlas?: boolean; // legacy — leitura apenas
+  opcionais?: TamanhoOpcionais; // novo: opcionais aceitos por tamanho
   modelos?: string[]; // paths dos Modelo3D em que este tamanho aparece. Vazio = todos.
 };
 type Opcional = { porcelana_atlas: boolean; acrilico: boolean };
+type OpcionalKey = keyof Opcional;
 
 type Produto = {
   id: string;
@@ -60,7 +63,7 @@ const EMPTY_TAMANHO: Tamanho = {
   largura: "",
   profundidade: "",
   capacidade: "",
-  porcelana_atlas: false,
+  opcionais: {},
   modelos: [],
 };
 const hasTamanhoData = (t: Tamanho) =>
@@ -137,7 +140,11 @@ function CatalogoGerenciarPage() {
             largura: String(t.largura ?? ""),
             profundidade: String(t.profundidade ?? ""),
             capacidade: t.capacidade ?? "",
-            porcelana_atlas: !!t.porcelana_atlas,
+            opcionais: {
+              // fallback do formato legado (t.porcelana_atlas) caso ainda não exista t.opcionais
+              porcelana_atlas: t.opcionais?.porcelana_atlas ?? !!t.porcelana_atlas,
+              acrilico: !!t.opcionais?.acrilico,
+            },
             modelos: Array.isArray(t.modelos) ? [...t.modelos] : [],
           }))
         : [{ ...EMPTY_TAMANHO, modelos: [] }],
@@ -169,6 +176,16 @@ function CatalogoGerenciarPage() {
         if (idx !== i) return t;
         const cur = Array.isArray(t.modelos) ? t.modelos : [];
         return { ...t, modelos: cur.includes(modeloPath) ? cur.filter((p) => p !== modeloPath) : [...cur, modeloPath] };
+      }),
+    }));
+
+  const toggleTamanhoOpcional = (i: number, key: OpcionalKey) =>
+    setForm((f) => ({
+      ...f,
+      tamanhos: f.tamanhos.map((t, idx) => {
+        if (idx !== i) return t;
+        const cur = t.opcionais ?? {};
+        return { ...t, opcionais: { ...cur, [key]: !cur[key] } };
       }),
     }));
 
@@ -270,7 +287,21 @@ function CatalogoGerenciarPage() {
       descricao: form.descricao.trim() || null,
       tamanhos: form.tamanhos
         .filter(hasTamanhoData)
-        .map((t) => ({ ...t, modelos: Array.isArray(t.modelos) ? t.modelos : [] })),
+        .map((t) => {
+          // Só persiste flags de opcionais habilitados no produto
+          const op: TamanhoOpcionais = {};
+          if (form.opcionais.porcelana_atlas) op.porcelana_atlas = !!t.opcionais?.porcelana_atlas;
+          if (form.opcionais.acrilico) op.acrilico = !!t.opcionais?.acrilico;
+          return {
+            label: t.label,
+            comprimento: t.comprimento,
+            largura: t.largura,
+            profundidade: t.profundidade,
+            capacidade: t.capacidade,
+            opcionais: op,
+            modelos: Array.isArray(t.modelos) ? t.modelos : [],
+          };
+        }),
       opcionais: form.opcionais,
       fotos: form.fotos,
       modelos_3d: form.modelos_3d.map((m) => ({ url: m.url, path: m.path, label: m.label.trim() })),
@@ -558,6 +589,43 @@ function CatalogoGerenciarPage() {
                             ? "Aparece em todos os modelos 3D"
                             : `Aparece em ${(t.modelos ?? []).length} de ${form.modelos_3d.length} modelos`}
                         </p>
+                      </div>
+                    )}
+                    {(form.opcionais.porcelana_atlas || form.opcionais.acrilico) && (
+                      <div className="pt-1.5 border-t border-border/60">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                          Opcionais aceitos neste tamanho
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {form.opcionais.porcelana_atlas && (
+                            <button
+                              type="button"
+                              onClick={() => toggleTamanhoOpcional(i, "porcelana_atlas")}
+                              className={cn(
+                                "text-[10px] font-bold px-2 py-1 rounded-full border transition",
+                                t.opcionais?.porcelana_atlas
+                                  ? "bg-amber-500/15 text-amber-700 border-amber-500/40"
+                                  : "bg-muted text-muted-foreground border-border hover:border-amber-500/30",
+                              )}
+                            >
+                              {t.opcionais?.porcelana_atlas ? "✓ " : ""}Porcelana Atlas
+                            </button>
+                          )}
+                          {form.opcionais.acrilico && (
+                            <button
+                              type="button"
+                              onClick={() => toggleTamanhoOpcional(i, "acrilico")}
+                              className={cn(
+                                "text-[10px] font-bold px-2 py-1 rounded-full border transition",
+                                t.opcionais?.acrilico
+                                  ? "bg-cyan-500/15 text-cyan-700 border-cyan-500/40"
+                                  : "bg-muted text-muted-foreground border-border hover:border-cyan-500/30",
+                              )}
+                            >
+                              {t.opcionais?.acrilico ? "✓ " : ""}Acrílico
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -854,6 +922,16 @@ function CatalogPreview({ modelos, tamanhos }: { modelos: Modelo3D[]; tamanhos: 
             <div key={i} className="bg-background rounded-lg border border-border px-2 py-1.5">
               <p className="text-[10px] font-black text-secondary truncate">{t.label}</p>
               <p className="text-[9px] text-muted-foreground">{t.comprimento}×{t.largura}</p>
+              {(t.opcionais?.porcelana_atlas || t.opcionais?.acrilico) && (
+                <div className="flex flex-wrap gap-0.5 mt-1">
+                  {t.opcionais?.porcelana_atlas && (
+                    <span className="text-[8px] font-black px-1 rounded-sm bg-amber-500/15 text-amber-700 border border-amber-500/30 leading-tight">P</span>
+                  )}
+                  {t.opcionais?.acrilico && (
+                    <span className="text-[8px] font-black px-1 rounded-sm bg-cyan-500/15 text-cyan-700 border border-cyan-500/30 leading-tight">A</span>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
