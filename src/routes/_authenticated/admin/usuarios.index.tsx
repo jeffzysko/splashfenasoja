@@ -131,8 +131,21 @@ function UsuariosPage() {
           feira_ids: newFeiras,
         },
       });
-      if (error || (data as any)?.error) {
-        toast.error((data as any)?.error || error?.message || "Erro ao criar usuário.");
+      if (error) {
+        // FunctionsHttpError tem .context (Response) com o body real
+        let msg = error.message || "Erro ao criar usuário.";
+        try {
+          const ctx = (error as any)?.context;
+          if (ctx && typeof ctx.json === "function") {
+            const body = await ctx.json();
+            if (body?.error) msg = body.error;
+          }
+        } catch {}
+        toast.error(msg);
+        return;
+      }
+      if ((data as any)?.error) {
+        toast.error((data as any).error);
         return;
       }
       toast.success("Usuário criado com sucesso!");
