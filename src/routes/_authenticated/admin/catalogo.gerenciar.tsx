@@ -286,7 +286,21 @@ function CatalogoGerenciarPage() {
       descricao: form.descricao.trim() || null,
       tamanhos: form.tamanhos
         .filter(hasTamanhoData)
-        .map((t) => ({ ...t, modelos: Array.isArray(t.modelos) ? t.modelos : [] })),
+        .map((t) => {
+          // Só persiste flags de opcionais habilitados no produto
+          const op: TamanhoOpcionais = {};
+          if (form.opcionais.porcelana_atlas) op.porcelana_atlas = !!t.opcionais?.porcelana_atlas;
+          if (form.opcionais.acrilico) op.acrilico = !!t.opcionais?.acrilico;
+          return {
+            label: t.label,
+            comprimento: t.comprimento,
+            largura: t.largura,
+            profundidade: t.profundidade,
+            capacidade: t.capacidade,
+            opcionais: op,
+            modelos: Array.isArray(t.modelos) ? t.modelos : [],
+          };
+        }),
       opcionais: form.opcionais,
       fotos: form.fotos,
       modelos_3d: form.modelos_3d.map((m) => ({ url: m.url, path: m.path, label: m.label.trim() })),
