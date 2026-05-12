@@ -17,14 +17,16 @@ export const Route = createFileRoute("/_authenticated/admin/catalogo/")({
 });
 
 // ── Types ─────────────────────────────────────────────────────────────────────
+type TamanhoOpcionais = { porcelana_atlas?: boolean; acrilico?: boolean };
 type Tamanho = {
   label: string;
   comprimento: string;
   largura: string;
   profundidade: string;
   capacidade?: string;
-  porcelana_atlas: boolean;
-  modelos?: string[]; // ids (paths) dos Modelo3D em que este tamanho está disponível. Vazio/ausente = todos.
+  porcelana_atlas?: boolean; // legacy
+  opcionais?: TamanhoOpcionais; // novo
+  modelos?: string[];
 };
 
 type Modelo3D = { url: string; label: string; path?: string };
