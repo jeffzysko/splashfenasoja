@@ -954,13 +954,13 @@ function ProductDetail({
       </div>
 
       {/* ── Info panel ── scrollable on mobile / fixed column on desktop ─── */}
-      <div className="relative flex-1 overflow-y-auto bg-[#00111f] flex flex-col border-t border-white/[0.07] lg:border-t-0 lg:border-l lg:flex-none lg:w-[380px]">
+      <div className="relative flex-1 overflow-y-auto overflow-x-hidden bg-[#00111f] flex flex-col border-t border-white/[0.07] lg:border-t-0 lg:border-l lg:flex-none lg:w-[380px] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
 
-        {/* Header — name + format + share + close */}
-        <div className="flex items-start justify-between gap-3 px-5 pt-4 pb-3 border-b border-white/[0.07] shrink-0">
-          <div className="min-w-0">
-            <h2 className="text-lg font-extrabold text-white leading-tight tracking-tight lg:text-xl">{produto.nome}</h2>
-            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+        {/* Header — sticky no mobile/tablet para manter Fechar/Compartilhar acessível */}
+        <div className="sticky top-0 z-20 lg:static flex items-start justify-between gap-3 px-4 sm:px-5 pt-3 sm:pt-4 pb-3 border-b border-white/[0.07] shrink-0 bg-[#00111f]/95 backdrop-blur-md supports-[backdrop-filter]:bg-[#00111f]/80">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base sm:text-lg lg:text-xl font-extrabold text-white leading-tight tracking-tight truncate">{produto.nome}</h2>
+            <div className="flex items-center gap-2 mt-1 sm:mt-1.5 flex-wrap">
               {(produto.formato ?? "retangular") === "oval" ? (
                 <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 border border-violet-400/20">Oval</span>
               ) : (
@@ -973,12 +973,12 @@ function ProductDetail({
           </div>
           <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
             <button onClick={() => setShowShare(true)} aria-label="Compartilhar"
-              className="w-8 h-8 rounded-full bg-white/8 hover:bg-sky-500/20 text-white/50 hover:text-sky-300 flex items-center justify-center transition">
-              <Share2 className="w-3.5 h-3.5" />
+              className="w-10 h-10 sm:w-9 sm:h-9 lg:w-8 lg:h-8 rounded-full bg-white/8 hover:bg-sky-500/20 active:bg-sky-500/30 text-white/60 hover:text-sky-300 flex items-center justify-center transition">
+              <Share2 className="w-4 h-4 lg:w-3.5 lg:h-3.5" />
             </button>
             <button onClick={onClose} aria-label="Fechar"
-              className="w-8 h-8 rounded-full bg-white/8 hover:bg-white/15 text-white/60 hover:text-white flex items-center justify-center transition">
-              <X className="w-4 h-4" />
+              className="w-10 h-10 sm:w-9 sm:h-9 lg:w-8 lg:h-8 rounded-full bg-white/8 hover:bg-white/15 active:bg-white/20 text-white/70 hover:text-white flex items-center justify-center transition">
+              <X className="w-4.5 h-4.5 lg:w-4 lg:h-4" />
             </button>
           </div>
         </div>
