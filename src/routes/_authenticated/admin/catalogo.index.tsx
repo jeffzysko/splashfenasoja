@@ -700,20 +700,65 @@ function ProductDetail({
   // ── Shared info body (desktop panel + mobile sheet expanded) ──────────────
   const infoBody = (
     <div className="flex-1 px-5 py-5 space-y-6">
-      {modeloUrl && (
+      {modelos3d.length > 0 && currentModelo && (
         <div>
-          <SectionLabel><Box className="w-3 h-3 opacity-60" />Modelo 3D</SectionLabel>
-          <div className="mt-2.5 rounded-2xl overflow-hidden border border-white/[0.08] bg-[#000d1a]">
+          <SectionLabel>
+            <Box className="w-3 h-3 opacity-60" />
+            {modelos3d.length > 1 ? `Modelos 3D · ${safeModeloIdx + 1}/${modelos3d.length}` : "Modelo 3D"}
+          </SectionLabel>
+          <div className="mt-2.5 relative rounded-2xl overflow-hidden border border-white/[0.08] bg-[#000d1a]">
             <img
-              src={modeloUrl}
-              alt={`${produto.nome} — modelo 3D`}
-              className="w-full object-contain max-h-48"
+              key={currentModelo.url}
+              src={currentModelo.url}
+              alt={`${produto.nome}${currentModelo.label ? " — " + currentModelo.label : ""} — modelo 3D`}
+              className="w-full object-contain max-h-48 animate-in fade-in duration-200"
               onError={(e) => {
                 const wrap = (e.currentTarget as HTMLImageElement).closest("div") as HTMLElement | null;
                 if (wrap) wrap.style.display = "none";
               }}
             />
+            {modelos3d.length > 1 && (
+              <>
+                <button
+                  onClick={() => setModeloIdx((i) => (i - 1 + modelos3d.length) % modelos3d.length)}
+                  aria-label="Modelo anterior"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm text-white/80 hover:text-white hover:bg-black/80 border border-white/10 flex items-center justify-center transition"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setModeloIdx((i) => (i + 1) % modelos3d.length)}
+                  aria-label="Próximo modelo"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm text-white/80 hover:text-white hover:bg-black/80 border border-white/10 flex items-center justify-center transition"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+                {currentModelo.label && (
+                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/65 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-wider border border-white/10 whitespace-nowrap">
+                    {currentModelo.label}
+                  </div>
+                )}
+              </>
+            )}
           </div>
+          {modelos3d.length > 1 && (
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              {modelos3d.map((m, i) => (
+                <button
+                  key={i}
+                  onClick={() => setModeloIdx(i)}
+                  className={cn(
+                    "text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border transition",
+                    i === safeModeloIdx
+                      ? "bg-sky-500/20 text-sky-200 border-sky-400/40"
+                      : "bg-white/[0.04] text-white/45 border-white/10 hover:text-white/70 hover:border-white/25"
+                  )}
+                >
+                  {m.label || `Variação ${i + 1}`}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
       {produto.descricao && (
