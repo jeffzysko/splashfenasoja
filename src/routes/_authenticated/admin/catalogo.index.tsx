@@ -915,9 +915,9 @@ function ProductDetail({
             </div>
           ) : null}
 
-          {/* Zoom hint */}
+          {/* Zoom hint — somente desktop (touch já dá pinch nativo) */}
           {currentUrl && !zoomed && (
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/55 backdrop-blur-md text-white/55 text-[10px] font-semibold px-3 py-1.5 rounded-full border border-white/[0.12] pointer-events-none select-none">
+            <div className="hidden lg:flex absolute bottom-3 left-1/2 -translate-x-1/2 items-center gap-1.5 bg-black/55 backdrop-blur-md text-white/55 text-[10px] font-semibold px-3 py-1.5 rounded-full border border-white/[0.12] pointer-events-none select-none">
               <ZoomIn className="w-3 h-3" />
               Clique para ampliar
             </div>
@@ -927,7 +927,8 @@ function ProductDetail({
           {zoomed && (
             <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-sky-500/75 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1.5 rounded-full pointer-events-none select-none shadow-lg shadow-sky-900/30">
               <ZoomOut className="w-3 h-3" />
-              ×2.6 · Mova o cursor · Clique para sair
+              <span className="hidden sm:inline">×2.6 · Mova o cursor · Clique para sair</span>
+              <span className="sm:hidden">×2.6 · Toque para sair</span>
             </div>
           )}
 
