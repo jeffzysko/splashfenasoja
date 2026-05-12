@@ -24,9 +24,10 @@ type Tamanho = {
   profundidade: string;
   capacidade?: string;
   porcelana_atlas: boolean;
+  modelos?: string[]; // ids (paths) dos Modelo3D em que este tamanho está disponível. Vazio/ausente = todos.
 };
 
-type Modelo3D = { url: string; label: string };
+type Modelo3D = { url: string; label: string; path?: string };
 
 type OpcionaisObj = { porcelana_atlas?: boolean; acrilico?: boolean };
 
