@@ -176,7 +176,7 @@ function CatalogoPage() {
       .eq("ativo", true)
       .order("ordem", { ascending: true })
       .order("created_at", { ascending: true });
-    setProdutos((data as Produto[]) ?? []);
+    setProdutos((data as unknown as Produto[]) ?? []);
     setLoading(false);
   }, []);
 
