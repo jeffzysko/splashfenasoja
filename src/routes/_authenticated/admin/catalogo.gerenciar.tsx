@@ -70,9 +70,6 @@ const hasTamanhoData = (t: Tamanho) =>
   [t.label, t.comprimento, t.largura, t.profundidade, t.capacidade].some(
     (value) => String(value ?? "").trim().length > 0,
   );
-  [t.label, t.comprimento, t.largura, t.profundidade, t.capacidade].some(
-    (value) => String(value ?? "").trim().length > 0,
-  );
 const EMPTY_FORM = {
   nome: "",
   descricao: "",
