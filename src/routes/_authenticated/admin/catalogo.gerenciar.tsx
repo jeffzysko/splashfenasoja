@@ -527,6 +527,76 @@ function CatalogoGerenciarPage() {
               </div>
             </div>
 
+            {/* Modelos 3D */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  Modelos 3D ({form.modelos_3d.length})
+                </Label>
+                <button
+                  onClick={() => modeloRef.current?.click()}
+                  disabled={uploadingModelo}
+                  className="text-xs font-bold text-primary hover:text-primary/80 flex items-center gap-1 transition disabled:opacity-50"
+                >
+                  {uploadingModelo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                  {uploadingModelo ? "Enviando…" : "Adicionar variação"}
+                </button>
+                <input
+                  ref={modeloRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    Array.from(e.target.files ?? []).forEach((f) => uploadModelo(f));
+                  }}
+                />
+              </div>
+
+              {form.modelos_3d.length === 0 ? (
+                <button
+                  onClick={() => modeloRef.current?.click()}
+                  className="w-full h-24 rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-1.5 text-muted-foreground hover:border-primary/50 hover:text-primary transition"
+                >
+                  <Upload className="w-5 h-5" />
+                  <span className="text-xs font-semibold">Adicionar imagens 3D do modelo</span>
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  {form.modelos_3d.map((m, i) => (
+                    <div key={m.path} className="flex items-center gap-2 bg-muted/50 rounded-xl p-2">
+                      <div className="w-14 h-14 rounded-lg overflow-hidden bg-background border border-border shrink-0">
+                        <img src={m.url} alt="" className="w-full h-full object-contain" />
+                      </div>
+                      <Input
+                        value={m.label}
+                        onChange={(e) => setModeloLabel(i, e.target.value)}
+                        placeholder="Ex: Tradicional, Com SPA, Com Prainha"
+                        className="rounded-lg h-9 flex-1 text-sm"
+                      />
+                      <div className="flex flex-col gap-0.5 shrink-0">
+                        <button onClick={() => moveModelo(i, -1)} disabled={i === 0}
+                          className="w-6 h-5 flex items-center justify-center rounded text-muted-foreground hover:text-secondary disabled:opacity-20 transition">
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => moveModelo(i, 1)} disabled={i === form.modelos_3d.length - 1}
+                          className="w-6 h-5 flex items-center justify-center rounded text-muted-foreground hover:text-secondary disabled:opacity-20 transition">
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <button onClick={() => removeModelo(m, i)}
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive transition shrink-0">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-[10px] text-muted-foreground">
+                Imagens 3D do produto (renderizações). Adicione um rótulo para cada variação — o catálogo mostrará um carrossel quando houver mais de uma.
+              </p>
+            </div>
+
             {/* Fotos */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
