@@ -98,7 +98,9 @@ function matchesFilters(p: Produto, f: Filters): boolean {
   return true;
 }
 
-// Filter tamanhos by selected 3D model variation
+// Filter tamanhos by selected 3D model variation.
+// Only narrow when the user picked a specific variant (SPA/Prainha).
+// "Tradicional" pure shows ALL sizes (base model is universal).
 function tamanhosForModelo(tamanhos: Tamanho[], modeloLabel: string | null | undefined): Tamanho[] {
   if (!modeloLabel) return tamanhos;
   const lbl = modeloLabel.toLowerCase();
@@ -106,11 +108,7 @@ function tamanhosForModelo(tamanhos: Tamanho[], modeloLabel: string | null | und
   const wantsPrainha = /prainha/.test(lbl);
   if (wantsSPA) return tamanhos.filter((t) => /\bspa\b/i.test(t.label ?? ""));
   if (wantsPrainha) return tamanhos.filter((t) => /prainha/i.test(t.label ?? ""));
-  // Base / "Tradicional" → exclude variants
-  return tamanhos.filter((t) => {
-    const l = t.label ?? "";
-    return !/\bspa\b/i.test(l) && !/prainha/i.test(l);
-  });
+  return tamanhos;
 }
 
 function activeFilterCount(f: Filters): number {
