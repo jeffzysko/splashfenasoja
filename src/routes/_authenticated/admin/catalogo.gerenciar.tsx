@@ -37,6 +37,7 @@ type Tamanho = {
   largura: string;
   profundidade: string;
   capacidade: string;
+  porcelana_atlas?: boolean;
   modelos?: string[]; // paths dos Modelo3D em que este tamanho aparece. Vazio = todos.
 };
 type Opcional = { porcelana_atlas: boolean; acrilico: boolean };
@@ -53,7 +54,10 @@ type Produto = {
   ordem: number;
 };
 
-const EMPTY_TAMANHO: Tamanho = { label: "", comprimento: "", largura: "", profundidade: "", capacidade: "", modelos: [] };
+const EMPTY_TAMANHO: Tamanho = { label: "", comprimento: "", largura: "", profundidade: "", capacidade: "", porcelana_atlas: false, modelos: [] };
+const hasTamanhoData = (t: Tamanho) =>
+  [t.label, t.comprimento, t.largura, t.profundidade, t.capacidade]
+    .some((value) => String(value ?? "").trim().length > 0);
 const EMPTY_FORM = {
   nome: "",
   descricao: "",
@@ -124,6 +128,7 @@ function CatalogoGerenciarPage() {
             largura: String(t.largura ?? ""),
             profundidade: String(t.profundidade ?? ""),
             capacidade: t.capacidade ?? "",
+            porcelana_atlas: !!t.porcelana_atlas,
             modelos: Array.isArray(t.modelos) ? [...t.modelos] : [],
           }))
         : [{ ...EMPTY_TAMANHO, modelos: [] }],
@@ -255,7 +260,7 @@ function CatalogoGerenciarPage() {
       nome: form.nome.trim(),
       descricao: form.descricao.trim() || null,
       tamanhos: form.tamanhos
-        .filter((t) => t.label.trim())
+        .filter(hasTamanhoData)
         .map((t) => ({ ...t, modelos: Array.isArray(t.modelos) ? t.modelos : [] })),
       opcionais: form.opcionais,
       fotos: form.fotos,
@@ -555,7 +560,7 @@ function CatalogoGerenciarPage() {
             {form.modelos_3d.length > 0 && (
               <CatalogPreview
                 modelos={form.modelos_3d}
-                tamanhos={form.tamanhos.filter((t) => t.label.trim())}
+                tamanhos={form.tamanhos.filter(hasTamanhoData)}
               />
             )}
 
