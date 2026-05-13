@@ -10,6 +10,60 @@ const corsHeaders = {
 const RATE_LIMIT_MAX = 10;
 const RATE_LIMIT_WINDOW_MINUTES = 60;
 
+// ─── Integração com o projeto principal (quintalideal) ───────────────────────
+// Configure estes dois secrets no Supabase da feira:
+//   supabase secrets set QUINTAL_URL=https://<project-ref>.supabase.co
+//   supabase secrets set QUINTAL_INTEGRATION_SECRET=<mesmo-valor-que-LEADS_FEIRA_SECRET>
+async function syncLeadToQuintal(payload: {
+  lead_id: string;
+  feira_id: string | null;
+  feira_nome: string | null;
+  feira_slug: string | null;
+  nome: string;
+  whatsapp: string;
+  email: string | null;
+  cidade: string | null;
+  estado: string | null;
+  tamanho_quintal: string | null;
+  prazo_compra: string | null;
+  orcamento: string | null;
+  score: number | null;
+  temperatura: string | null;
+  evento: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  ip: string;
+}) {
+  const quintalUrl = Deno.env.get("QUINTAL_URL");
+  const quintalSecret = Deno.env.get("QUINTAL_INTEGRATION_SECRET");
+
+  // Se as variáveis não estiverem configuradas, ignora silenciosamente
+  if (!quintalUrl || !quintalSecret) return;
+
+  try {
+    const res = await fetch(`${quintalUrl}/functions/v1/receber-lead-feira`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-integration-secret": quintalSecret,
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(8000), // 8 s timeout
+    });
+
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      console.warn(`quintal-sync: HTTP ${res.status}`, txt.slice(0, 200));
+    } else {
+      console.log("quintal-sync: lead enviado com sucesso", payload.lead_id);
+    }
+  } catch (e) {
+    // Nunca deixa o erro da integração afetar o retorno ao cliente da feira
+    console.error("quintal-sync: erro ao enviar lead", e);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -117,6 +171,43 @@ serve(async (req) => {
       }
       throw error;
     }
+
+    // ── Busca info da feira para enriquecer o sync ──────────────────────────
+    let fairaNome: string | null = null;
+    let fairaSlug: string | null = null;
+    if (feira_id) {
+      const { data: feiraData } = await supabaseAdmin
+        .from("feiras")
+        .select("nome, slug")
+        .eq("id", feira_id)
+        .single();
+      fairaNome = feiraData?.nome ?? null;
+      fairaSlug = feiraData?.slug ?? null;
+    }
+
+    // ── Sincroniza com o quintalideal (fire-and-forget) ─────────────────────
+    // Não aguardamos — a resposta ao cliente não depende desta chamada
+    syncLeadToQuintal({
+      lead_id:        data.id,
+      feira_id:       feira_id || null,
+      feira_nome:     fairaNome,
+      feira_slug:     fairaSlug,
+      nome:           nome.trim(),
+      whatsapp,
+      email:          email?.trim() || null,
+      cidade,
+      estado,
+      tamanho_quintal: tamanho_quintal || null,
+      prazo_compra:    prazo_compra    || null,
+      orcamento:       orcamento       || null,
+      score:           data.score,
+      temperatura:     data.temperatura,
+      evento:          evento          || null,
+      utm_source:      utm_source      || null,
+      utm_medium:      utm_medium      || null,
+      utm_campaign:    utm_campaign    || null,
+      ip,
+    });
 
     return new Response(
       JSON.stringify({ success: true, leadId: data.id, score: data.score, temperatura: data.temperatura }),
