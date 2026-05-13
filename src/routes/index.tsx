@@ -30,8 +30,7 @@ function LandingPage() {
           Acesse o link do evento
         </h1>
         <p className="text-muted-foreground text-sm max-w-xs mx-auto leading-relaxed">
-          Para se cadastrar, use o QR Code ou o link disponível no stand da{" "}
-          <strong className="text-secondary">Splash Piscinas</strong> durante o evento.
+          Para se cadastrar, use o QR Code ou o link disponível no stand durante o evento.
         </p>
       </div>
 
