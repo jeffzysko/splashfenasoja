@@ -20,7 +20,7 @@ function LandingPage() {
         className="absolute top-[-120px] right-[-80px] w-[320px] h-[320px] rounded-full bg-accent/15 blur-3xl pointer-events-none"
       />
 
-      <Logo height={72} />
+      <LogoQuintalIdeal height={64} />
 
       <div className="space-y-3">
         <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
