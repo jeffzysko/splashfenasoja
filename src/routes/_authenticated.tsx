@@ -2,7 +2,7 @@ import { createFileRoute, redirect, Outlet, Link, useNavigate, useLocation } fro
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { Button } from "@/components/ui/button";
-import { Logo } from "@/components/Logo";
+import { LogoQuintalIdeal } from "@/components/LogoQuintalIdeal";
 import { LogOut, LayoutDashboard, Users, Shield, SlidersHorizontal, CalendarDays, UserCog, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
@@ -157,7 +157,7 @@ function AuthenticatedLayout() {
       <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-md border-b border-border/50 pt-safe">
         <div className="max-w-4xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between gap-2">
           <Link to="/admin" className="flex items-center gap-1.5 min-w-0 shrink">
-            <Logo height={36} />
+            <LogoQuintalIdeal height={32} />
             <span className="bg-secondary text-secondary-foreground text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0">
               Admin
             </span>
