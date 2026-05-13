@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Logo } from "@/components/Logo";
+import { LogoQuintalIdeal } from "@/components/LogoQuintalIdeal";
 import { QrCode } from "lucide-react";
 
 export const Route = createFileRoute("/")({
