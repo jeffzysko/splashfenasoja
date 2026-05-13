@@ -1,6 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
-import logoUrl from "@/assets/logo-quintalideal.png";
+import logoUrl from "@/assets/logo-quintalideal.svg";
 
 interface LogoQuintalIdealProps {
   className?: string;
