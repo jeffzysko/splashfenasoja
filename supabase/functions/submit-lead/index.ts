@@ -19,6 +19,7 @@ async function syncLeadToQuintal(payload: {
   feira_id: string | null;
   feira_nome: string | null;
   feira_slug: string | null;
+  origin_franquia_id: string | null;
   nome: string;
   whatsapp: string;
   email: string | null;
@@ -175,37 +176,40 @@ serve(async (req) => {
     // ── Busca info da feira para enriquecer o sync ──────────────────────────
     let fairaNome: string | null = null;
     let fairaSlug: string | null = null;
+    let quintalFranquiaId: string | null = null;
     if (feira_id) {
       const { data: feiraData } = await supabaseAdmin
         .from("feiras")
-        .select("nome, slug")
+        .select("nome, slug, quintal_franquia_id")
         .eq("id", feira_id)
         .single();
-      fairaNome = feiraData?.nome ?? null;
-      fairaSlug = feiraData?.slug ?? null;
+      fairaNome        = feiraData?.nome              ?? null;
+      fairaSlug        = feiraData?.slug              ?? null;
+      quintalFranquiaId = feiraData?.quintal_franquia_id ?? null;
     }
 
     // ── Sincroniza com o quintalideal (fire-and-forget) ─────────────────────
     // Não aguardamos — a resposta ao cliente não depende desta chamada
     syncLeadToQuintal({
-      lead_id:        data.id,
-      feira_id:       feira_id || null,
-      feira_nome:     fairaNome,
-      feira_slug:     fairaSlug,
-      nome:           nome.trim(),
+      lead_id:            data.id,
+      feira_id:           feira_id           || null,
+      feira_nome:         fairaNome,
+      feira_slug:         fairaSlug,
+      origin_franquia_id: quintalFranquiaId,
+      nome:               nome.trim(),
       whatsapp,
-      email:          email?.trim() || null,
+      email:              email?.trim()      || null,
       cidade,
       estado,
-      tamanho_quintal: tamanho_quintal || null,
-      prazo_compra:    prazo_compra    || null,
-      orcamento:       orcamento       || null,
-      score:           data.score,
-      temperatura:     data.temperatura,
-      evento:          evento          || null,
-      utm_source:      utm_source      || null,
-      utm_medium:      utm_medium      || null,
-      utm_campaign:    utm_campaign    || null,
+      tamanho_quintal:    tamanho_quintal    || null,
+      prazo_compra:       prazo_compra       || null,
+      orcamento:          orcamento          || null,
+      score:              data.score,
+      temperatura:        data.temperatura,
+      evento:             evento             || null,
+      utm_source:         utm_source         || null,
+      utm_medium:         utm_medium         || null,
+      utm_campaign:       utm_campaign       || null,
       ip,
     });
 
