@@ -84,6 +84,7 @@ export type Database = {
           id: string
           mensagem_sucesso: string | null
           nome: string
+          quintal_franquia_id: string | null
           slug: string
           updated_at: string
           whatsapp: string | null
@@ -95,6 +96,7 @@ export type Database = {
           id?: string
           mensagem_sucesso?: string | null
           nome: string
+          quintal_franquia_id?: string | null
           slug: string
           updated_at?: string
           whatsapp?: string | null
@@ -106,6 +108,7 @@ export type Database = {
           id?: string
           mensagem_sucesso?: string | null
           nome?: string
+          quintal_franquia_id?: string | null
           slug?: string
           updated_at?: string
           whatsapp?: string | null
