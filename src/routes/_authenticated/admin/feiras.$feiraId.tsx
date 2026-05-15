@@ -3,7 +3,6 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
@@ -36,7 +35,7 @@ export const Route = createFileRoute("/_authenticated/admin/feiras/$feiraId")({
   head: () => ({ meta: [{ title: "Gerenciar Feira — Splash Admin" }] }),
 });
 
-type Feira = { id: string; nome: string; slug: string; ativo: boolean; created_at: string; whatsapp: string | null; mensagem_sucesso: string | null };
+type Feira = { id: string; nome: string; slug: string; ativo: boolean; created_at: string; whatsapp: string | null; mensagem_sucesso: string | null; quintal_franquia_id: string | null };
 type UserRow = { user_id: string; email: string | null; full_name: string | null; role: string; vinculado: boolean };
 
 function slugify(text: string) {
@@ -58,6 +57,7 @@ function FeiraDetailPage() {
   const [editAtivo, setEditAtivo] = useState(true);
   const [editWhatsapp, setEditWhatsapp] = useState("");
   const [editMensagem, setEditMensagem] = useState("");
+  const [editQuintalFranquiaId, setEditQuintalFranquiaId] = useState("");
   const [slugManual, setSlugManual] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -76,6 +76,7 @@ function FeiraDetailPage() {
     setEditAtivo(data.ativo);
     setEditWhatsapp(data.whatsapp || "");
     setEditMensagem(data.mensagem_sucesso || "");
+    setEditQuintalFranquiaId(data.quintal_franquia_id || "");
     setLoading(false);
   }, [feiraId, navigate]);
 
@@ -132,12 +133,21 @@ function FeiraDetailPage() {
     if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(editSlug)) { toast.error("Slug inválido."); return; }
     setSaving(true);
     const waClean = editWhatsapp.replace(/\D/g, "");
+    // Validar UUID do quintalideal se preenchido
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const qfId = editQuintalFranquiaId.trim();
+    if (qfId && !uuidRegex.test(qfId)) {
+      toast.error("ID da franquia inválido. Cole o UUID exato do Quintal Ideal.");
+      setSaving(false);
+      return;
+    }
     const { error } = await supabase.from("feiras").update({
       nome: editNome.trim(),
       slug: editSlug.trim(),
       ativo: editAtivo,
       whatsapp: waClean || null,
       mensagem_sucesso: editMensagem.trim() || null,
+      quintal_franquia_id: qfId || null,
     }).eq("id", feiraId);
     setSaving(false);
     if (error) { toast.error(error.message.includes("unique") ? "Esse slug já está em uso." : error.message); return; }
@@ -178,15 +188,15 @@ function FeiraDetailPage() {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="rounded-full shrink-0 -ml-2" asChild>
-          <Link to="/admin/feiras"><ArrowLeft className="w-5 h-5" /></Link>
-        </Button>
+        <Link to="/admin/feiras" className="p-2 -ml-2 text-muted-foreground hover:text-secondary rounded-full" aria-label="Voltar">
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
         <div>
-          <h2 className="text-xl font-extrabold text-secondary tracking-tight">{feira?.nome}</h2>
-          <p className="text-xs text-muted-foreground font-mono tracking-wide">/{feira?.slug}</p>
+          <h1 className="text-2xl font-black text-secondary tracking-tight">{feira?.nome}</h1>
+          <p className="text-xs text-muted-foreground font-mono">/{feira?.slug}</p>
         </div>
       </div>
 
@@ -244,23 +254,37 @@ function FeiraDetailPage() {
           />
           <p className="text-[11px] text-muted-foreground">
             Número que aparece no botão "Chamar especialista" da tela de sucesso do formulário.
-            Inclua DDI (55) + DDD + número. Apenas dígitos.
           </p>
         </div>
 
         <div className="space-y-1.5">
           <label className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">
-            Mensagem de sucesso personalizada
+            Mensagem na tela de agradecimento
           </label>
-          <Textarea
+          <textarea
             value={editMensagem}
             onChange={(e) => setEditMensagem(e.target.value)}
-            placeholder={`Ex: Logo um especialista da ${editNome || "Splash"} vai te chamar no WhatsApp!`}
-            className="rounded-xl resize-none min-h-[80px]"
-            maxLength={300}
+            placeholder="Ex: Em breve nossa equipe da FENASOJA entrará em contato com você!"
+            rows={3}
+            className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
           />
           <p className="text-[11px] text-muted-foreground">
-            Texto exibido na tela de confirmação após o cadastro. Se vazio, usa mensagem padrão.
+            Texto exibido abaixo do "Pronto, [nome]!" na tela de sucesso. Se vazio, usa a mensagem padrão.
+          </p>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">
+            Franquia no Quintal Ideal
+          </label>
+          <Input
+            value={editQuintalFranquiaId}
+            onChange={(e) => setEditQuintalFranquiaId(e.target.value.trim())}
+            placeholder="Cole aqui o UUID da franquia (ex: a18278bd-0f91-...)"
+            className="h-12 rounded-xl font-mono text-xs"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            ID da franquia responsável por esta feira no sistema Quintal Ideal. Os leads capturados serão enviados para ela (com redistribuição por cidade automática). Encontre o UUID no painel de franquias do Quintal Ideal.
           </p>
         </div>
 
@@ -326,10 +350,9 @@ function FeiraDetailPage() {
                   <div className="flex items-center gap-2 mt-0.5">
                     {u.email && <p className="text-xs text-muted-foreground truncate">{u.email}</p>}
                     <span className={cn(
-                      "text-[9px] font-extrabold px-2 py-0.5 rounded-full border uppercase tracking-wider",
-                      u.role === "master" ? "bg-purple-500/15 text-purple-700 border-purple-500/30" :
-                      u.role === "admin"  ? "bg-blue-500/15 text-blue-700 border-blue-500/30" :
-                                            "bg-muted text-muted-foreground border-border"
+                      "text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider",
+                      u.role === "master" ? "bg-purple-100 text-purple-700" :
+                      u.role === "admin" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"
                     )}>
                       {u.role}
                     </span>
