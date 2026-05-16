@@ -28,7 +28,7 @@ export const WelcomeScreen = () => {
         1 minuto a gente já manda o catálogo pro seu WhatsApp.
       </p>
 
-      <div className="w-full max-w-xs animate-in fade-in slide-in-from-bottom-4 duration-500 delay-450 fill-mode-forwards">
+      <div className="w-full max-w-xs sm:max-w-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-450 fill-mode-forwards">
         <Button
           onClick={() => setStep(1)}
           size="lg"

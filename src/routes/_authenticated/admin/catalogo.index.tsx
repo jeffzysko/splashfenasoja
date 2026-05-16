@@ -387,7 +387,7 @@ function CatalogoPage() {
         </div>
       ) : (
         <div className="py-6 pb-24 sm:pb-10">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
             {filtered.map((p) => (
               <ProductCard key={p.id} produto={p} onClick={(e) => openDetail(p, e)} />
             ))}

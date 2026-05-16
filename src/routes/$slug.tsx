@@ -142,7 +142,7 @@ function FeiraFormPage() {
       <div aria-hidden className="absolute top-[40%] left-[-100px] w-[260px] h-[260px] rounded-full bg-primary/10 blur-3xl pointer-events-none" />
 
       <header className="sticky top-0 z-50 backdrop-blur-md bg-background/70 border-b border-border/50">
-        <div className="max-w-md mx-auto flex items-center px-4 h-16 gap-3">
+        <div className="max-w-lg sm:max-w-xl mx-auto flex items-center px-4 h-16 gap-3">
           {showBack ? (
             <button
               onClick={() => setStep(step - 1)}
