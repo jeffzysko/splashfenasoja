@@ -11,15 +11,12 @@ const RATE_LIMIT_MAX = 10;
 const RATE_LIMIT_WINDOW_MINUTES = 60;
 
 // ─── Integração com o projeto principal (quintalideal) ───────────────────────
-// Configure estes dois secrets no Supabase da feira:
-//   supabase secrets set QUINTAL_URL=https://<project-ref>.supabase.co
-//   supabase secrets set QUINTAL_INTEGRATION_SECRET=<mesmo-valor-que-LEADS_FEIRA_SECRET>
 async function syncLeadToQuintal(payload: {
   lead_id: string;
   feira_id: string | null;
   feira_nome: string | null;
   feira_slug: string | null;
-  origin_franquia_id: string | null;
+  origin_franquia_ids: string[];
   nome: string;
   whatsapp: string;
   email: string | null;
@@ -39,7 +36,6 @@ async function syncLeadToQuintal(payload: {
   const quintalUrl = Deno.env.get("QUINTAL_URL");
   const quintalSecret = Deno.env.get("QUINTAL_INTEGRATION_SECRET");
 
-  // Se as variáveis não estiverem configuradas, ignora silenciosamente
   if (!quintalUrl || !quintalSecret) return;
 
   try {
@@ -50,7 +46,7 @@ async function syncLeadToQuintal(payload: {
         "x-integration-secret": quintalSecret,
       },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(8000), // 8 s timeout
+      signal: AbortSignal.timeout(8000),
     });
 
     if (!res.ok) {
@@ -60,7 +56,6 @@ async function syncLeadToQuintal(payload: {
       console.log("quintal-sync: lead enviado com sucesso", payload.lead_id);
     }
   } catch (e) {
-    // Nunca deixa o erro da integração afetar o retorno ao cliente da feira
     console.error("quintal-sync: erro ao enviar lead", e);
   }
 }
@@ -71,20 +66,17 @@ serve(async (req) => {
   }
 
   try {
-    // ── Captura o IP real do visitante ──────────────────────────────────────
     const ip =
-      req.headers.get("cf-connecting-ip") ||      // Cloudflare
-      req.headers.get("x-real-ip") ||             // Nginx proxy
-      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || // Proxies genéricos
+      req.headers.get("cf-connecting-ip") ||
+      req.headers.get("x-real-ip") ||
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       "unknown";
 
-    // ── Cria cliente com service_role para operações privilegiadas ──────────
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // ── Verifica rate limit por IP ──────────────────────────────────────────
     if (ip !== "unknown") {
       const windowStart = new Date(
         Date.now() - RATE_LIMIT_WINDOW_MINUTES * 60 * 1000,
@@ -110,7 +102,6 @@ serve(async (req) => {
       }
     }
 
-    // ── Lê o body da requisição ─────────────────────────────────────────────
     const body = await req.json();
     const {
       id,
@@ -132,7 +123,6 @@ serve(async (req) => {
       user_agent,
     } = body;
 
-    // Validações básicas
     if (!nome || !whatsapp || !cidade || !estado) {
       return new Response(
         JSON.stringify({ error: "MISSING_FIELDS", message: "Campos obrigatórios faltando." }),
@@ -140,7 +130,6 @@ serve(async (req) => {
       );
     }
 
-    // ── Insere o lead com o IP capturado ────────────────────────────────────
     const { data, error } = await supabaseAdmin.from("leads").insert({
       id,
       nome: nome.trim(),
@@ -163,7 +152,6 @@ serve(async (req) => {
     }).select("id, score, temperatura").single();
 
     if (error) {
-      // Erro de duplicata (trigger do banco)
       if (error.code === "P0002" || error.message?.includes("LEAD_DUPLICATE")) {
         return new Response(
           JSON.stringify({ error: "LEAD_DUPLICATE", message: "Lead já cadastrado." }),
@@ -173,29 +161,30 @@ serve(async (req) => {
       throw error;
     }
 
-    // ── Busca info da feira para enriquecer o sync ──────────────────────────
+    // ── Busca info da feira (nome, slug e array de franquias organizadoras) ──
     let fairaNome: string | null = null;
     let fairaSlug: string | null = null;
-    let quintalFranquiaId: string | null = null;
+    let quintalFranquiaIds: string[] = [];
     if (feira_id) {
       const { data: feiraData } = await supabaseAdmin
         .from("feiras")
-        .select("nome, slug, quintal_franquia_id")
+        .select("nome, slug, quintal_franquia_ids")
         .eq("id", feira_id)
         .single();
-      fairaNome        = feiraData?.nome              ?? null;
-      fairaSlug        = feiraData?.slug              ?? null;
-      quintalFranquiaId = feiraData?.quintal_franquia_id ?? null;
+      fairaNome          = feiraData?.nome               ?? null;
+      fairaSlug          = feiraData?.slug               ?? null;
+      quintalFranquiaIds = Array.isArray(feiraData?.quintal_franquia_ids)
+        ? feiraData.quintal_franquia_ids
+        : [];
     }
 
     // ── Sincroniza com o quintalideal (fire-and-forget) ─────────────────────
-    // Não aguardamos — a resposta ao cliente não depende desta chamada
     syncLeadToQuintal({
       lead_id:            data.id,
       feira_id:           feira_id           || null,
       feira_nome:         fairaNome,
       feira_slug:         fairaSlug,
-      origin_franquia_id: quintalFranquiaId,
+      origin_franquia_ids: quintalFranquiaIds,
       nome:               nome.trim(),
       whatsapp,
       email:              email?.trim()      || null,
