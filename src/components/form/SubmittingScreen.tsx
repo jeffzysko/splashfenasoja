@@ -6,6 +6,33 @@ import { toast } from "sonner";
 import { ScreenContainer } from "./ScreenContainer";
 import { calcScore, normalizeWhatsapp } from "@/lib/leads";
 
+/**
+ * Gera um UUID v4 válido compatível com Chrome 88+.
+ * crypto.randomUUID() só existe no Chrome 92+, mas
+ * crypto.getRandomValues() existe desde Chrome 37.
+ */
+function generateUUID(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  // Fallback: UUID v4 via crypto.getRandomValues() (Chrome 37+)
+  if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    // Set version 4 and variant bits
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+  // Último fallback: UUID v4 sem crypto (muito improvável de chegar aqui)
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 export const SubmittingScreen = () => {
   const { data, feiraId, feiraNome, setStep, setSubmitted } = useFormStore();
 
@@ -19,11 +46,7 @@ export const SubmittingScreen = () => {
           tamanho_quintal: data.tamanho_quintal,
         });
 
-        const leadId =
-          typeof crypto.randomUUID === "function"
-            ? crypto.randomUUID()
-            : Math.random().toString(36).substring(2, 15) +
-              Math.random().toString(36).substring(2, 15);
+        const leadId = generateUUID();
 
         const params = new URLSearchParams(window.location.search);
 
@@ -135,3 +158,4 @@ export const SubmittingScreen = () => {
     </ScreenContainer>
   );
 };
+
