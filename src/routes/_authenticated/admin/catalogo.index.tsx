@@ -745,7 +745,7 @@ function ProductDetail({
               key={currentModelo.url}
               src={currentModelo.url}
               alt={`${produto.nome}${currentModelo.label ? " — " + currentModelo.label : ""} — modelo 3D`}
-              className="w-full object-contain max-h-48 animate-in fade-in duration-200"
+              className="w-full object-contain max-h-48"
               onError={(e) => {
                 const wrap = (e.currentTarget as HTMLImageElement).closest("div") as HTMLElement | null;
                 if (wrap) wrap.style.display = "none";
@@ -901,7 +901,7 @@ function ProductDetail({
               src={thumbUrl(currentUrl, 1200, 85) ?? currentUrl}
               alt={`${produto.nome} — foto ${photoIdx + 1}`}
               draggable={false}
-              className="absolute inset-0 w-full h-full object-contain select-none animate-in fade-in duration-200"
+              className="absolute inset-0 w-full h-full object-contain select-none"
               onError={makeImgErrorHandler(currentUrl)}
               style={{
                 transform: zoomed ? "scale(2.6)" : "scale(1)",

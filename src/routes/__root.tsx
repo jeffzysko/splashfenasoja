@@ -54,8 +54,8 @@ export const Route = createRootRoute({
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-      { name: "apple-mobile-web-app-title", content: "Splash Lead" },
-      { name: "application-name", content: "Splash Lead" },
+      { name: "apple-mobile-web-app-title", content: "Splash Piscinas" },
+      { name: "application-name", content: "Splash Piscinas" },
       { name: "app-version", content: APP_VERSION },
       { title: "Splash Lead — Splash Piscinas" },
       {
@@ -74,17 +74,14 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", type: "image/svg+xml", href: `/favicon-quintalideal.svg${v}` },
+      { rel: "icon", type: "image/svg+xml", href: `/logo_splash.svg${v}` },
       { rel: "icon", type: "image/png", sizes: "32x32", href: `/favicon-32.png${v}` },
       { rel: "icon", type: "image/png", sizes: "192x192", href: `/icon-192.png${v}` },
       { rel: "apple-touch-icon", sizes: "180x180", href: `/apple-touch-icon.png${v}` },
-      // Manifest NÃO injetado aqui — é injetado condicionalmente por rota:
-      // • login.tsx + _authenticated.tsx → /admin-manifest.webmanifest
-      // • $slug.tsx (formulário público) → sem manifest, sem PWA
+      // Manifest injetado condicionalmente por rota:
+      // - admin/login → /admin-manifest.webmanifest (start_url=/login)
+      // - formulário público ($slug) → nenhum manifest (sem PWA)
       ...splashLinks,
-      // Supabase Storage — antecipa conexão DNS+TLS para imagens do catálogo
-      { rel: "preconnect", href: "https://ezehjzvbztsgqpnhmsvg.supabase.co", crossOrigin: "anonymous" },
-      { rel: "dns-prefetch", href: "https://ezehjzvbztsgqpnhmsvg.supabase.co" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       {
         rel: "preconnect",
@@ -94,6 +91,16 @@ export const Route = createRootRoute({
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap",
+      },
+      // Supabase storage — preconnect para acelerar carregamento de imagens
+      {
+        rel: "preconnect",
+        href: "https://ezehjzvbztsgqpnhmsvg.supabase.co",
+        crossOrigin: "anonymous",
+      },
+      {
+        rel: "dns-prefetch",
+        href: "https://ezehjzvbztsgqpnhmsvg.supabase.co",
       },
     ],
   }),
@@ -107,31 +114,50 @@ function RootDocument() {
         <HeadContent />
       </head>
       <body>
+        {/* Safety net: MutationObserver para corrigir elementos .animate-in presos
+            em opacity:0 em navegadores antigos (Chrome 88) que não finalizam a
+            animação de entrada. Observa adições dinâmicas do React também. */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){
+  function fix(el){
+    try{
+      var s=window.getComputedStyle(el);
+      if(parseFloat(s.opacity)<0.05){
+        el.style.cssText+=';opacity:1!important;transform:none!important;animation:none!important';
+      }
+    }catch(e){}
+  }
+  function fixLater(el){ setTimeout(function(){ fix(el); }, 400); }
+  function scanAll(){
+    var els=document.querySelectorAll('.animate-in');
+    for(var i=0;i<els.length;i++) fixLater(els[i]);
+  }
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',function(){ setTimeout(scanAll,800); });
+  } else {
+    setTimeout(scanAll,800);
+  }
+  if(typeof MutationObserver!=='undefined'){
+    var mo=new MutationObserver(function(mutations){
+      for(var m=0;m<mutations.length;m++){
+        var nodes=mutations[m].addedNodes;
+        for(var n=0;n<nodes.length;n++){
+          var node=nodes[n];
+          if(node.nodeType!==1) continue;
+          if(node.classList&&node.classList.contains('animate-in')) fixLater(node);
+          if(node.querySelectorAll){
+            var ch=node.querySelectorAll('.animate-in');
+            for(var c=0;c<ch.length;c++) fixLater(ch[c]);
+          }
+        }
+      }
+    });
+    mo.observe(document.body||document.documentElement,{childList:true,subtree:true});
+  }
+})();` }} />
         <Outlet />
         <UpdatePrompt />
         <Toaster richColors position="top-center" />
         <Scripts />
-        {/* Safety net: Chrome 88 pode deixar elementos com animate-in presos em opacity:0.
-            Após 1.5s da carga, força visibilidade em qualquer elemento ainda invisível. */}
-        <script dangerouslySetInnerHTML={{ __html: `
-(function(){
-  function fixStuckAnimations(){
-    var els = document.querySelectorAll('.animate-in');
-    for(var i=0;i<els.length;i++){
-      var el=els[i];
-      var s=window.getComputedStyle(el);
-      if(parseFloat(s.opacity)<0.05){
-        el.style.cssText+=";opacity:1!important;transform:none!important;animation:none!important";
-      }
-    }
-  }
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',function(){setTimeout(fixStuckAnimations,1500);});
-  } else {
-    setTimeout(fixStuckAnimations,1500);
-  }
-})();
-` }} />
       </body>
     </html>
   );
