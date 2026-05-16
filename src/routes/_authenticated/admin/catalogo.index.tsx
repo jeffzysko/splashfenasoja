@@ -232,6 +232,27 @@ function CatalogoPage() {
 
   useEffect(() => { loadProdutos(); }, [loadProdutos]);
 
+  // Cache warming: após carregar produtos, faz prefetch silencioso de TODAS as fotos
+  // no background via requestIdleCallback. O Service Worker intercepta e armazena.
+  // Resultado: quando admin abrir o lightbox de um produto, imagem já está local.
+  useEffect(() => {
+    if (produtos.length === 0) return;
+    const urls = produtos.flatMap((p) => p.fotos ?? []).filter(Boolean);
+    if (urls.length === 0) return;
+    const prefetch = () => {
+      urls.forEach((url) => {
+        fetch(url, { mode: "no-cors", cache: "force-cache" }).catch(() => {});
+      });
+    };
+    if (typeof requestIdleCallback !== "undefined") {
+      const id = requestIdleCallback(prefetch, { timeout: 3000 });
+      return () => cancelIdleCallback(id);
+    } else {
+      const t = setTimeout(prefetch, 2000);
+      return () => clearTimeout(t);
+    }
+  }, [produtos]);
+
   const filtered = produtos.filter((p) => matchesFilters(p, filters));
   const nFilters = activeFilterCount(filters);
 

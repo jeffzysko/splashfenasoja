@@ -53,5 +53,9 @@ function stripLayers(css: string): string {
 
 export default defineConfig({
   plugins: [stripCascadeLayers()],
+  // Remove console.log/warn em produção — leve ganho de CPU + bundle mais limpo
+  esbuild: {
+    drop: process.env.NODE_ENV === "production" ? ["console", "debugger"] : [],
+  },
 });
 
