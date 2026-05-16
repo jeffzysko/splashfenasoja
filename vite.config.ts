@@ -1,4 +1,5 @@
 import { defineConfig } from '@lovable.dev/vite-tanstack-config';
+import type { OutputBundle } from 'rollup';
 
 // Vite plugin: remove CSS Cascade Layers (@layer) wrappers from compiled output.
 // Needed for Chrome < 99 (e.g. Chrome 88) which does not support @layer.
@@ -13,7 +14,7 @@ function stripCascadeLayers() {
       if (!id.includes('.css') && !id.endsWith('.css')) return;
       return { code: stripLayers(code), map: null };
     },
-    generateBundle(_opts: unknown, bundle: Record<string, { type: string; source?: string; code?: string }>) {
+    generateBundle(_opts: unknown, bundle: OutputBundle) {
       for (const file of Object.values(bundle)) {
         if (file.type === 'asset' && typeof file.source === 'string' && file.source.includes('@layer')) {
           file.source = stripLayers(file.source);
