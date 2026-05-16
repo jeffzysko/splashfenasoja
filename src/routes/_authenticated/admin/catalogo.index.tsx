@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { thumbUrl, makeImgErrorHandler } from "@/lib/imageUtils";
 
 export const Route = createFileRoute("/_authenticated/admin/catalogo/")({
   component: CatalogoPage,
@@ -478,11 +479,12 @@ function ProductCard({ produto, onClick }: {
       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
         {coverUrl ? (
           <img
-            src={coverUrl}
+            src={thumbUrl(coverUrl, 400, 70) ?? undefined}
             alt={produto.nome}
             className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
             loading="lazy"
-            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+            decoding="async"
+            onError={makeImgErrorHandler(coverUrl)}
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
@@ -862,7 +864,7 @@ function ProductDetail({
                 ? "border-sky-400 ring-2 ring-sky-400/30 scale-105"
                 : "border-white/10 opacity-50 hover:opacity-95 hover:border-white/35 hover:scale-105"
             )}>
-            <img src={url} alt="" className="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-110" />
+            <img src={thumbUrl(url, 120, 60) ?? url} alt="" className="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-110" loading="lazy" decoding="async" />
           </button>
         ))}
       </div>
@@ -896,10 +898,11 @@ function ProductDetail({
           {currentUrl ? (
             <img
               key={currentUrl}
-              src={currentUrl}
+              src={thumbUrl(currentUrl, 1200, 85) ?? currentUrl}
               alt={`${produto.nome} — foto ${photoIdx + 1}`}
               draggable={false}
               className="absolute inset-0 w-full h-full object-contain select-none animate-in fade-in duration-200"
+              onError={makeImgErrorHandler(currentUrl)}
               style={{
                 transform: zoomed ? "scale(2.6)" : "scale(1)",
                 transformOrigin: `${zoomOrigin.x}% ${zoomOrigin.y}%`,
