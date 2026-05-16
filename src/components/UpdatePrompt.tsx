@@ -7,7 +7,7 @@ import { RefreshCw, Sparkles, X, Zap } from "lucide-react";
  * publicada difere da que está rodando no cliente.
  *
  * - Polling a cada 60s + ao voltar para a aba (visibilitychange).
- * - "Atualizar agora" força reload imediato com cache-bust agressivo.
+ * - "Atualizar agora" limpa TODO o cache ANTES de recarregar (corrigido).
  * - "Mais tarde" esconde até a próxima checagem encontrar nova versão.
  */
 
@@ -52,17 +52,15 @@ export function UpdatePrompt() {
     };
   }, [check]);
 
-  const reload = async (immediate: boolean) => {
+  const reload = async () => {
     setPhase("clearing");
     try {
-      if (!immediate && "caches" in window) {
+      // 1. Limpar TODOS os caches do SW (AWAIT obrigatório antes de recarregar)
+      if ("caches" in window) {
         const keys = await caches.keys();
         await Promise.all(keys.map((k) => caches.delete(k)));
-      } else if (immediate && "caches" in window) {
-        // Mesmo no modo "agora", limpamos caches em paralelo (não-bloqueante)
-        // para não atrasar o reload.
-        caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
       }
+      // 2. Desregistrar todos os service workers
       if ("serviceWorker" in navigator) {
         const regs = await navigator.serviceWorker.getRegistrations();
         await Promise.all(regs.map((r) => r.unregister()));
@@ -71,12 +69,14 @@ export function UpdatePrompt() {
       // segue para reload mesmo se a limpeza falhar
     }
     setPhase("reloading");
-    const url = new URL(window.location.href);
-    url.searchParams.set("v", latest ?? String(Date.now()));
-    // pequeno delay para o usuário ver o estado "Recarregando…"
-    window.setTimeout(() => {
-      window.location.replace(url.toString());
-    }, immediate ? 0 : 200);
+    // 3. Pequeno delay para o usuário ver "Recarregando…" e o SW terminar
+    await new Promise((r) => setTimeout(r, 300));
+    // 4. Hard reload — ignora cache do browser também
+    window.location.href =
+      window.location.origin +
+      window.location.pathname.replace(/\?.*$/, "") +
+      "?nocache=" +
+      Date.now();
   };
 
   const show = latest && latest !== dismissed;
@@ -122,14 +122,14 @@ export function UpdatePrompt() {
           )}
         </div>
 
-        {/* Linha 2: barra de progresso indeterminada quando ocupado */}
+        {/* Barra de progresso quando ocupado */}
         {busy && (
           <div className="h-1 bg-white/10 overflow-hidden">
             <div className="h-full w-1/3 bg-primary animate-[slide_1.2s_ease-in-out_infinite]" />
           </div>
         )}
 
-        {/* Linha 3: ações */}
+        {/* Ações */}
         {!busy && (
           <div className="flex items-stretch gap-2 px-3 pb-3">
             <button
@@ -139,14 +139,8 @@ export function UpdatePrompt() {
               Mais tarde
             </button>
             <button
-              onClick={() => reload(false)}
-              className="flex-1 h-10 rounded-xl text-xs font-black uppercase tracking-wide bg-white/15 hover:bg-white/20 active:scale-[0.98] transition"
-            >
-              Atualizar
-            </button>
-            <button
-              onClick={() => reload(true)}
-              className="flex-[1.2] h-10 rounded-xl text-xs font-black uppercase tracking-wide bg-primary text-primary-foreground active:scale-[0.98] transition flex items-center justify-center gap-1.5"
+              onClick={reload}
+              className="flex-[1.5] h-10 rounded-xl text-xs font-black uppercase tracking-wide bg-primary text-primary-foreground active:scale-[0.98] transition flex items-center justify-center gap-1.5"
             >
               <Zap className="w-3.5 h-3.5" />
               Atualizar agora
