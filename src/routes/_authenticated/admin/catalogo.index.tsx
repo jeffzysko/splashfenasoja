@@ -476,12 +476,12 @@ function ProductCard({ produto, onClick }: {
       className="group relative flex flex-col rounded-2xl overflow-hidden bg-card border border-border text-left transition-all duration-300 hover:border-sky-400/40 hover:shadow-lg hover:shadow-sky-100 hover:-translate-y-0.5 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
     >
       {/* Photo */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+      <div className="relative h-40 sm:h-44 overflow-hidden bg-muted">
         {coverUrl ? (
           <img
             src={coverUrl ?? undefined}
             alt={produto.nome}
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
           />
         ) : (
@@ -878,7 +878,7 @@ function ProductDetail({
       {/* ── Photo area ── fixed height on mobile / flex-1 on desktop ────── */}
       <div className={cn(
         "relative flex flex-col bg-[#00060f]",
-        "h-[45dvh] shrink-0",               // mobile/tablet: fixed top slice
+        "h-45dvh shrink-0",               // mobile/tablet: fixed top slice
         "lg:h-auto lg:flex-1 lg:min-w-0"   // desktop: fills remaining width
       )}>
 

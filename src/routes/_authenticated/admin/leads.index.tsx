@@ -708,7 +708,7 @@ function LeadsListPage() {
         <div
           ref={parentRef}
           className="pb-4"
-          style={{ height: "calc(100dvh - 304px - env(safe-area-inset-top) - env(safe-area-inset-bottom))", overflow: "auto" }}
+          style={{ height: "calc(100vh - 304px - env(safe-area-inset-top) - env(safe-area-inset-bottom))", overflow: "auto" }}
         >
           <div
             style={{

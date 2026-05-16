@@ -342,3 +342,27 @@
 .animate-in img {
   animation-fill-mode: both;
 }
+
+/* ─── Chrome 88: dvh não suportado (adicionado no Chrome 108) ───────────────
+ * Tailwind gera min-h-dvh como min-height: 100dvh — inválido no Chrome 88,
+ * a declaração é ignorada e o container fica sem altura mínima.
+ * Aqui sobrescrevemos com o padrão de fallback CSS progressivo:
+ *   primeiro 100vh (suportado desde sempre), depois 100dvh (browsers modernos).
+ * O browser usa o último valor válido que conseguir parsear.
+ * ─────────────────────────────────────────────────────────────────────────── */
+.min-h-dvh {
+  min-height: 100vh;   /* fallback Chrome 88 */
+  min-height: 100dvh;  /* override browsers modernos */
+}
+
+/* h-dvh — usado em componentes que precisam de altura exata da viewport */
+.h-dvh {
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* Classe utilitária para 45dvh com fallback (usada no lightbox do catálogo) */
+.h-45dvh {
+  height: 45vh;
+  height: 45dvh;
+}
