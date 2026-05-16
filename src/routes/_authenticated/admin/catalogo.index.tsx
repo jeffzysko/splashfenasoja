@@ -196,7 +196,23 @@ function CatalogoPage() {
     });
   }, [user?.id]);
 
+  const PRODUTOS_CACHE_KEY = "catalogo_produtos_v1";
+  const PRODUTOS_CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+
   const loadProdutos = useCallback(async () => {
+    // Cache rápido via sessionStorage — evita re-fetch toda vez que admin visita catálogo
+    try {
+      const raw = sessionStorage.getItem(PRODUTOS_CACHE_KEY);
+      if (raw) {
+        const { ts, produtos: cached } = JSON.parse(raw) as { ts: number; produtos: Produto[] };
+        if (Date.now() - ts < PRODUTOS_CACHE_TTL) {
+          setProdutos(cached);
+          setLoading(false);
+          return; // dados frescos do cache — sem request ao Supabase
+        }
+      }
+    } catch { /**/ }
+
     setLoading(true);
     const { data } = await supabase
       .from("produtos")
@@ -204,8 +220,14 @@ function CatalogoPage() {
       .eq("ativo", true)
       .order("ordem", { ascending: true })
       .order("created_at", { ascending: true });
-    setProdutos((data as unknown as Produto[]) ?? []);
+    const lista = (data as unknown as Produto[]) ?? [];
+    setProdutos(lista);
     setLoading(false);
+
+    // Persiste no sessionStorage para próximas visitas na mesma sessão
+    try {
+      sessionStorage.setItem(PRODUTOS_CACHE_KEY, JSON.stringify({ ts: Date.now(), produtos: lista }));
+    } catch { /**/ }
   }, []);
 
   useEffect(() => { loadProdutos(); }, [loadProdutos]);

@@ -88,6 +88,12 @@ export const Route = createRootRoute({
         href: "https://fonts.gstatic.com",
         crossOrigin: "anonymous",
       },
+      // Preload da CSS de fontes — inicia download antes do parser chegar no <link>
+      {
+        rel: "preload",
+        as: "style",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap",
+      },
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap",

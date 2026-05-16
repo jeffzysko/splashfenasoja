@@ -8,7 +8,7 @@
 // IMPORTANTE: incrementar CACHE_VERSION a cada deploy para invalidar caches antigos.
 // O timestamp de build é injetado pelo servidor mas como fallback usamos uma string fixa
 // que deve ser alterada manualmente quando necessário.
-const CACHE_VERSION = "splash-v3-" + (self.__BUILD_TS__ || "20260516");
+const CACHE_VERSION = "splash-v4-" + (self.__BUILD_TS__ || "20260516");
 const CACHE_NAME = CACHE_VERSION;
 
 // Assets pré-cacheados no install (app shell essencial — apenas imagens estáticas)
@@ -58,9 +58,30 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Ignorar: não-GET, cross-origin, Supabase API, Edge Functions
+  // Ignorar requisições não-GET
   if (request.method !== "GET") return;
-  if (url.origin !== self.location.origin) return;
+
+  // Cross-origin: apenas Supabase Storage recebe cache; tudo mais passa direto
+  if (url.origin !== self.location.origin) {
+    const isSupabaseStorage =
+      url.hostname === "ezehjzvbztsgqpnhmsvg.supabase.co" &&
+      url.pathname.startsWith("/storage/v1/object/public/");
+    if (!isSupabaseStorage) return;
+
+    // Cache-first para imagens do catálogo no Supabase Storage
+    event.respondWith(
+      caches.open(CACHE_NAME).then(async (cache) => {
+        const cached = await cache.match(request);
+        if (cached) return cached;
+        const res = await fetch(request).catch(() => null);
+        if (res?.ok) cache.put(request, res.clone());
+        return res ?? Response.error();
+      })
+    );
+    return;
+  }
+
+  // Same-origin: ignorar Supabase API, Auth e Edge Functions
   if (
     url.pathname.startsWith("/rest/") ||
     url.pathname.startsWith("/auth/") ||
