@@ -173,16 +173,16 @@ function AuthenticatedLayout() {
             >
               <SlidersHorizontal className="w-5 h-5" />
             </Link>
+            <Link
+              to="/admin/catalogo"
+              className="p-2 text-muted-foreground hover:text-primary transition-colors hidden sm:inline-flex"
+              aria-label="Catálogo de produtos"
+              title="Catálogo"
+            >
+              <BookOpen className="w-5 h-5" />
+            </Link>
             {isMaster && (
               <>
-                <Link
-                  to="/admin/catalogo"
-                  className="p-2 text-muted-foreground hover:text-primary transition-colors hidden sm:inline-flex"
-                  aria-label="Catálogo de produtos"
-                  title="Catálogo"
-                >
-                  <BookOpen className="w-5 h-5" />
-                </Link>
                 <Link
                   to="/admin/feiras"
                   className="p-2 text-muted-foreground hover:text-primary transition-colors hidden sm:inline-flex"
