@@ -289,3 +289,56 @@
   60% { transform: rotate(6deg); }
   75% { transform: rotate(-3deg); }
 }
+
+/* ─── Chrome 88 animation safety ──────────────────────────────────────────────
+ * tw-animate-css define @keyframes enter apenas com `from`.
+ * Chrome 88 pode não inferir corretamente o estado `to` implícito,
+ * deixando elementos presos em opacity:0 após a animação.
+ * Sobrescrevemos aqui com um `to` explícito para garantir visibilidade.
+ * ─────────────────────────────────────────────────────────────────────────── */
+@keyframes enter {
+  from {
+    opacity: var(--tw-enter-opacity, 1);
+    transform: translate3d(
+        var(--tw-enter-translate-x, 0),
+        var(--tw-enter-translate-y, 0),
+        0
+      )
+      scale3d(
+        var(--tw-enter-scale, 1),
+        var(--tw-enter-scale, 1),
+        1
+      )
+      rotate(var(--tw-enter-rotate, 0));
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale3d(1, 1, 1) rotate(0deg);
+  }
+}
+
+@keyframes exit {
+  to {
+    opacity: var(--tw-exit-opacity, 1);
+    transform: translate3d(
+        var(--tw-exit-translate-x, 0),
+        var(--tw-exit-translate-y, 0),
+        0
+      )
+      scale3d(
+        var(--tw-exit-scale, 1),
+        var(--tw-exit-scale, 1),
+        1
+      )
+      rotate(var(--tw-exit-rotate, 0));
+  }
+}
+
+/* ─── Chrome 88: fallback para img dentro de containers animados ─────────────
+ * Se por qualquer razão a animação não completar, garante que
+ * <img> filho de .animate-in seja visível após 1s.
+ * ─────────────────────────────────────────────────────────────────────────── */
+.animate-in > img,
+.animate-in img {
+  animation-fill-mode: both;
+}
