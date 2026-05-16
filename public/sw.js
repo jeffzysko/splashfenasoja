@@ -1,12 +1,17 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Splash Admin — Service Worker
-// Estratégia: cache-first para assets estáticos, network-first para navegação.
+// Estratégia: network-first para JS/CSS (garante assets frescos após deploy),
+//             cache-first para imagens/fontes, network-first para navegação.
 // Não armazena em cache rotas públicas do formulário de lead (/$slug).
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CACHE_NAME = "splash-admin-v1";
+// IMPORTANTE: incrementar CACHE_VERSION a cada deploy para invalidar caches antigos.
+// O timestamp de build é injetado pelo servidor mas como fallback usamos uma string fixa
+// que deve ser alterada manualmente quando necessário.
+const CACHE_VERSION = "splash-v3-" + (self.__BUILD_TS__ || "20260516");
+const CACHE_NAME = CACHE_VERSION;
 
-// Assets pré-cacheados no install (app shell essencial)
+// Assets pré-cacheados no install (app shell essencial — apenas imagens estáticas)
 const PRECACHE_ASSETS = [
   "/admin-manifest.webmanifest",
   "/logo_splash.svg",
@@ -29,7 +34,7 @@ self.addEventListener("install", (event) => {
   );
 });
 
-// ── Activate: limpa caches antigos ───────────────────────────────────────────
+// ── Activate: limpa TODOS os caches antigos ───────────────────────────────────
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
@@ -37,8 +42,11 @@ self.addEventListener("activate", (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((k) => k !== CACHE_NAME)
-            .map((k) => caches.delete(k))
+            .filter((k) => k !== CACHE_NAME) // remove tudo que não é a versão atual
+            .map((k) => {
+              console.log("[SW] Removendo cache antigo:", k);
+              return caches.delete(k);
+            })
         )
       )
       .then(() => self.clients.claim())
@@ -64,36 +72,45 @@ self.addEventListener("fetch", (event) => {
   const pathname = url.pathname;
 
   // Rotas do formulário público (/$slug) → passa pela rede sem cache
+  const isStaticAsset = /\.(js|css|png|svg|jpg|jpeg|webp|woff2?|ico|webmanifest|mp3|wav)$/.test(pathname);
   const isPublicForm =
     !pathname.startsWith("/admin") &&
     !pathname.startsWith("/login") &&
     !pathname.startsWith("/reset-password") &&
     pathname !== "/" &&
-    // assets estáticos de qualquer rota são cacheados (ver abaixo)
-    !/\.(js|css|png|svg|jpg|jpeg|webp|woff2?|ico|json|webmanifest|mp3|wav)$/.test(
-      pathname
-    );
+    !isStaticAsset;
 
   if (isPublicForm) return; // network-only para formulário público
 
-  // ── Assets estáticos: stale-while-revalidate ─────────────────────────────
-  if (
-    /\.(js|css|png|svg|jpg|jpeg|webp|woff2?|ico|json|webmanifest|mp3|wav)$/.test(
-      pathname
-    )
-  ) {
+  // ── JS e CSS: NETWORK-FIRST (garante assets frescos após deploy) ──────────
+  // Se a rede falhar, usa cache. Isso evita servir JS/CSS desatualizados.
+  if (/\.(js|css)$/.test(pathname) || url.search.includes("?v=")) {
+    event.respondWith(
+      fetch(request)
+        .then((res) => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return res;
+        })
+        .catch(async () => {
+          const cached = await caches.match(request);
+          return cached ?? Response.error();
+        })
+    );
+    return;
+  }
+
+  // ── Imagens e fontes: cache-first (raramente mudam) ───────────────────────
+  if (/\.(png|svg|jpg|jpeg|webp|woff2?|ico|webmanifest|mp3|wav)$/.test(pathname)) {
     event.respondWith(
       caches.open(CACHE_NAME).then(async (cache) => {
         const cached = await cache.match(request);
-        // Revalida em background
-        const networkFetch = fetch(request)
-          .then((res) => {
-            if (res.ok) cache.put(request, res.clone());
-            return res;
-          })
-          .catch(() => null);
-        // Retorna cache imediatamente se existir; caso contrário aguarda rede
-        return cached ?? (await networkFetch) ?? Response.error();
+        if (cached) return cached;
+        const res = await fetch(request).catch(() => null);
+        if (res?.ok) cache.put(request, res.clone());
+        return res ?? Response.error();
       })
     );
     return;
@@ -114,7 +131,6 @@ self.addEventListener("fetch", (event) => {
         .catch(async () => {
           const cached = await caches.match(request);
           if (cached) return cached;
-          // Fallback offline: tenta retornar a página de login cacheada
           return (await caches.match("/login")) ?? Response.error();
         })
     );
