@@ -82,6 +82,9 @@ export const Route = createRootRoute({
       // • login.tsx + _authenticated.tsx → /admin-manifest.webmanifest
       // • $slug.tsx (formulário público) → sem manifest, sem PWA
       ...splashLinks,
+      // Supabase Storage — antecipa conexão DNS+TLS para imagens do catálogo
+      { rel: "preconnect", href: "https://ezehjzvbztsgqpnhmsvg.supabase.co", crossOrigin: "anonymous" },
+      { rel: "dns-prefetch", href: "https://ezehjzvbztsgqpnhmsvg.supabase.co" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       {
         rel: "preconnect",
@@ -108,6 +111,27 @@ function RootDocument() {
         <UpdatePrompt />
         <Toaster richColors position="top-center" />
         <Scripts />
+        {/* Safety net: Chrome 88 pode deixar elementos com animate-in presos em opacity:0.
+            Após 1.5s da carga, força visibilidade em qualquer elemento ainda invisível. */}
+        <script dangerouslySetInnerHTML={{ __html: `
+(function(){
+  function fixStuckAnimations(){
+    var els = document.querySelectorAll('.animate-in');
+    for(var i=0;i<els.length;i++){
+      var el=els[i];
+      var s=window.getComputedStyle(el);
+      if(parseFloat(s.opacity)<0.05){
+        el.style.cssText+=";opacity:1!important;transform:none!important;animation:none!important";
+      }
+    }
+  }
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',function(){setTimeout(fixStuckAnimations,1500);});
+  } else {
+    setTimeout(fixStuckAnimations,1500);
+  }
+})();
+` }} />
       </body>
     </html>
   );
