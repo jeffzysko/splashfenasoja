@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -36,31 +35,55 @@ async function syncLeadToQuintal(payload: {
   const quintalUrl = Deno.env.get("QUINTAL_URL");
   const quintalSecret = Deno.env.get("QUINTAL_INTEGRATION_SECRET");
 
-  if (!quintalUrl || !quintalSecret) return;
+  if (!quintalUrl || !quintalSecret) {
+    console.error("quintal-sync: QUINTAL_URL ou QUINTAL_INTEGRATION_SECRET não configurados — lead NÃO enviado ao quintalideal", {
+      lead_id: payload.lead_id,
+      quintalUrl: quintalUrl ? "✓ definido" : "✗ AUSENTE",
+      quintalSecret: quintalSecret ? "✓ definido" : "✗ AUSENTE",
+    });
+    return;
+  }
+
+  const endpoint = `${quintalUrl}/functions/v1/receber-lead-feira`;
+  console.log("quintal-sync: iniciando envio", { lead_id: payload.lead_id, endpoint });
 
   try {
-    const res = await fetch(`${quintalUrl}/functions/v1/receber-lead-feira`, {
+    const res = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-integration-secret": quintalSecret,
       },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(10_000),
     });
 
+    const txt = await res.text().catch(() => "");
     if (!res.ok) {
-      const txt = await res.text().catch(() => "");
-      console.warn(`quintal-sync: HTTP ${res.status}`, txt.slice(0, 200));
+      console.error(`quintal-sync: HTTP ${res.status} — lead NÃO inserido no quintalideal`, {
+        lead_id: payload.lead_id,
+        status: res.status,
+        body: txt.slice(0, 300),
+      });
     } else {
-      console.log("quintal-sync: lead enviado com sucesso", payload.lead_id);
+      console.log("quintal-sync: lead enviado com sucesso ✓", {
+        lead_id: payload.lead_id,
+        response: txt.slice(0, 200),
+      });
     }
   } catch (e) {
-    console.error("quintal-sync: erro ao enviar lead", e);
+    console.error("quintal-sync: erro de rede ao enviar lead", {
+      lead_id: payload.lead_id,
+      error: String(e),
+    });
   }
 }
 
-serve(async (req) => {
+// ─── Handler principal ───────────────────────────────────────────────────────
+// Migrado de serve() (std antigo) para Deno.serve() — padrão atual Supabase Edge Functions.
+// IMPORTANTE: o sync com quintalideal usa EdgeRuntime.waitUntil() para garantir que
+// o fetch completa mesmo após a response ser enviada ao cliente.
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -176,10 +199,19 @@ serve(async (req) => {
       quintalFranquiaIds = Array.isArray(feiraData?.quintal_franquia_ids)
         ? feiraData.quintal_franquia_ids
         : [];
+
+      if (quintalFranquiaIds.length === 0) {
+        console.warn("quintal-sync: feira sem quintal_franquia_ids configurados — territory matching usará fallback", {
+          feira_id,
+          feira_nome: fairaNome,
+        });
+      }
     }
 
-    // ── Sincroniza com o quintalideal (fire-and-forget) ─────────────────────
-    syncLeadToQuintal({
+    // ── Sincroniza com quintalideal ──────────────────────────────────────────
+    // USA EdgeRuntime.waitUntil() para garantir que o fetch completa após a
+    // response ser enviada. Sem isso, o runtime cancela promises pendentes.
+    const syncPayload = {
       lead_id:            data.id,
       feira_id:           feira_id           || null,
       feira_nome:         fairaNome,
@@ -200,7 +232,15 @@ serve(async (req) => {
       utm_medium:         utm_medium         || null,
       utm_campaign:       utm_campaign       || null,
       ip,
-    });
+    };
+
+    // EdgeRuntime.waitUntil garante execução pós-response no Supabase Edge Runtime
+    if (typeof EdgeRuntime !== "undefined") {
+      EdgeRuntime.waitUntil(syncLeadToQuintal(syncPayload));
+    } else {
+      // Fallback para ambiente local / testes
+      syncLeadToQuintal(syncPayload).catch((e) => console.error("sync fallback error:", e));
+    }
 
     return new Response(
       JSON.stringify({ success: true, leadId: data.id, score: data.score, temperatura: data.temperatura }),
